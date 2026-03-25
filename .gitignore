@@ -1,4 +1,12 @@
-public/life-clock-src/
-protected/travel-calendar-src/
+# Built output - keep committed for GitHub Pages
+# public/life-clock/ is intentionally tracked
+
+# Source node_modules
+src/life-clock/node_modules/
+src/life-clock-nested/node_modules/
+
+# Private folder
 private/
+
+# Planning docs (MEGA-backed, not needed in git)
 docs/
