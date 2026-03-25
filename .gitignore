@@ -1,12 +1,13 @@
-# Built output - keep committed for GitHub Pages
-# public/life-clock/ is intentionally tracked
+# Built output - intentionally tracked for GitHub Pages deployment
+# pages/public/life-clock/ is tracked
+# pages/protected/ is tracked
 
-# Source node_modules
-src/life-clock/node_modules/
-src/life-clock-nested/node_modules/
+# Source code and scripts (local only, not deployed)
+src/
+scripts/
 
-# Private folder
-private/
+# Private folder (sensitive content)
+pages/private/
 
 # Planning docs (MEGA-backed, not needed in git)
 docs/
