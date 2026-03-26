@@ -1,13 +1,16 @@
 # Built output - intentionally tracked for GitHub Pages deployment
-# pages/public/life-clock/ is tracked
-# pages/protected/ is tracked
+# contents/pages/public/life/life-clock/ is tracked
+# contents/pages/protected/ is tracked
 
 # Source code and scripts (local only, not deployed)
-src/
-scripts/
+contents/src/
+contents/scripts/
 
 # Private folder (sensitive content)
-pages/private/
+contents/pages/private/
 
 # Planning docs (MEGA-backed, not needed in git)
-docs/
+contents/docs/
+
+# Claude Code local data
+.claude/
