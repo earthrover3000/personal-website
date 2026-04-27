@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Travel Calendar</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+
+  <!-- FullCalendar -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.11/index.global.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.11/index.global.min.js"></script>
+
+  <!-- ical.js for parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
+
+  <style>
+    :root {
+      --ink: #1a1410;
+      --paper: #f5f0e8;
+      --paper-dark: #ede6d6;
+      --accent: #c4622d;
+      --accent-light: #e8956a;
+      --muted: #8a7d6b;
+      --border: #d4c9b5;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+    }
+
+    /* Subtle grain texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 24px 64px;
+    }
+
+    header {
+      margin-bottom: 48px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 32px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .logo-group h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      color: var(--ink);
+    }
+
+    .logo-group h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .logo-group p {
+      margin-top: 8px;
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .status-dot {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .status-dot span {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent-light);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    /* Calendar container */
+    #calendar-container {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 24px;
+      box-shadow: 4px 4px 0 var(--paper-dark);
+    }
+
+    #loading {
+      text-align: center;
+      padding: 80px 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+    }
+
+    #loading::after {
+      content: '';
+      display: block;
+      width: 32px;
+      height: 2px;
+      background: var(--accent);
+      margin: 16px auto 0;
+      animation: load 1.2s ease-in-out infinite alternate;
+    }
+
+    @keyframes load { from { width: 32px; } to { width: 120px; } }
+
+    #error-msg {
+      display: none;
+      text-align: center;
+      padding: 60px 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.8;
+    }
+
+    #error-msg strong { color: var(--accent); display: block; font-size: 1rem; margin-bottom: 8px; }
+
+    /* FullCalendar overrides */
+    .fc {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.82rem;
+    }
+
+    .fc .fc-toolbar-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-weight: 400;
+      color: var(--ink);
+    }
+
+    .fc .fc-button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--ink);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-radius: 1px;
+      padding: 6px 14px;
+      transition: all 0.15s;
+    }
+
+    .fc .fc-button:hover {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: var(--paper);
+    }
+
+    .fc .fc-button-primary:not(:disabled).fc-button-active,
+    .fc .fc-button-primary:not(:disabled):active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .fc .fc-button:focus { box-shadow: none; }
+
+    .fc th {
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 400;
+      padding: 10px 0;
+    }
+
+    .fc td, .fc th { border-color: var(--border) !important; }
+
+    .fc .fc-day-today {
+      background: rgba(196, 98, 45, 0.06) !important;
+    }
+
+    .fc .fc-daygrid-day-number {
+      color: var(--ink);
+      font-size: 0.75rem;
+      padding: 6px 8px;
+    }
+
+    .fc .fc-day-today .fc-daygrid-day-number {
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      margin: 4px;
+      font-size: 0.72rem;
+    }
+
+    .fc .fc-event {
+      border-radius: 1px;
+      border: none;
+      font-size: 0.72rem;
+      font-family: 'DM Mono', monospace;
+      padding: 2px 5px;
+      cursor: pointer;
+    }
+
+    /* Alternating event colors for different trips */
+    .fc .fc-event:nth-child(3n+1) { background: var(--accent); }
+    .fc .fc-event:nth-child(3n+2) { background: #4a7c6b; }
+    .fc .fc-event:nth-child(3n+3) { background: #5c6e8a; }
+
+    .fc .fc-event-title { font-weight: 400; }
+
+    .fc-list-event-dot { border-color: var(--accent) !important; }
+
+    /* Tooltip / event popup */
+    .event-popup {
+      position: fixed;
+      background: var(--ink);
+      color: var(--paper);
+      padding: 14px 18px;
+      border-radius: 2px;
+      font-size: 0.75rem;
+      line-height: 1.7;
+      max-width: 260px;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .event-popup.visible { opacity: 1; }
+    .event-popup strong { display: block; font-size: 0.85rem; margin-bottom: 4px; }
+    .event-popup .date-range { color: var(--accent-light); font-size: 0.68rem; }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+  <header>
+    <div class="logo-group">
+      <h1>Travel <em>Almanac</em></h1>
+      <p>Upcoming journeys &amp; adventures</p>
+    </div>
+    <div class="status-dot">
+      <span></span> Live calendar
+    </div>
+  </header>
+
+  <div id="calendar-container">
+    <div id="loading">Loading calendar…</div>
+    <div id="error-msg">
+      <strong>Couldn't load calendar</strong>
+      The calendar feed may be private or temporarily unavailable.<br>
+      Try opening the page from a browser that can reach iCloud.
+    </div>
+    <div id="calendar" style="display:none"></div>
+  </div>
+</div>
+
+<div class="event-popup" id="popup"></div>
+
+<script>
+  const ICAL_URL = 'https://p155-caldav.icloud.com/published/2/MTgyNjcxMzg3MjExODI2N9aLU9CB8BONpC7t22mxbdHgSOf_5VPmrprIe6Xoj9kOqD4t-oTi7tzqPIOcNUp8x4fgz44XgPdmr1OjjbwFiMU';
+
+  // CORS proxy to fetch iCal data
+  const PROXY = 'https://corsproxy.io/?' + encodeURIComponent(ICAL_URL);
+
+  async function loadCalendar() {
+    let icsText;
+    try {
+      const res = await fetch(PROXY);
+      if (!res.ok) throw new Error('fetch failed');
+      icsText = await res.text();
+    } catch (e) {
+      console.error('Failed to fetch calendar:', e);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error-msg').style.display = 'block';
+      return;
+    }
+
+    // Parse iCal
+    const jcal = ICAL.parse(icsText);
+    const comp = new ICAL.Component(jcal);
+    const vevents = comp.getAllSubcomponents('vevent');
+
+    const events = vevents.map(vevent => {
+      const ev = new ICAL.Event(vevent);
+      const start = ev.startDate;
+      const end = ev.endDate;
+
+      return {
+        title: ev.summary || '(No title)',
+        start: start.toJSDate(),
+        end: end ? end.toJSDate() : undefined,
+        allDay: start.isDate,
+        extendedProps: {
+          description: ev.description || '',
+          location: ev.location || ''
+        }
+      };
+    });
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('calendar').style.display = 'block';
+
+    const calEl = document.getElementById('calendar');
+    const popup = document.getElementById('popup');
+
+    const calendar = new FullCalendar.Calendar(calEl, {
+      initialView: 'dayGridMonth',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,listMonth'
+      },
+      buttonText: {
+        today: 'Today',
+        month: 'Month',
+        listMonth: 'List'
+      },
+      events: events,
+      height: 'auto',
+      eventMouseEnter(info) {
+        const ep = info.event.extendedProps;
+        const start = info.event.start ? info.event.start.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
+        const end = info.event.end ? info.event.end.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
+        popup.innerHTML = `
+          <strong>${info.event.title}</strong>
+          <div class="date-range">${start}${end && end !== start ? ' → ' + end : ''}</div>
+          ${ep.location ? `<div style="margin-top:6px;opacity:.8">📍 ${ep.location}</div>` : ''}
+          ${ep.description ? `<div style="margin-top:4px;opacity:.65;font-size:.68rem">${ep.description.slice(0,120)}${ep.description.length > 120 ? '…' : ''}</div>` : ''}
+        `;
+        popup.classList.add('visible');
+      },
+      eventMouseLeave() {
+        popup.classList.remove('visible');
+      },
+      eventDidMount(info) {
+        // Color events by hash of title for consistent per-trip colors
+        const colors = ['#c4622d','#4a7c6b','#5c6e8a','#8b5e3c','#6b4a7c','#3c7c6e'];
+        let hash = 0;
+        for (let c of info.event.title) hash = (hash * 31 + c.charCodeAt(0)) & 0xffff;
+        info.el.style.background = colors[hash % colors.length];
+        info.el.style.borderColor = 'transparent';
+      }
+    });
+
+    calendar.render();
+
+    // Move popup with mouse
+    document.addEventListener('mousemove', e => {
+      popup.style.left = (e.clientX + 14) + 'px';
+      popup.style.top = (e.clientY + 14) + 'px';
+    });
+  }
+
+  loadCalendar();
+</script>
+</body>
+</html>
+ 
