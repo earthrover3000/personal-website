@@ -1,0 +1,165 @@
+/* Index-page-specific styles (root, protected, private). Layered on top of
+   base.css — theme tokens, body, h1, .head-meta, .container, .back-link
+   live there. Index pages render block-style anchor links and sidebar
+   layouts that don't apply to docs pages. */
+
+ul { list-style: none; padding: 0; margin: 0; }
+li { margin: 0.2rem 0; }
+
+/* Block-style page-list links are the index-page tap-target pattern. Scoped
+   to .row (the main + side columns wrapper) so the rule can't leak into
+   .head-meta a or .back-link, both of which need inline behavior. */
+.row a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  display: block;
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.row a:hover { background: var(--surface); text-decoration: underline; }
+
+hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
+
+/* Page-tier subtitle below the h1 (e.g. "Protected Index"). Negative top
+   margin pulls it close to the h1 so they read as one heading unit.
+   Distinct from .head-meta (used for build info / line counts) — this
+   carries the access-tier label only. */
+.subtitle {
+  margin-top: -1rem;
+  margin-bottom: 1.2rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+
+/* .search-hidden + .filter live in base.css (shared with site-map). */
+
+/* Tier-nav dropdown in the side column — replaces a multi-row text list
+   of accessible indexes. Fixed height (one row) regardless of how many
+   tiers it contains, so the docs/meta entries below stay in a stable
+   vertical position when navigating between tiers. Styled to match the
+   surrounding <a> rows (same font-size, line-height, padding, radius)
+   so the side column reads as one coherent list. */
+.tier-nav-row { padding: 0; }
+.tier-nav {
+  width: 100%;
+  font-family: inherit;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  padding: 0.35rem 2rem 0.35rem 0.8rem;
+  background: transparent;
+  /* Closed-state text uses the body text colour, not the accent — the
+     visible "current tier" name reads as a "you are here" label, not as
+     a clickable link. The accent-coloured chevron (background-image)
+     signals that the box itself is still interactive. */
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237c9ef5' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.tier-nav:hover { background-color: var(--surface); border-color: var(--accent); }
+.tier-nav:focus { outline: none; border-color: var(--accent); }
+/* Open-dropdown options: navigable tiers shown in accent (link colour),
+   current tier shown in body text colour. Browser support for option
+   styling varies — Chromium honours these in the popup, Firefox partially,
+   Safari/system pickers minimally. */
+.tier-nav option { color: var(--accent); background-color: var(--bg); }
+.tier-nav option:checked { color: var(--text); }
+@media (prefers-color-scheme: light) {
+  .tier-nav { background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%233a5fd9' d='M6 8 0 0h12z'/%3E%3C/svg%3E"); }
+}
+
+/* .filter rule is in base.css; only the row layout below stays index-specific. */
+
+.row { display: flex; gap: 2rem; align-items: flex-start; }
+.main { flex: 1; min-width: 0; }
+.side { flex: 0 0 50%; }
+.side hr { margin: 0.8rem 0; }
+
+@media (max-width: 600px) {
+  .row { flex-direction: column; gap: 0; }
+  .side { border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem; }
+}
+
+/* Apps section — installable apps render as cards (icon + name + description + Open).
+   No bottom margin: the page list sits flush against the app card, shifting all
+   page links up by one side-column row pitch (li's outer height ≈ 2.44rem)
+   relative to the index/docs links. On the private index this puts "Travel
+   Calendar" (the second page link) on the same baseline as "Site Map" (the
+   first docs link in the side column), not "Life Clock". */
+.apps { display: flex; flex-direction: column; gap: 0.6rem; margin: 0.2rem 0 0; }
+
+a.app-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.7rem 0.9rem;
+  /* Outer height 4.68rem = exact span of two side-list rows top-to-bottom:
+     row 1 visual height (2.24rem = 1.54 line + 0.7 padding) + inter-row gap
+     (0.2rem collapsed margin) + row 2 visual height (2.24rem) = 4.68rem.
+     This makes card's top align with side row 1 top, and card's bottom align
+     with side row 2 bottom — and the page-list rows BELOW the card then
+     line up exactly with side rows 3, 4, 5… min- (not fixed) so longer
+     descriptions can still grow if needed. */
+  min-height: 4.68rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 1rem;
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+}
+a.app-card:hover {
+  background: var(--surface);
+  border-color: #5fa8a8;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+@media (prefers-color-scheme: light) {
+  a.app-card:hover { border-color: #1a5757; }
+}
+.app-card__icon { width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0; display: block; }
+.app-card__body { flex: 1; min-width: 0; }
+/* Card body locked to exactly two text lines so card height is predictable
+   and baselines align with the side-column link list (which uses the same
+   1.4 line-height). Long names/descriptions truncate with an ellipsis. */
+.app-card__name {
+  /* Match the page-list and tier-nav link size (1.1rem) so the card name
+     reads at the same typographic tier as other navigable items on the page.
+     The card's icon + Open button already supply visual emphasis; the name
+     itself doesn't need to upsize to feel prominent. */
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-card__desc {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-card__open {
+  font-size: 0.8rem;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 0.18rem 0.55rem;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
