@@ -91,6 +91,17 @@
     }
     .section-heading:first-of-type { margin-top: 1rem; }
     .site-milestones { margin-top: 0; }
+    /* Line-history chart sits beneath the heading like a table would —
+       same top spacing, full width, modest max-height to keep proportions
+       readable on narrow viewports. */
+    .line-history-svg {
+      margin-top: 0.5rem;
+      max-height: 280px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
     .touched-date, .touched-block, .touched-ago { min-width: 6.5em; }
     .touched-date { display: inline-block; }
     .touched-block, .touched-ago { display: none; }
@@ -105,7 +116,7 @@
   <div class="container">
     <a class="back-link" href="../../../../">&larr; home</a>
     <h1>Site stats</h1>
-    <p class="built">Built 2026-05-05 03:50 UTC (04:50 local)</p>
+    <p class="built">Built 2026-05-05 04:59 UTC (05:59 local)</p>
 
     <div class="view-toggle" role="radiogroup" aria-label="Date display mode">
       <span>Show dates as:</span>
@@ -122,12 +133,12 @@
   <thead><tr><th data-sort="project">Project</th><th class="num" data-sort="lines">Lines</th><th data-sort="created">Created</th><th data-sort="launched">Launched</th><th data-sort="last_touched">Last touched</th></tr></thead>
   <tbody>
     <tr><td>Life Clock</td><td class="num">1,236</td><td><span class="touched-date">2025-03-06</span><span class="touched-block">Block 10</span><span class="touched-ago">1yr 1mo</span></td><td><span class="touched-date">2025-09-18</span><span class="touched-block">Block 14</span><span class="touched-ago">7mo</span></td><td><span class="touched-date">2026-04-26</span><span class="touched-block">Block 18</span><span class="touched-ago">9 days</span></td></tr>
-    <tr><td>Site Stats</td><td class="num">232</td><td><span class="touched-date">2026-05-04</span><span class="touched-block">Block 18</span><span class="touched-ago">1 day</span></td><td><span class="touched-date">2026-05-04</span><span class="touched-block">Block 18</span><span class="touched-ago">1 day</span></td><td><span class="touched-date">2026-05-05</span><span class="touched-block">Block 18</span><span class="touched-ago">today</span></td></tr>
+    <tr><td>Site Stats</td><td class="num">245</td><td><span class="touched-date">2026-05-04</span><span class="touched-block">Block 18</span><span class="touched-ago">1 day</span></td><td><span class="touched-date">2026-05-04</span><span class="touched-block">Block 18</span><span class="touched-ago">1 day</span></td><td><span class="touched-date">2026-05-05</span><span class="touched-block">Block 18</span><span class="touched-ago">today</span></td></tr>
     <tr><td>Chinese Language(s)</td><td class="num">106</td><td><span class="touched-date">2026-03-28</span><span class="touched-block">Block 18</span><span class="touched-ago">38 days</span></td><td><span class="touched-date">2026-03-28</span><span class="touched-block">Block 18</span><span class="touched-ago">38 days</span></td><td><span class="touched-date">2026-04-14</span><span class="touched-block">Block 18</span><span class="touched-ago">21 days</span></td></tr>
     <tr class="others"><td>Others</td><td class="num">7,805</td><td></td><td></td><td></td></tr>
   </tbody>
   <tfoot>
-    <tr class="totals"><td>Total</td><td class="num">9,379</td><td></td><td></td><td></td></tr>
+    <tr class="totals"><td>Total</td><td class="num">9,392</td><td></td><td></td><td></td></tr>
   </tfoot>
 </table>
 <h2 class="section-heading">Site history</h2>
@@ -138,6 +149,9 @@
     <tr><td>Site went live (GitHub Pages)</td><td><span class="touched-date">2026-03-23</span><span class="touched-block">Block 18</span><span class="touched-ago">43 days</span></td></tr>
   </tbody>
 </table>
+
+    <h2 class="section-heading">Line history</h2>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 240" class="line-history-svg" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;color:var(--text);"><line x1="64" y1="204.0" x2="776" y2="204.0" stroke="currentColor" stroke-opacity="0.08"/><line x1="64" y1="157.0" x2="776" y2="157.0" stroke="currentColor" stroke-opacity="0.08"/><line x1="64" y1="110.0" x2="776" y2="110.0" stroke="currentColor" stroke-opacity="0.08"/><line x1="64" y1="63.0" x2="776" y2="63.0" stroke="currentColor" stroke-opacity="0.08"/><line x1="64" y1="16.0" x2="776" y2="16.0" stroke="currentColor" stroke-opacity="0.08"/><text x="58" y="207.0" text-anchor="end" font-size="10" fill="currentColor" fill-opacity="0.55">0</text><text x="58" y="160.0" text-anchor="end" font-size="10" fill="currentColor" fill-opacity="0.55">2,500</text><text x="58" y="113.0" text-anchor="end" font-size="10" fill="currentColor" fill-opacity="0.55">5,000</text><text x="58" y="66.0" text-anchor="end" font-size="10" fill="currentColor" fill-opacity="0.55">7,500</text><text x="58" y="19.0" text-anchor="end" font-size="10" fill="currentColor" fill-opacity="0.55">10,000</text><text x="64.0" y="222" text-anchor="start" font-size="10" fill="currentColor" fill-opacity="0.55">2026-05-05</text><path d="M 64.0,27.4 L 751.0,27.4 L 776.0,27.4" fill="none" stroke="var(--accent, #7c9ef5)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
 
     <!--
       Implementation notes (not rendered to visitors):
