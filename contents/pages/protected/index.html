@@ -415,7 +415,7 @@ a.app-card:hover {
 <body>
 <div class="container">
 <h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">10,675 lines · 2,858 words 📊 · Last updated 2026-05-05</a></p>
+<p class="head-meta"><a href="site-stats/">10,675 lines · 2,858 words 📊 · Last updated <time datetime="2026-05-05T20:32:45Z" title="2026-05-05 20:32 UTC" class="relative-time">2026-05-05</time></a></p>
 <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
 <div class="row">
 <div class="main">
@@ -449,6 +449,27 @@ a.app-card:hover {
 </div>
 </div>
 <script>
+(function() {
+  // Convert <time class="relative-time" datetime="..."> to "X ago" form.
+  // Fallback (no JS) is the absolute YYYY-MM-DD already in the element body.
+  const ago = (n, unit) => `${n} ${unit}${n === 1 ? '' : 's'} ago`;
+  const fmt = (s) => {
+    if (s < 5) return 'just now';
+    if (s < 60) return `${s} seconds ago`;
+    if (s < 3600) return ago(Math.floor(s / 60), 'minute');
+    if (s < 86400) return ago(Math.floor(s / 3600), 'hour');
+    if (s < 1209600) return ago(Math.floor(s / 86400), 'day');
+    if (s < 5443200) return ago(Math.floor(s / 604800), 'week');
+    if (s < 31557600) return ago(Math.floor(s / 2629800), 'month');
+    return ago(Math.floor(s / 31557600), 'year');
+  };
+  document.querySelectorAll('time.relative-time').forEach(t => {
+    const dt = new Date(t.getAttribute('datetime'));
+    if (isNaN(dt.getTime())) return;
+    const seconds = Math.max(0, Math.floor((Date.now() - dt.getTime()) / 1000));
+    t.textContent = fmt(seconds);
+  });
+})();
 (function() {
   const f = document.querySelector('.filter');
   if (!f) return;
