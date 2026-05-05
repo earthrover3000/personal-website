@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site Stats</title>
+  <link rel="stylesheet" href="../../../../样式 Styles/docs.css">
+  <style>
+    /* ---- Stats-page-specific overrides on top of docs.css ---- */
+    .built { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+    .stats-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .stats-table tbody tr:hover { background: var(--surface); }
+    .stats-table tfoot .totals td {
+      font-weight: 600;
+      color: var(--text);
+      border-top: 1px solid var(--border);
+      border-bottom: none;
+      padding-top: 0.7rem;
+    }
+    /* Sortable column headers — JS attaches click handlers and toggles
+       .sort-asc / .sort-desc to draw the active indicator. Each header
+       has a neutral ↕ glyph at rest; active sort swaps it for ↑ or ↓ in
+       the accent colour. Same character width on every state, so
+       column widths don't shift when sort criteria change. */
+    .stats-table th[data-sort] {
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.15s;
+    }
+    .stats-table th[data-sort]:hover { color: var(--text); }
+    .stats-table th[data-sort]::after { content: ' ↕'; opacity: 0.3; }
+    .stats-table th[data-sort].sort-asc::after { content: ' ↑'; color: var(--accent); opacity: 1; }
+    .stats-table th[data-sort].sort-desc::after { content: ' ↓'; color: var(--accent); opacity: 1; }
+    /* Aggregate row for projects hidden at this tier — sits last in tbody,
+       not part of the sort, visually softened so it reads as "rest". */
+    .stats-table tbody .others td { color: var(--muted); font-style: italic; }
+    .stats-table tbody .others:hover { background: transparent; }
+
+    /* View toggle: pure-CSS swap between "date" and "block" columns.
+       Both spans render server-side; the radio state hides one or the other
+       via a body-level :has() rule. No JS required, crawler-visible. */
+    .view-toggle {
+      display: flex;
+      gap: 0.4rem;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin: 0.5rem 0 0.8rem;
+    }
+    .view-toggle input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .view-toggle label {
+      cursor: pointer;
+      padding: 0.2rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 0.8rem;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .view-toggle label:hover { color: var(--text); }
+    .view-toggle input[type="radio"]:focus-visible + label {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+    .view-toggle input[type="radio"]:checked + label {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* Lock all three spans to the same minimum width so column sizing
+       stays stable when the toggle swaps which one is visible. The widest
+       possible content across views is the date "2026-05-04" (10 chars);
+       6.5em comfortably fits all three formats at the table's font size. */
+    /* Section headings above each table ("Project history", "Site history").
+       The first heading sits closer to the view-toggle (which it follows
+       directly) — `:first-of-type` tightens its top margin. The second
+       heading gets a bigger gap above so the two tables read as separate
+       sections rather than one block. */
+    .section-heading {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 2.5rem 0 0.5rem;
+    }
+    .section-heading:first-of-type { margin-top: 1rem; }
+    .site-milestones { margin-top: 0; }
+    .touched-date, .touched-block, .touched-ago { min-width: 6.5em; }
+    .touched-date { display: inline-block; }
+    .touched-block, .touched-ago { display: none; }
+    body:has(#view-block:checked) .touched-date { display: none; }
+    body:has(#view-block:checked) .touched-block { display: inline-block; }
+    body:has(#view-ago:checked) .touched-date { display: none; }
+    body:has(#view-ago:checked) .touched-ago { display: inline-block; }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a class="back-link" href="../../../../">&larr; home</a>
+    <h1>Site stats</h1>
+    <p class="built">Built 2026-05-05 03:50 UTC (04:50 local)</p>
+
+    <div class="view-toggle" role="radiogroup" aria-label="Date display mode">
+      <span>Show dates as:</span>
+      <input type="radio" id="view-date" name="view" checked>
+      <label for="view-date">Date</label>
+      <input type="radio" id="view-block" name="view">
+      <label for="view-block">Block</label>
+      <input type="radio" id="view-ago" name="view">
+      <label for="view-ago">From today</label>
+    </div>
+
+    <h2 class="section-heading">Project history</h2>
+<table class="stats-table">
+  <thead><tr><th data-sort="project">Project</th><th class="num" data-sort="lines">Lines</th><th data-sort="created">Created</th><th data-sort="launched">Launched</th><th data-sort="last_touched">Last touched</th></tr></thead>
+  <tbody>
+    <tr><td>Life Clock</td><td class="num">1,236</td><td><span class="touched-date">2025-03-06</span><span class="touched-block">Block 10</span><span class="touched-ago">1yr 1mo</span></td><td><span class="touched-date">2025-09-18</span><span class="touched-block">Block 14</span><span class="touched-ago">7mo</span></td><td><span class="touched-date">2026-04-26</span><span class="touched-block">Block 18</span><span class="touched-ago">9 days</span></td></tr>
+    <tr><td>Site Stats</td><td class="num">232</td><td><span class="touched-date">2026-05-04</span><span class="touched-block">Block 18</span><span class="touched-ago">1 day</span></td><td><span class="touched-date">2026-05-04</span><span class="touched-block">Block 18</span><span class="touched-ago">1 day</span></td><td><span class="touched-date">2026-05-05</span><span class="touched-block">Block 18</span><span class="touched-ago">today</span></td></tr>
+    <tr><td>Chinese Language(s)</td><td class="num">106</td><td><span class="touched-date">2026-03-28</span><span class="touched-block">Block 18</span><span class="touched-ago">38 days</span></td><td><span class="touched-date">2026-03-28</span><span class="touched-block">Block 18</span><span class="touched-ago">38 days</span></td><td><span class="touched-date">2026-04-14</span><span class="touched-block">Block 18</span><span class="touched-ago">21 days</span></td></tr>
+    <tr class="others"><td>Others</td><td class="num">7,805</td><td></td><td></td><td></td></tr>
+  </tbody>
+  <tfoot>
+    <tr class="totals"><td>Total</td><td class="num">9,379</td><td></td><td></td><td></td></tr>
+  </tfoot>
+</table>
+<h2 class="section-heading">Site history</h2>
+<table class="stats-table site-milestones">
+  <thead><tr><th>Milestone</th><th>Date</th></tr></thead>
+  <tbody>
+    <tr><td>Site went live (WordPress)</td><td><span class="touched-date">2025-02-03</span><span class="touched-block">Block 10</span><span class="touched-ago">1yr 3mo</span></td></tr>
+    <tr><td>Site went live (GitHub Pages)</td><td><span class="touched-date">2026-03-23</span><span class="touched-block">Block 18</span><span class="touched-ago">43 days</span></td></tr>
+  </tbody>
+</table>
+
+    <!--
+      Implementation notes (not rendered to visitors):
+
+      Counts cover everything under contents/src/*.
+      Excludes .json (lockfiles, tsconfig), plus node_modules, dist, build,
+      and other generated directories.
+
+      "Launched" is the directory's filesystem ctime, overridable via
+      build.py's PROJECT_DATES['launched']; None = not yet launched ("—").
+
+      "Last touched" is the most recent git commit that modified files in
+      the project; falls back to filesystem mtime when source is gitignored.
+      Floor-style override via build.py's PROJECT_DATES['last_touched']:
+      auto-detected mtimes ≤ VAULT_FLOOR_DATE are suppressed as Cryptomator
+      reorg artefacts, so only genuine post-floor edits beat the override.
+
+      "Block" is the personal life interval the date falls in (see
+      block-boundaries.csv); convention is "block N = period ENDING at
+      event N" — block number = number of the upcoming event that closes it.
+    -->
+  </div>
+  <script>
+    // Click-to-sort table headers. Default order (lines descending) is what
+    // the server renders, so crawlers + JS-disabled browsers see the canonical
+    // sort. JS only affects the order; the data is already in the DOM.
+    (function () {
+      const table = document.querySelector('.stats-table');
+      if (!table) return;
+      const tbody = table.querySelector('tbody');
+      const thead = table.querySelector('thead');
+      if (!tbody || !thead) return;
+      const headers = thead.querySelectorAll('th[data-sort]');
+      const COL_IDX = { project: 0, lines: 1, created: 2, launched: 3, last_touched: 4 };
+
+      let current = { col: 'lines', dir: 'desc' };
+
+      function getKey(row, col) {
+        const td = row.children[COL_IDX[col]];
+        if (!td) return '';
+        if (col === 'lines') {
+          return parseInt(td.textContent.replace(/,/g, ''), 10) || 0;
+        }
+        if (col === 'created' || col === 'launched' || col === 'last_touched') {
+          // Sort by underlying YYYY-MM-DD even when the toggle shows blocks,
+          // so date- and block-view sort identically by chronology.
+          // Em-dash means "not launched yet" — a future date — so we map it
+          // to a high-sentinel string that lexically sorts after any
+          // YYYY-MM-DD value. This makes ascending end with `—` and
+          // descending start with `—` (unlaunched = newest possible).
+          const span = td.querySelector('.touched-date');
+          const text = span ? span.textContent.trim() : '';
+          if (text === '—' || text === '') return '￿';
+          return text;
+        }
+        return td.textContent.trim().toLowerCase();
+      }
+
+      function sortRows(col, dir) {
+        const rows = Array.from(tbody.children);
+        // Keep "Others" (the aggregate row) pinned at the bottom regardless
+        // of sort — it's not a project, just the "rest of lines" rollup.
+        const others = rows.find(r => r.classList.contains('others'));
+        const sortable = rows.filter(r => !r.classList.contains('others'));
+        sortable.sort((a, b) => {
+          const ka = getKey(a, col);
+          const kb = getKey(b, col);
+          let cmp;
+          if (typeof ka === 'number' && typeof kb === 'number') cmp = ka - kb;
+          else cmp = ka < kb ? -1 : ka > kb ? 1 : 0;
+          return dir === 'desc' ? -cmp : cmp;
+        });
+        sortable.forEach(r => tbody.appendChild(r));
+        if (others) tbody.appendChild(others);
+
+        headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+        const active = thead.querySelector('th[data-sort="' + col + '"]');
+        if (active) active.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
+        current = { col, dir };
+      }
+
+      headers.forEach(h => {
+        h.addEventListener('click', () => {
+          const col = h.dataset.sort;
+          // Click active header → toggle direction. Click new header →
+          // start with the natural direction for that column:
+          //   project   → asc (A→Z, conventional alphabetical)
+          //   lines     → desc (heaviest project leads)
+          //   launched  → asc  (oldest first, reads as a forward timeline)
+          //   last_touched → desc (most recent first, recency-leading)
+          const NATURAL_DIR = {
+            project: 'asc',
+            lines: 'desc',
+            created: 'asc',     // oldest first — timeline view
+            launched: 'asc',    // oldest first — timeline view
+            last_touched: 'desc',
+          };
+          let dir;
+          if (current.col === col) {
+            dir = current.dir === 'desc' ? 'asc' : 'desc';
+          } else {
+            dir = NATURAL_DIR[col] || 'asc';
+          }
+          sortRows(col, dir);
+        });
+      });
+
+      // Initial state: render the indicator on the default sort column.
+      sortRows(current.col, current.dir);
+    })();
+  </script>
+</body>
+</html>

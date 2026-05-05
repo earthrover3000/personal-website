@@ -9,6 +9,11 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Reserve scrollbar gutter on every page so short pages (no scrollbar) and
+   long pages (with scrollbar) use the same content width. Without this,
+   navigating from a short index to a long one shifts the layout. */
+html { scrollbar-gutter: stable; }
+
 body {
   background: #0f0f0f;
   color: #e0e0e0;
@@ -21,6 +26,16 @@ body {
 .c { max-width: 800px; margin: 0 auto; }
 
 h1 { font-size: 1.6rem; color: #e0e0e0; margin-bottom: 1.2rem; }
+
+/* Page-tier subtitle below the h1 (e.g. "Protected Index"). Negative top
+   margin pulls it close to the h1 so they read as one heading unit. */
+.subtitle {
+  margin-top: -1rem;
+  margin-bottom: 1.2rem;
+  color: #888;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
 
 ul { list-style: none; padding: 0; margin: 0; }
 li { margin: 0.2rem 0; }
@@ -39,7 +54,97 @@ a:hover { background: #1a1a1a; text-decoration: underline; }
 
 hr { border: none; border-top: 1px solid #2e2e2e; margin: 1.2rem 0; }
 
-.ts { color: #888; font-size: 0.85em; margin-top: 2em; }
+/* Status line is the merged build-info + page-subtitle metadata directly
+   under the h1. Tight margins because it functions as the h1's subtitle
+   now — pulled up close to the heading, modest air below before the filter
+   input. line-height inherits from body (1.7) so a small font yields a
+   small line-box (no need to honour the body baseline grid here). */
+.ts { color: #888; font-size: 0.85em; margin: -0.5rem 0 1rem; }
+/* The generic `a { display: block; font-size: 1.1rem; padding: ... }` rule
+   above is for the page-list links; it would otherwise turn the .ts link into
+   a full-width button-shaped block. Roll it all back here so the link reads as
+   inline text within the metadata line. */
+.ts a {
+  color: inherit;
+  text-decoration: none;
+  display: inline;
+  font-size: inherit;
+  line-height: inherit;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  transition: none;
+}
+.ts a:hover { background: none; text-decoration: underline; }
+
+/* Search filter hides non-matching entries. Uses !important because
+   a.app-card has display: flex at the same specificity as the [hidden]
+   attribute selector, which would otherwise fail to hide app cards. */
+.search-hidden { display: none !important; }
+
+/* Tier-nav dropdown in the side column — replaces a multi-row text list
+   of accessible indexes. Fixed height (one row) regardless of how many
+   tiers it contains, so the docs/meta entries below stay in a stable
+   vertical position when navigating between tiers. Styled to match the
+   surrounding <a> rows (same font-size, line-height, padding, radius)
+   so the side column reads as one coherent list. */
+.tier-nav-row { padding: 0; }
+.tier-nav {
+  width: 100%;
+  font-family: inherit;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  padding: 0.35rem 2rem 0.35rem 0.8rem;
+  background: transparent;
+  /* Closed-state text uses the body text colour, not the accent — the
+     visible "current tier" name reads as a "you are here" label, not as
+     a clickable link. The accent-coloured chevron (background-image)
+     signals that the box itself is still interactive. */
+  color: #e0e0e0;
+  border: 1px solid #2e2e2e;
+  border-radius: 6px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237c9ef5' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.tier-nav:hover { background-color: #1a1a1a; border-color: #7c9ef5; }
+.tier-nav:focus { outline: none; border-color: #7c9ef5; }
+/* Open-dropdown options: navigable tiers shown in accent blue (link colour),
+   current tier shown in body text colour (matches the closed-state label).
+   Browser support for option styling varies — Chromium honours these in the
+   popup, Firefox partially, Safari/system pickers minimally. */
+.tier-nav option { color: #7c9ef5; background-color: #0f0f0f; }
+.tier-nav option:checked { color: #e0e0e0; }
+@media (prefers-color-scheme: light) {
+  .tier-nav { color: #1a1a1a; border-color: #d0d0d0; background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%233a5fd9' d='M6 8 0 0h12z'/%3E%3C/svg%3E"); }
+  .tier-nav:hover { background-color: #e8e8e8; border-color: #3a5fd9; }
+  .tier-nav:focus { border-color: #3a5fd9; }
+  .tier-nav option { color: #3a5fd9; background-color: #ffffff; }
+  .tier-nav option:checked { color: #1a1a1a; }
+}
+
+/* As-you-type filter for index entries. Sits above .row so both columns
+   shift down equally; the in-row alignment between page list and side
+   column is preserved. */
+.filter {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.8rem;
+  margin-bottom: 1rem;
+  background: #1a1a1a;
+  border: 1px solid #2e2e2e;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-family: inherit;
+  font-size: 1rem;
+}
+.filter:focus { outline: none; border-color: #5fa8a8; }
+.filter::placeholder { color: #888; }
 
 .row { display: flex; gap: 2rem; align-items: flex-start; }
 .main { flex: 1; min-width: 0; }
@@ -58,16 +163,36 @@ hr { border: none; border-top: 1px solid #2e2e2e; margin: 1.2rem 0; }
   a:hover { background: #e8e8e8; }
   hr { border-top-color: #d0d0d0; }
   .side { border-top-color: #d0d0d0; }
+  .filter { background: #ffffff; border-color: #d8d8d8; color: #1a1a1a; }
+  .filter:focus { border-color: #1a5757; }
+  .filter::placeholder { color: #999; }
+  .subtitle { color: #666; }
 }
 
-/* Apps section — installable apps render as cards (icon + name + description + Open). */
-.apps { display: flex; flex-direction: column; gap: 0.6rem; margin: 0.4rem 0 1.4rem; }
+/* Apps section — installable apps render as cards (icon + name + description + Open).
+   No bottom margin: the page list sits flush against the app card, shifting all
+   page links up by one side-column row pitch (li's outer height ≈ 2.44rem)
+   relative to the index/docs links. On the private index this puts "Travel
+   Calendar" (the second page link) on the same baseline as "Site Map" (the
+   first docs link in the side column), not "Life Clock". */
+/* margin-top 0.2rem matches the effective 0.2rem top of the first <li> in
+   the side column, so the card's top edge starts at the same Y as the side
+   list's first row. */
+.apps { display: flex; flex-direction: column; gap: 0.6rem; margin: 0.2rem 0 0; }
 
 a.app-card {
   display: flex;
   align-items: center;
   gap: 0.9rem;
   padding: 0.7rem 0.9rem;
+  /* Outer height 4.68rem = exact span of two side-list rows top-to-bottom:
+     row 1 visual height (2.24rem = 1.54 line + 0.7 padding) + inter-row gap
+     (0.2rem collapsed margin) + row 2 visual height (2.24rem) = 4.68rem.
+     This makes card's top align with side row 1 top, and card's bottom align
+     with side row 2 bottom — and the page-list rows BELOW the card then
+     line up exactly with side rows 3, 4, 5… min- (not fixed) so longer
+     descriptions can still grow if needed. */
+  min-height: 4.68rem;
   background: #1a1a1a;
   border: 1px solid #2a2a2a;
   border-radius: 10px;
@@ -84,8 +209,29 @@ a.app-card:hover {
 }
 .app-card__icon { width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0; display: block; }
 .app-card__body { flex: 1; min-width: 0; }
-.app-card__name { font-size: 1.05rem; font-weight: 500; line-height: 1.25; }
-.app-card__desc { font-size: 0.85rem; color: #888; margin-top: 0.15rem; line-height: 1.3; }
+/* Card body locked to exactly two text lines so card height is predictable
+   and baselines align with the side-column link list (which uses the same
+   1.4 line-height). Long names/descriptions truncate with an ellipsis. */
+.app-card__name {
+  /* Match the page-list and tier-nav link size (1.1rem) so the card name
+     reads at the same typographic tier as other navigable items on the page.
+     The card's icon + Open button already supply visual emphasis; the name
+     itself doesn't need to upsize to feel prominent. */
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-card__desc {
+  font-size: 0.85rem;
+  color: #888;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .app-card__open {
   font-size: 0.8rem;
   color: #7c9ef5;
@@ -107,6 +253,8 @@ a.app-card:hover {
 <body>
 <div class="c">
 <h1>Charlie 丁志成</h1>
+<p class="ts"><a href="site-stats/">Built 2026-05-05 · 9,379 lines 📊</a></p>
+<input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
 <div class="row">
 <div class="main">
 <div class="apps">
@@ -120,18 +268,40 @@ a.app-card:hover {
   </a>
 </div>
 <ul>
+  <li><a href="../public/guides/chinese-languages/">Chinese Language(s)</a></li>
   <li><a href="../public/life/life-clock/">Life Clock</a></li>
   <li><a href="../protected/info/travel-calendar/">Travel Calendar</a></li>
-  <li><a href="../public/guides/chinese-languages/">Chinese Language(s)</a></li>
 </ul>
 </div>
 <div class="side">
 <ul>
-  <li><a href="../../../">Public Index</a></li>
+  <li class="tier-nav-row">
+    <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
+      <option value="../../../">Public Index</option>
+      <option value="" selected>Protected Index</option>
+    </select>
+  </li>
 </ul>
 </div>
 </div>
-<p class="ts">Built 2026-05-02 06:16 UTC</p>
 </div>
+<script>
+(function() {
+  const f = document.querySelector('.filter');
+  if (!f) return;
+  const items = document.querySelectorAll('.main .app-card, .main > ul > li');
+  // Use a class to hide rather than the [hidden] attribute: app-card has
+  // display: flex which has the same specificity as [hidden] { display: none },
+  // so the [hidden] attribute fails to hide app-cards. .search-hidden uses
+  // !important to win unconditionally.
+  f.addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase().trim();
+    items.forEach(item => {
+      const name = (item.querySelector('.app-card__name') || item).textContent.toLowerCase();
+      item.classList.toggle('search-hidden', q.length > 0 && !name.includes(q));
+    });
+  });
+})();
+</script>
 </body>
 </html>
