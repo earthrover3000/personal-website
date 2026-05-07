@@ -415,7 +415,7 @@ a.app-card:hover {
 <body>
 <div class="container">
 <h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">10,699 lines · 2,858 words 📊 · Last updated <time datetime="2026-05-05T21:48:50Z" title="2026-05-05 21:48 UTC" class="relative-time">2026-05-05</time></a></p>
+<p class="head-meta"><a href="site-stats/">12,491 lines · 2,857 words 📊 · Last updated <time datetime="2026-05-07" class="relative-time relative-time-coarse">2026-05-07</time></a></p>
 <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
 <div class="row">
 <div class="main">
@@ -451,11 +451,40 @@ a.app-card:hover {
     if (s < 31557600) return ago(Math.floor(s / 2629800), 'month');
     return ago(Math.floor(s / 31557600), 'year');
   };
+  // Coarse (date-only) variant for public pages where exposing a precise
+  // build clock would leak working-hours / timezone signal. Granularity
+  // capped at days; format mirrors site-stats' project-row fmtAgo.
+  const fmtCoarse = (dt) => {
+    const now = new Date();
+    const e = Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
+    const r = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const diffDays = Math.round((e - r) / 86400000);
+    if (diffDays === 0) return 'today';
+    if (diffDays === -1) return 'yesterday';
+    const future = diffDays > 0;
+    const absDays = Math.abs(diffDays);
+    if (absDays < 60) {
+      const body = `${absDays} day${absDays === 1 ? '' : 's'}`;
+      return future ? `in ${body}` : `${body} ago`;
+    }
+    const earlier = future ? new Date(r) : dt;
+    const later = future ? dt : new Date(r);
+    let years = later.getUTCFullYear() - earlier.getUTCFullYear();
+    let months = later.getUTCMonth() - earlier.getUTCMonth();
+    if (later.getUTCDate() < earlier.getUTCDate()) months -= 1;
+    if (months < 0) { years -= 1; months += 12; }
+    const body = years === 0 ? `${months}mo` : `${years}yr ${months}mo`;
+    return future ? `in ${body}` : `${body} ago`;
+  };
   document.querySelectorAll('time.relative-time').forEach(t => {
     const dt = new Date(t.getAttribute('datetime'));
     if (isNaN(dt.getTime())) return;
-    const seconds = Math.max(0, Math.floor((Date.now() - dt.getTime()) / 1000));
-    t.textContent = fmt(seconds);
+    if (t.classList.contains('relative-time-coarse')) {
+      t.textContent = fmtCoarse(dt);
+    } else {
+      const seconds = Math.max(0, Math.floor((Date.now() - dt.getTime()) / 1000));
+      t.textContent = fmt(seconds);
+    }
   });
 })();
 (function() {
