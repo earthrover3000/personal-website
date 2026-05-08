@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Charlie 丁志成's Galaxy</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <style>/* Shared base styles for index pages (root, protected, private) and docs
    pages (site-map, site-stats, lifespan-atlas plan). Loaded BEFORE the
    page-specific stylesheet so page rules can override.
@@ -83,6 +88,37 @@ body {
 }
 .back-link:hover { background: none; text-decoration: underline; }
 
+/* Breadcrumb nav above the h1. Tells visitors WHERE they are within the
+   site by spelling out the path from Home to the current page. Replaces
+   the back-link on shell pages (apps stay plain, with their own back-link).
+   Armored against index.css's block-style global `a` rule — explicit resets
+   so cascade can't make breadcrumb links into block-shaped buttons. */
+.breadcrumb {
+  color: var(--muted);
+  font-size: 0.85em;
+  margin: 0 0 0.6rem;
+  display: block;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  line-height: 1.5;
+}
+.breadcrumb a {
+  color: var(--accent);
+  text-decoration: none;
+  display: inline;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  line-height: inherit;
+  transition: none;
+}
+.breadcrumb a:hover { background: none; text-decoration: underline; }
+.breadcrumb [aria-current="page"] { color: var(--text); }
+.breadcrumb .sep { margin: 0 0.3em; opacity: 0.5; }
+
 /* ---- Head-region typography ---- */
 h1 {
   font-size: 1.6rem;
@@ -145,13 +181,29 @@ table { width: 100%; border-collapse: collapse; }
 
 /* ---- Bio entry page (site root) ---- */
 /* Bio block — paragraph stack with modest vertical breath, mathematical-set
-   notation and emoji-prefixed lines. */
-.bio { margin: 1.5rem 0 2rem; }
-.bio p {
-  margin: 0.5rem 0;
+   notation and emoji-prefixed lines. Rendered as a 2-column CSS Grid so
+   that all .bio-hint cells align at the same x position regardless of
+   how long the substantive content (.bio-content) on each line happens
+   to be. `max-content` on the first column makes the grid auto-fit to the
+   widest line; `display: contents` on each <p> hoists the inner spans
+   into the grid so each row is exactly [content, hint]. Lines without a
+   hint still emit an empty .bio-hint to preserve column alignment. */
+.bio {
+  margin: 1.5rem 0 2rem;
+  display: grid;
+  grid-template-columns: max-content auto;
+  column-gap: 1.5em;
+  row-gap: 0.4rem;
+  align-items: baseline;
   font-size: 1rem;
   line-height: 1.7;
   color: var(--text);
+}
+.bio p { display: contents; }
+.bio-hint {
+  color: var(--muted);
+  font-size: 0.85em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 /* Linktree-style buttons under the bio. Same aesthetic family as a.app-card
@@ -411,17 +463,19 @@ a.app-card:hover {
   letter-spacing: 0.02em;
 }
 </style>
+<style>.audio-trigger,.map-trigger{cursor:pointer;}.audio-trigger:hover,.map-trigger:hover{text-decoration:underline;}</style>
 </head>
 <body>
 <div class="container">
+  <nav class="breadcrumb" aria-hidden="true">&nbsp;</nav>
   <h1>Charlie 丁志成's Galaxy</h1>
-  <p class="head-meta" style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"><a href="https://earthrover3000.github.io/personal-website/" onclick="event.preventDefault();navigator.clipboard&&navigator.clipboard.writeText('https://earthrover3000.github.io/personal-website/');var t=this.textContent;this.textContent='Copied!';setTimeout(()=>{this.textContent=t;},1200);return false;" style="cursor:pointer;color:inherit;">🔗 https://earthrover3000.github.io/personal-website/</a></p>
+  <p class="head-meta" style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">🔗 <a href="https://earthrover3000.github.io/personal-website/" class="copy-text" style="cursor:pointer;color:inherit;text-decoration:underline;display:inline-block;text-align:center;white-space:nowrap;">https://earthrover3000.github.io/personal-website/</a> <span style="color:var(--muted);font-size:0.85em;">(click to copy)</span></p>
   <div class="bio">
-    <p>🖊️= Charlie 丁志成 | <em class="muted">DING, Zhicheng</em></p>
-    <p>🔈= [tiŋ˥ ʈʂɻ̩˥˩ ʈʂʰəŋ˧˥] | <em class="muted">'ZEE-cheng'</em></p>
-    <p>🏳️‍⚧️✦ Trans lesbian ✦❤️🧡🤍🩷💜</p>
-    <p>📍= {(53.3° N, 6.3° W, 🌍)}</p>
-    <p>🛸= {(51.5° N, 0.1° W, 🌍); (31.2° N, 121.5° E, 🌏)}</p>
+    <p><span class="bio-content">🖊️= Charlie 丁志成 | <em class="muted">DING, Zhicheng</em></span><span class="bio-hint"></span></p>
+    <p><span class="bio-content">🔈= <span class="audio-trigger" data-audio="name-ipa.wav">[tiŋ˥ ʈʂɻ̩˥˩ ʈʂʰəŋ˧˥]</span> | <em class="muted audio-trigger" data-audio="name-zeecheng.wav">'ZEE-cheng'</em></span><span class="bio-hint">(click either to listen)</span></p>
+    <p><span class="bio-content">🏳️‍⚧️ ·&nbsp; Trans ✦ Lesbian &nbsp;· ❤️🧡🤍🩷💜</span><span class="bio-hint"></span></p>
+    <p><span class="bio-content">📍= {<span class="map-trigger" data-lat="53.3498" data-lon="-6.2603" data-name="Dublin">(53.3° N, 6.3° W, 🌍)</span>}</span><span class="bio-hint">(click to reveal)</span></p>
+    <p><span class="bio-content">🛸= {<span class="map-trigger" data-lat="31.2304" data-lon="121.4737" data-name="Shanghai">(31.2° N, 121.5° E, 🌏)</span>}</span><span class="bio-hint">(where I'm from — guess before clicking!)</span></p>
   </div>
   <div class="entry-links">
     <a href="contents/pages/public/">Enter ➡️</a>
@@ -429,5 +483,12 @@ a.app-card:hover {
   </div>
   <p style="text-align:center;color:var(--muted);font-style:italic;font-size:0.85rem;margin-top:1rem;">Site preview — under construction; please excuse the visual quirks.</p>
 </div>
+<div id="map-popover" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9999;opacity:0;transition:opacity 0.4s ease;">
+  <div style="width:min(70vw,70vh,440px);background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.25);">
+    <div id="map-popover-map" style="width:100%;aspect-ratio:1;"></div>
+    <div id="map-popover-label" style="padding:0.55rem 1rem;text-align:center;color:#222;font-weight:500;font-size:1rem;border-top:1px solid #eee;background:#fafafa;"></div>
+  </div>
+</div>
+<script>(function(){var pop=document.getElementById("map-popover"),mapEl=document.getElementById("map-popover-map");var lmap=null,marker=null,fadeOutT=null,hideT=null;function ensureMap(){if(lmap)return;lmap=L.map(mapEl,{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,boxZoom:false,keyboard:false});L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(lmap);}var labelEl=document.getElementById("map-popover-label");function show(lat,lon,name){ensureMap();lmap.setView([lat,lon],10);if(marker)marker.remove();marker=L.marker([lat,lon]).addTo(lmap);labelEl.textContent=name||"";clearTimeout(fadeOutT);clearTimeout(hideT);pop.style.display="block";setTimeout(function(){lmap.invalidateSize();},50);requestAnimationFrame(function(){pop.style.opacity="1";});fadeOutT=setTimeout(function(){pop.style.opacity="0";hideT=setTimeout(function(){pop.style.display="none";},400);},2000);}document.querySelectorAll(".map-trigger").forEach(function(el){el.addEventListener("click",function(){var lat=parseFloat(el.dataset.lat),lon=parseFloat(el.dataset.lon);if(!isFinite(lat)||!isFinite(lon))return;show(lat,lon,el.dataset.name||"");});});})();function bioSwap(el,text){if(el.dataset.swapping)return;var orig=el.textContent;var w=el.offsetWidth,h=el.offsetHeight;var keys=["width","height","overflow","verticalAlign","display","textAlign","textDecoration","whiteSpace","color","fontFamily","fontStyle"];var save={};keys.forEach(function(k){save[k]=el.style[k];});el.dataset.swapping="1";el.style.width=w+"px";el.style.height=h+"px";el.style.overflow="hidden";el.style.verticalAlign="top";el.style.display="inline-block";el.style.textAlign="center";el.style.textDecoration="none";el.style.whiteSpace="nowrap";el.style.color="var(--muted)";el.style.fontFamily="'Pacifico','Brush Script MT','Lucida Handwriting','Apple Chancery',cursive";el.style.fontStyle="normal";el.textContent=text;setTimeout(function(){el.textContent=orig;keys.forEach(function(k){el.style[k]=save[k];});delete el.dataset.swapping;},1200);}document.querySelectorAll("a.copy-text").forEach(function(a){a.addEventListener("click",function(e){e.preventDefault();if(navigator.clipboard)navigator.clipboard.writeText(a.href);bioSwap(a,"✦ Copied! ✦");});});document.querySelectorAll(".audio-trigger").forEach(function(el){el.addEventListener("click",function(){var src=el.dataset.audio;if(src){var a=new Audio(src);a.play().catch(function(){});}bioSwap(el,"✦ Played! ✦");});});</script>
 </body>
 </html>

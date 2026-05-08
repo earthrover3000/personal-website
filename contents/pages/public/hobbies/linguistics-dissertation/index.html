@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Linguistics Dissertation</title>
+  <link rel="stylesheet" href="../../../../../样式 Styles/base.css">
+  <style>
+    /* Page-specific styles for the dissertation landing page.
+       Title font, .head-meta colour, and 800px container all inherited from base.css.
+       Only overrides: italic styling for the romanized particles in the title,
+       multi-line .head-meta layout, and the download button.
+       Scoped to .container > * so they can't leak into shared components. */
+    .container > h1 i { font-style: italic; font-weight: normal; }
+
+    .container > .head-meta p { margin: 0.2rem 0; }
+    .container > .head-meta p:first-child { margin-top: 0; margin-bottom: 1rem; }
+    .container > .head-meta p:last-child { margin-bottom: 0; }
+
+    .container > a.download {
+      display: inline-block;
+      margin: 1.5rem 0 0.5rem;
+      padding: 0.6rem 1.2rem;
+      background: var(--accent);
+      color: var(--bg);
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: opacity 0.15s, transform 0.12s;
+    }
+    .container > a.download:hover { opacity: 0.88; transform: translateY(-1px); }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../../">Home</a> <span class="sep">›</span> <a href="../../">Index</a> <span class="sep">›</span> <span aria-current="page">Linguistics Dissertation</span></nav>
+
+  <h1>On the Semantics of <i>ye</i>, <i>cai</i> and <i>dou</i> in Mandarin Chinese</h1>
+
+  <div class="head-meta">
+    <p>My linguistics dissertation on the meaning of the Mandarin Chinese grammatical particles 也, 才, and 都</p>
+    <p>Zhicheng Ding 丁志成</p>
+    <p>Master of Arts &middot; Queen Mary University of London</p>
+    <p>Originally submitted August 2021 &middot; Revised May 2026</p>
+  </div>
+
+  <a class="download" href="dissertation.pdf">Read / download PDF</a>
+
+</div>
+</body>
+</html>

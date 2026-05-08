@@ -76,6 +76,37 @@ body {
 }
 .back-link:hover { background: none; text-decoration: underline; }
 
+/* Breadcrumb nav above the h1. Tells visitors WHERE they are within the
+   site by spelling out the path from Home to the current page. Replaces
+   the back-link on shell pages (apps stay plain, with their own back-link).
+   Armored against index.css's block-style global `a` rule — explicit resets
+   so cascade can't make breadcrumb links into block-shaped buttons. */
+.breadcrumb {
+  color: var(--muted);
+  font-size: 0.85em;
+  margin: 0 0 0.6rem;
+  display: block;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  line-height: 1.5;
+}
+.breadcrumb a {
+  color: var(--accent);
+  text-decoration: none;
+  display: inline;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  line-height: inherit;
+  transition: none;
+}
+.breadcrumb a:hover { background: none; text-decoration: underline; }
+.breadcrumb [aria-current="page"] { color: var(--text); }
+.breadcrumb .sep { margin: 0 0.3em; opacity: 0.5; }
+
 /* ---- Head-region typography ---- */
 h1 {
   font-size: 1.6rem;
@@ -138,13 +169,29 @@ table { width: 100%; border-collapse: collapse; }
 
 /* ---- Bio entry page (site root) ---- */
 /* Bio block — paragraph stack with modest vertical breath, mathematical-set
-   notation and emoji-prefixed lines. */
-.bio { margin: 1.5rem 0 2rem; }
-.bio p {
-  margin: 0.5rem 0;
+   notation and emoji-prefixed lines. Rendered as a 2-column CSS Grid so
+   that all .bio-hint cells align at the same x position regardless of
+   how long the substantive content (.bio-content) on each line happens
+   to be. `max-content` on the first column makes the grid auto-fit to the
+   widest line; `display: contents` on each <p> hoists the inner spans
+   into the grid so each row is exactly [content, hint]. Lines without a
+   hint still emit an empty .bio-hint to preserve column alignment. */
+.bio {
+  margin: 1.5rem 0 2rem;
+  display: grid;
+  grid-template-columns: max-content auto;
+  column-gap: 1.5em;
+  row-gap: 0.4rem;
+  align-items: baseline;
   font-size: 1rem;
   line-height: 1.7;
   color: var(--text);
+}
+.bio p { display: contents; }
+.bio-hint {
+  color: var(--muted);
+  font-size: 0.85em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 /* Linktree-style buttons under the bio. Same aesthetic family as a.app-card
