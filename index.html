@@ -208,16 +208,22 @@ table { width: 100%; border-collapse: collapse; }
 
 /* Linktree-style buttons under the bio. Same aesthetic family as a.app-card
    on index pages but slimmed: no icon, no description, label-only, full-width.
-   Stacks vertically with comfortable gap. */
-.entry-links { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1.5rem; }
+   Grid with `grid-auto-rows: 1fr` so every button stretches to the tallest
+   row's height — keeps Enter (two lines: label + "best on a laptop") and
+   Instagram (one line) vertically aligned regardless of content. */
+.entry-links { display: grid; grid-auto-rows: 1fr; gap: 0.6rem; margin-top: 1.5rem; }
 .entry-links a {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 0.7rem 1rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text);
   font-size: 1.05rem;
+  line-height: 1.4;
   text-decoration: none;
   text-align: center;
   transition: border-color 0.15s, background 0.15s, transform 0.12s;
@@ -227,6 +233,27 @@ table { width: 100%; border-collapse: collapse; }
   text-decoration: none;
   transform: translateY(-1px);
 }
+/* Primary entry link — light-blue fill marks the intended path into the
+   site, distinguishing it from secondary social links rendered as surface
+   cards. Fixed light-blue (rather than var(--accent)) keeps the button
+   the same gentle shade in both themes; dark text in both modes preserves
+   legibility on the light background. */
+.entry-links a.primary {
+  background: #a8c5ff;
+  border-color: #a8c5ff;
+  color: #1a1a1a;
+  font-weight: 500;
+}
+.entry-links a.primary:hover {
+  background: #bdd3ff;
+  border-color: #bdd3ff;
+}
+.entry-hint {
+  font-size: 0.75em;
+  font-weight: normal;
+  color: var(--muted);
+}
+.entry-links a.primary .entry-hint { color: #1a1a1a; opacity: 0.65; }
 
 /* ---- Table of contents ---- */
 /* Used by site-map, lifespan-atlas plan, workflow. Boxed surface card with a
@@ -478,7 +505,7 @@ a.app-card:hover {
     <p><span class="bio-content">🛸= {<span class="map-trigger" data-lat="31.2304" data-lon="121.4737" data-name="Shanghai">(31.2° N, 121.5° E, 🌏)</span>}</span><span class="bio-hint">(where I'm from — guess before clicking!)</span></p>
   </div>
   <div class="entry-links">
-    <a href="contents/pages/public/">Enter ➡️</a>
+    <a class="primary" href="contents/pages/public/">Enter ➡️<span class="entry-hint">(best on a laptop)</span></a>
     <a href="https://www.instagram.com/earthrover3000/" rel="me noopener">Instagram</a>
   </div>
   <p style="text-align:center;color:var(--muted);font-style:italic;font-size:0.85rem;margin-top:1rem;">Site preview — under construction; please excuse the visual quirks.</p>
