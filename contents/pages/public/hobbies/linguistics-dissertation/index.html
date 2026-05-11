@@ -20,16 +20,21 @@
 
     .container > a.download {
       display: inline-block;
-      margin: 1.5rem 0 0.5rem;
+      margin: 1.5rem 0.5rem 0.5rem 0;
       padding: 0.6rem 1.2rem;
       background: var(--accent);
       color: var(--bg);
       text-decoration: none;
       border-radius: 6px;
       font-weight: 500;
+      border: 1px solid var(--accent);
       transition: opacity 0.15s, transform 0.12s;
     }
     .container > a.download:hover { opacity: 0.88; transform: translateY(-1px); }
+    .container > a.download.secondary {
+      background: transparent;
+      color: var(--accent);
+    }
   </style>
 </head>
 <body>
@@ -47,6 +52,7 @@
   </div>
 
   <a class="download" href="dissertation.pdf">Read / download PDF</a>
+  <a class="download secondary" href="dissertation-source.zip">Download LaTeX source (zip)</a>
 
 </div>
 </body>
