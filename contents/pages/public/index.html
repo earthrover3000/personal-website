@@ -403,8 +403,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
 /* .filter rule is in base.css; only the row layout below stays index-specific. */
 
 .row { display: flex; gap: 2rem; align-items: flex-start; }
+/* Both columns flex:1 → they divide the row's available width evenly,
+   minus the 2 rem gap. No hardcoded width on either side. */
 .main { flex: 1; min-width: 0; }
-.side { flex: 0 0 50%; }
+.side { flex: 1; min-width: 0; }
 .side hr { margin: 0.8rem 0; }
 
 @media (max-width: 600px) {
@@ -490,7 +492,7 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Home</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav>
 <h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">23,889 lines · 14,209 words · 904 chars 📊 ✦ Last updated <time datetime="2026-05-12" class="relative-time relative-time-coarse">2026-05-12</time></a></p>
+<p class="head-meta"><a href="site-stats/">24,101 lines · 14,209 words · 904 chars 📊 ✦ Last updated <time datetime="2026-05-12" class="relative-time relative-time-coarse">2026-05-12</time></a></p>
 <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
 <div class="row">
 <div class="main">
@@ -498,6 +500,7 @@ a.app-card:hover {
   <li><a href="guides/chinese-languages/">Chinese Language(s)</a></li>
   <li><a href="hobbies/linguistics-dissertation/">Linguistics Dissertation</a></li>
   <li><a href="life/life-clock/">Life Clock</a></li>
+  <li><a href="life/personal-info/">Personal Info</a></li>
 </ul>
 </div>
 <div class="side">

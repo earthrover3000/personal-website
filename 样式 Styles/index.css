@@ -82,8 +82,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
 /* .filter rule is in base.css; only the row layout below stays index-specific. */
 
 .row { display: flex; gap: 2rem; align-items: flex-start; }
+/* Both columns flex:1 → they divide the row's available width evenly,
+   minus the 2 rem gap. No hardcoded width on either side. */
 .main { flex: 1; min-width: 0; }
-.side { flex: 0 0 50%; }
+.side { flex: 1; min-width: 0; }
 .side hr { margin: 0.8rem 0; }
 
 @media (max-width: 600px) {
