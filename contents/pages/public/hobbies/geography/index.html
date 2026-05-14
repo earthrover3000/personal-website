@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geography · Region Map Explorer</title>
+  <link rel="stylesheet" href="../../../../../样式 Styles/base.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <!-- Shared lossless-PNG map exporter: same file used by the City
+       Map Explorer under /public/hobbies/urbanism/. Single source of
+       truth in 样式 Styles/. -->
+  <script src="../../../../../样式 Styles/map-export.js"></script>
+  <style>
+    .lede {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 1.6rem;
+      max-width: 60ch;
+    }
+    .map-tester-controls { display:flex; gap:0.8rem; align-items:center; flex-wrap:wrap; }
+    .map-tester-controls label { display:inline-flex; align-items:center; gap:0.4rem; font-size:0.9rem; color:var(--text); }
+    .map-tester-controls select,
+    .map-tester-controls input[type="number"] {
+      font: inherit; padding:0.3rem 0.1rem;
+      background:var(--bg); color:var(--text);
+      border:1px solid var(--border); border-radius:4px;
+    }
+    .map-tester-controls input[type="number"] { width:4.5rem; }
+    .map-tester-controls button {
+      font: inherit; padding:0.3rem 0.1rem;
+      background:var(--accent); color:#fff;
+      border:none; border-radius:4px; cursor:pointer;
+    }
+    .map-tester-controls button:hover { filter: brightness(1.1); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../../">Home</a> <span class="sep">›</span> <a href="../../">Index</a> <span class="sep">›</span> <span aria-current="page">Geography</span></nav>
+  <h1>Geography</h1>
+  <p class="head-meta">&nbsp;</p>
+
+  <h2>Region Map Explorer</h2>
+  <p class="lede">
+    Sibling of the <a href="../urbanism/">City Map Explorer</a> at regional scale — pick a well-known geographic region and render its extent at exactly the chosen pixel size and radius. Toggle <strong>Rails</strong> for an <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> overlay. Use <strong>Save PNG</strong> to export a lossless image clipped to the displayed shape.
+  </p>
+
+  <div class="map-tester-controls">
+    <label>Location:
+      <select id="map-region-city" aria-describedby="map-region-coord">
+        <option value="british-isles" data-lat="54.439107" data-lon="-4.112081" data-radius-km="510">British Isles</option>  <!-- Mercator-plane circumcentre of Dover, Cnoc Bólais, Duncansby Head — pixel rim passes through all three at ~499 km; 510 km gives a small breathing margin -->
+        <option value="china-proper" data-lat="34.3609713" data-lon="107.2322378" data-radius-km="1500">China Proper</option>      <!-- Baoji 宝鸡 place=city node 244076584, 1500 km radius -->
+      </select>
+    </label>
+    <label>Shape:
+      <select id="map-region-shape">
+        <option value="circle">Circle</option>
+        <option value="square">Rounded square</option>
+      </select>
+    </label>
+    <label>Size (px):
+      <input type="number" id="map-region-size" value="360" min="50" max="2000" step="10">
+    </label>
+    <label>Radius (km):
+      <input type="number" id="map-region-radius" value="510" min="0.5" max="5000" step="10">
+    </label>
+    <label><input type="checkbox" id="map-region-rails"> Rails</label>
+  </div>
+  <div id="map-region-canvas" style="width:360px;height:360px;max-width:100%;background:#eee;margin-top:0.8rem;overflow:hidden;border-radius:50%;"></div>
+  <div class="map-tester-readout" style="margin-top:0.4rem;display:flex;align-items:flex-start;gap:0.8rem;flex-wrap:wrap;">
+    <button type="button" id="map-region-render">Render</button>
+    <button type="button" id="map-region-export">Save PNG</button>
+    <label style="display:inline-flex;align-items:center;gap:0.4rem;font-size:0.9rem;color:var(--text);" title="Tile zoom level for the export PNG. Each +1 doubles each side of the file (4× total area). Empty = match the on-screen tile zoom. Range 0–19.">
+      at zoom <input type="number" id="map-region-exportzoom" min="0" max="19" step="1" placeholder="auto" style="width:4rem;font:inherit;padding:0.3rem 0.1rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;">
+    </label>
+    <div style="font-size:0.8rem;color:var(--muted);font-variant-numeric:tabular-nums;display:flex;flex-direction:column;gap:0.1rem;">
+      <span id="map-region-coord"></span>
+      <span id="map-region-rz"></span>
+      <span id="map-region-actual"></span>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    var cityEl = document.getElementById('map-region-city');
+    var shapeEl = document.getElementById('map-region-shape');
+    var sizeEl = document.getElementById('map-region-size');
+    var radiusEl = document.getElementById('map-region-radius');
+    var railsEl = document.getElementById('map-region-rails');
+    var btn = document.getElementById('map-region-render');
+    var canvas = document.getElementById('map-region-canvas');
+    var actualEl = document.getElementById('map-region-actual');
+    var coordEl = document.getElementById('map-region-coord');
+    var rzEl = document.getElementById('map-region-rz');
+    var lmap = null;
+    // OpenRailwayMap overlay — transparent tiles drawn on top of the
+    // base OSM layer. Lazy-created when the user first ticks "Rails";
+    // toggled in/out afterwards. CC-BY-SA attribution is required when
+    // visible.
+    var railsLayer = null;
+    function updateRails() {
+      if (!lmap) return;
+      if (railsEl.checked) {
+        if (!railsLayer) {
+          railsLayer = L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            crossOrigin: true,
+            attribution: '© OpenRailwayMap (CC-BY-SA)'
+          });
+        }
+        railsLayer.addTo(lmap);
+      } else if (railsLayer) {
+        railsLayer.remove();
+      }
+    }
+    function computeZoom(lat, widthPx, radiusKm) {
+      var latRad = lat * Math.PI / 180;
+      return Math.log2(156543.03392 * Math.cos(latRad) * widthPx / (2000 * radiusKm));
+    }
+    var SHAPE_RADIUS = { circle: '50%', square: '10px' };
+    function updateCoordReadout() {
+      var opt = cityEl.options[cityEl.selectedIndex];
+      var lat = opt.dataset.lat;
+      var lon = opt.dataset.lon;
+      if (!lat || !lon) { coordEl.textContent = ''; return; }
+      coordEl.textContent = lat + ', ' + lon;
+    }
+    updateCoordReadout();
+    function render() {
+      var opt = cityEl.options[cityEl.selectedIndex];
+      var lat = parseFloat(opt.dataset.lat);
+      var lon = parseFloat(opt.dataset.lon);
+      var size = parseInt(sizeEl.value, 10);
+      var radiusKm = parseFloat(radiusEl.value);
+      if (!isFinite(size) || size < 50) return;
+      if (!isFinite(radiusKm) || radiusKm <= 0) return;
+      // Probe the column's available width and clamp size to it.
+      var prevW = canvas.style.width;
+      canvas.style.width = '100%';
+      var maxSize = Math.floor(canvas.getBoundingClientRect().width);
+      canvas.style.width = prevW;
+      if (maxSize > 0 && size > maxSize) {
+        size = maxSize;
+        sizeEl.value = size;
+      }
+      canvas.style.width = size + 'px';
+      canvas.style.height = size + 'px';
+      canvas.style.borderRadius = SHAPE_RADIUS[shapeEl.value] || '0';
+      if (!lmap) {
+        lmap = L.map(canvas, {
+          zoomSnap: 0,
+          zoomControl: false, attributionControl: false,
+          dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
+          touchZoom: false, boxZoom: false, keyboard: false
+        });
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, crossOrigin: true }).addTo(lmap);
+      }
+      updateRails();
+      setTimeout(function () {
+        lmap.invalidateSize();
+        var r = canvas.getBoundingClientRect();
+        var z = computeZoom(lat, r.width, radiusKm);
+        lmap.setView([lat, lon], z);
+        rzEl.textContent = radiusKm + ' km radius · zoom ' + z.toFixed(4);
+        actualEl.textContent = 'rendered: ' + Math.round(r.width) + ' × ' + Math.round(r.height) + ' px';
+        refreshExportZoomLimit();
+      }, 50);
+    }
+    btn.addEventListener('click', render);
+    // Per-location default radius. Each <option> may carry a
+    // data-radius-km attribute; when the user picks a different
+    // location we write that value into the radius input so each gets
+    // its own sensible default. Typing in the input still wins.
+    function applyLocationRadius() {
+      var opt = cityEl.options[cityEl.selectedIndex];
+      var r = parseFloat(opt.dataset.radiusKm);
+      if (isFinite(r) && r > 0) radiusEl.value = r;
+    }
+    applyLocationRadius();
+    cityEl.addEventListener('change', function () {
+      applyLocationRadius();
+      updateCoordReadout();
+      render();
+    });
+    shapeEl.addEventListener('change', render);
+    sizeEl.addEventListener('change', render);
+    radiusEl.addEventListener('change', render);
+    railsEl.addEventListener('change', updateRails);
+
+    var exportzoomEl = document.getElementById('map-region-exportzoom');
+    function exportMaxZoom() {
+      if (!lmap) return 19;
+      var w = canvas.getBoundingClientRect().width;
+      if (!w) return 19;
+      var maxScale = (window.EXPORT_MAX_CANVAS_DIM || 8192) / w;
+      return Math.min(19, Math.floor(lmap.getZoom() + Math.log2(maxScale)));
+    }
+    function refreshExportZoomLimit() {
+      var mz = exportMaxZoom();
+      exportzoomEl.max = mz;
+      exportzoomEl.placeholder = 'auto · max ' + mz;
+    }
+    exportzoomEl.addEventListener('change', function () {
+      var v = parseInt(this.value, 10);
+      if (!isFinite(v)) return;
+      var mz = exportMaxZoom();
+      if (v > mz) this.value = mz;
+      if (v < 0) this.value = 0;
+    });
+    document.getElementById('map-region-export').addEventListener('click', function () {
+      if (!lmap) return;
+      var btnEl = this;
+      var opt = cityEl.options[cityEl.selectedIndex];
+      var exportZ = parseInt(exportzoomEl.value, 10);
+      if (!isFinite(exportZ)) exportZ = Math.round(lmap.getZoom());
+      var name = 'map-' + opt.value + '-' + radiusEl.value + 'km-z' + exportZ + '.png';
+      var oldText = btnEl.textContent;
+      btnEl.disabled = true;
+      btnEl.textContent = 'Saving…';
+      Promise.resolve(window.exportMapAsPng(lmap, canvas, shapeEl.value, name, function (done, total) {
+        btnEl.textContent = 'Saving ' + done + '/' + total + '…';
+      }, exportZ))
+        .catch(function (e) { console.error(e); })
+        .then(function () {
+          btnEl.disabled = false;
+          btnEl.textContent = oldText;
+        });
+    });
+
+    // Eager init — the map is the page's main content.
+    render();
+  })();
+  </script>
+</div>
+
+</body>
+</html>
