@@ -6,6 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chinese Language(s)</title>
   <link rel="stylesheet" href="../../../../../样式 Styles/base.css">
+  <!-- auto-toc.js auto-injects the search bar + Contents nav from h2
+       direct children of .container. Single source of truth in
+       样式 Styles/; same script also runs on every other page that has
+       multiple h2 sections. -->
+  <script src="../../../../../样式 Styles/auto-toc.js" defer></script>
   <style>
     /* Page-specific overrides for chinese-languages.
        The MD's h1 + p.subtitle land directly inside .container as direct
@@ -210,13 +215,6 @@
 <body>
 <div class="container">
   <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../../">Home</a> <span class="sep">›</span> <a href="../../">Index</a> <span class="sep">›</span> <span aria-current="page">Chinese Language(s)</span></nav>
-  <input type="search" class="filter" id="toc-search" placeholder="Search…" aria-label="Filter sections" oninput="onTocSearch(this.value)" style="display:none">
-  <nav class="toc" id="cl-toc" style="display:none">
-    <div class="toc-header">
-      <h2>Contents</h2>
-    </div>
-    <ol id="toc-list"></ol>
-  </nav>
 <h1>Things your Chinese instructor probably won't mention</h1>
 <p class="head-meta">— A (broadly) linguistic perspective of the Chinese language(s)</p>
 <h2>Chinese language(s): past and present</h2>
@@ -370,59 +368,5 @@
 <h3>Describing a language variant with a combination of parameters</h3>
 
 </div>
-
-<script>
-  // Auto-generate TOC from h2 elements in the rendered markdown content.
-  // The MD content is splatted directly into .container, so its h1, subtitle,
-  // and h2 sections all sit as direct children. After populating the TOC,
-  // we move it (and the search input) to sit between .subtitle and the
-  // first h2 — natural reading order: title → subtitle → search → TOC →
-  // section content.
-  (function () {
-    function slugify(s) {
-      return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    }
-    const container = document.querySelector('.container');
-    const list = document.getElementById('toc-list');
-    const toc = document.getElementById('cl-toc');
-    const search = document.getElementById('toc-search');
-    if (!container || !list) return;
-
-    const h2s = container.querySelectorAll(':scope > h2');
-    if (!h2s.length) return;
-
-    let idx = 0;
-    h2s.forEach(h => {
-      idx++;
-      const orig = h.textContent;
-      if (!h.id) h.id = slugify(orig);
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = '#' + h.id;
-      a.textContent = idx + '. ' + orig;
-      li.appendChild(a);
-      list.appendChild(li);
-    });
-
-    // Reorder: head-meta (or h1 if no italic intro) → search → TOC → first h2.
-    const anchor = container.querySelector(':scope > p.head-meta')
-      || container.querySelector(':scope > h1');
-    if (anchor) {
-      anchor.insertAdjacentElement('afterend', search);
-      search.insertAdjacentElement('afterend', toc);
-    }
-    toc.style.display = '';
-    search.style.display = '';
-  })();
-
-  function onTocSearch(query) {
-    const q = (query || '').trim().toLowerCase();
-    document.querySelectorAll('.toc li').forEach(li => {
-      if (!q) { li.classList.remove('search-hidden'); return; }
-      const text = li.textContent.toLowerCase();
-      li.classList.toggle('search-hidden', !text.includes(q));
-    });
-  }
-</script>
 </body>
 </html>

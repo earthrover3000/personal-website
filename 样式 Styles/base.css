@@ -167,6 +167,39 @@ table { width: 100%; border-collapse: collapse; }
    form / secondary annotation" within otherwise-primary text. */
 .muted { color: var(--muted); }
 
+/* ---- Buttons ---- */
+/* Site-wide primary/secondary action buttons. Works on both <button>
+   and <a> (the latter needs text-decoration: none, set explicitly).
+   Page-specific layout (margins, alignment) stays at the call site —
+   only visual primitives live here.
+   - .btn-primary: accent-fill (the dominant action; e.g. dissertation
+     "Read PDF", map-explorer "Render" / "Save PNG").
+   - .btn-secondary: accent-outline on transparent (the lower-weight
+     companion; e.g. dissertation "Download LaTeX source").
+   - :disabled state used by the map exporter while a save runs. */
+.btn-primary,
+.btn-secondary {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.12s;
+}
+.btn-primary { background: var(--accent); color: var(--bg); }
+.btn-secondary { background: transparent; color: var(--accent); }
+.btn-primary:hover,
+.btn-secondary:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.55;
+  cursor: wait;
+  transform: none;
+}
+
 /* ---- Bio entry page (site root) ---- */
 /* Bio block — paragraph stack with modest vertical breath, mathematical-set
    notation and emoji-prefixed lines. Rendered as a 2-column CSS Grid so

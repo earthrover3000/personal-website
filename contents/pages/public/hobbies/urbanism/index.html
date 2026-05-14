@@ -8,32 +8,53 @@
   <link rel="stylesheet" href="../../../../../样式 Styles/base.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <!-- Shared lossless-PNG map exporter: same file used by the Region
-       Map Explorer under /public/hobbies/geography/. Single source of
-       truth in 样式 Styles/. -->
+  <!-- Shared map widget (markup + Leaflet wiring) and the lossless-PNG
+       exporter it depends on. Single source of truth in 样式 Styles/;
+       the geography page uses the same two files. -->
   <script src="../../../../../样式 Styles/map-export.js"></script>
+  <script src="../../../../../样式 Styles/map-explorer.js"></script>
+  <!-- Page-local data — sibling file in this folder, deployed by
+       build.py via the project config's extra_files: ['cities.js'].
+       Exposes window.URBANISM_DATA = { gawcList, livedList }. -->
+  <script src="cities.js"></script>
+  <!-- auto-toc.js auto-injects a search bar + Contents nav whenever the
+       page has 2+ <h2> direct children. Currently a no-op (one section
+       only) but ready for when more sections get added. -->
+  <script src="../../../../../样式 Styles/auto-toc.js" defer></script>
   <style>
+    /* Page-specific element rules — scoped to .container > * per the
+       css-leak-defense rule so they don't leak into shared components.
+       Section numbering mirrors personal-info: CSS counter on .container,
+       incremented per <h2>, prefix rendered via ::before. Trailing dot
+       follows the site-wide section-numbering convention. */
+    .container { counter-reset: urb-section; }
+    .container > h2 {
+      color: var(--text);
+      font-size: 1.2rem;
+      margin: 2rem 0 0.8rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--border);
+      counter-increment: urb-section;
+    }
+    .container > h2::before { content: counter(urb-section) ". "; }
+
     .lede {
       color: var(--muted);
       font-size: 0.9rem;
       margin-bottom: 1.6rem;
       max-width: 60ch;
     }
-    .map-tester-controls { display:flex; gap:0.8rem; align-items:center; flex-wrap:wrap; }
-    .map-tester-controls label { display:inline-flex; align-items:center; gap:0.4rem; font-size:0.9rem; color:var(--text); }
-    .map-tester-controls select,
-    .map-tester-controls input[type="number"] {
-      font: inherit; padding:0.3rem 0.1rem;
-      background:var(--bg); color:var(--text);
-      border:1px solid var(--border); border-radius:4px;
+    /* "Include cities I've lived in" toggle — sits between the lede and
+       the widget. Same restrained sizing as the inline labels inside
+       .map-tester-controls so it doesn't visually outshout the rest. */
+    .city-list-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text);
+      margin: 0 0 1rem;
     }
-    .map-tester-controls input[type="number"] { width:4.5rem; }
-    .map-tester-controls button {
-      font: inherit; padding:0.3rem 0.1rem;
-      background:var(--accent); color:#fff;
-      border:none; border-radius:4px; cursor:pointer;
-    }
-    .map-tester-controls button:hover { filter: brightness(1.1); }
   </style>
 </head>
 <body>
@@ -45,244 +66,27 @@
 
   <h2>City Map Explorer</h2>
   <p class="lede">
-    Pick a city, shape, and edge length to render its map at exactly that pixel size. Toggle <strong>Rails</strong> to overlay <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> — useful for comparing the railway/metro footprint of cities at a common 17 km radius. Use the <strong>Save PNG</strong> button to export a lossless image clipped to the displayed shape (circle / rounded square).
+    Pick a city and edge length to render its map at exactly that pixel size, clipped to a circle. Toggle <strong>Railways</strong> to overlay <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> — useful for comparing the railway/metro footprint of cities at a common 17 km radius. Use <strong>Save PNG</strong> to export a lossless image of the visible circle.
   </p>
 
-  <div class="map-tester-controls">
-    <label>City:
-      <select id="map-tester-city" aria-describedby="map-tester-coord">
-        <!-- Sections, top to bottom, separated by disabled-option dividers:
-               1. Cities I've lived in — chronological descending, mirrors personal-info.
-               2. GaWC 2024 Alpha++ + Alpha+ merged, in the order published at
-                  gawc.lboro.ac.uk/gawc-worlds/the-world-according-to-gawc/world-cities-2024/
-                  (by connectivity score, not alphabetical).
-               3. GaWC 2024 Alpha, in the same published order (by score, not alphabetical).
-             London (Alpha++) and Shanghai (Alpha+) sit in section 1 and are dropped
-             from section 2 to avoid duplicates.
-             Coords are the lat/lon of each city's OSM place=city node, fetched via
-             Overpass: [out:json];node["wikidata"="<Q>"]["place"~"city|town"];out;
-             Node IDs in the inline comments map to openstreetmap.org/node/<id>. -->
-        <option value="dublin" data-lat="53.3493795" data-lon="-6.2605593">Dublin</option>           <!-- node 3473474851 -->
-        <option value="cambridge" data-lat="52.2055314" data-lon="0.1186637">Cambridge</option>     <!-- node 20971094 -->
-        <option value="london" data-lat="51.5074456" data-lon="-0.1277653">London</option>          <!-- node 107775 -->
-        <option value="shanghai" data-lat="31.2323437" data-lon="121.4691024">Shanghai</option>     <!-- node 778910398 -->
-        <option disabled>──────────</option>
-        <option value="new-york" data-lat="40.7127281" data-lon="-74.0060152">New York</option>     <!-- node 61785451 — GaWC Alpha++ -->
-        <option value="hong-kong" data-lat="22.2792968" data-lon="114.1628907">Hong Kong</option>   <!-- node 24330691 — GaWC Alpha+ -->
-        <option value="beijing" data-lat="39.9057136" data-lon="116.3912972">Beijing</option>       <!-- node 25248662 — GaWC Alpha+ -->
-        <option value="singapore" data-lat="1.2899175" data-lon="103.8519072">Singapore</option>    <!-- node 531668011 — GaWC Alpha+ -->
-        <option value="paris" data-lat="48.8534951" data-lon="2.3483915">Paris</option>             <!-- node 17807753 — GaWC Alpha+ -->
-        <option value="dubai" data-lat="25.2296341" data-lon="55.2895850">Dubai</option>            <!-- node 13258099521 — GaWC Alpha+ -->
-        <option value="tokyo" data-lat="35.6768601" data-lon="139.7638947">Tokyo</option>           <!-- node 265018692 — GaWC Alpha+ -->
-        <option value="sydney" data-lat="-33.8698439" data-lon="151.2082848">Sydney</option>        <!-- node 13766899 — GaWC Alpha+ -->
-        <option disabled>──────────</option>
-        <option value="seoul" data-lat="37.5666791" data-lon="126.9782914">Seoul</option>                  <!-- node 1912365631 — GaWC Alpha -->
-        <option value="milan" data-lat="45.4641943" data-lon="9.1896346">Milan</option>                    <!-- node 62505581 — GaWC Alpha -->
-        <option value="toronto" data-lat="43.6534817" data-lon="-79.3839347">Toronto</option>              <!-- node 18063533 — GaWC Alpha -->
-        <option value="frankfurt" data-lat="50.1106444" data-lon="8.6820917">Frankfurt</option>            <!-- node 27418664 — GaWC Alpha -->
-        <option value="chicago" data-lat="41.8755616" data-lon="-87.6244212">Chicago</option>              <!-- node 153388690 — GaWC Alpha -->
-        <option value="jakarta" data-lat="-6.1754049" data-lon="106.8271680">Jakarta</option>              <!-- node 29939632 — GaWC Alpha -->
-        <option value="sao-paulo" data-lat="-23.5506507" data-lon="-46.6333824">São Paulo</option>         <!-- node 30674098 — GaWC Alpha -->
-        <option value="mexico-city" data-lat="19.4326296" data-lon="-99.1331785">Mexico City</option>      <!-- node 62270270 — GaWC Alpha -->
-        <option value="mumbai" data-lat="19.0549990" data-lon="72.8692035">Mumbai</option>                 <!-- node 16173235 — GaWC Alpha -->
-        <option value="madrid" data-lat="40.4167820" data-lon="-3.7035070">Madrid</option>                 <!-- node 21068295 — GaWC Alpha -->
-        <option value="warsaw" data-lat="52.2319581" data-lon="21.0067249">Warsaw</option>                 <!-- node 428339515 — GaWC Alpha -->
-        <option value="guangzhou" data-lat="23.1288454" data-lon="113.2590064">Guangzhou</option>          <!-- node 244080443 — GaWC Alpha -->
-        <option value="istanbul" data-lat="41.0063810" data-lon="28.9758715">Istanbul</option>             <!-- node 1882099475 — GaWC Alpha -->
-        <option value="amsterdam" data-lat="52.3730796" data-lon="4.8924534">Amsterdam</option>            <!-- node 268396336 — GaWC Alpha -->
-        <option value="bangkok" data-lat="13.7524938" data-lon="100.4935089">Bangkok</option>              <!-- node 1628207792 — GaWC Alpha -->
-        <option value="los-angeles" data-lat="34.0536909" data-lon="-118.2427660">Los Angeles</option>     <!-- node 1738808199 — GaWC Alpha -->
-        <option value="kuala-lumpur" data-lat="3.1516964" data-lon="101.6942371">Kuala Lumpur</option>     <!-- node 1889910974 — GaWC Alpha -->
-      </select>
-    </label>
-    <label>Shape:
-      <select id="map-tester-shape">
-        <option value="circle">Circle</option>
-        <option value="square">Rounded square</option>
-      </select>
-    </label>
-    <label>Size (px):
-      <input type="number" id="map-tester-size" value="360" min="50" max="2000" step="10">
-    </label>
-    <label>Radius (km):
-      <input type="number" id="map-tester-radius" value="17" min="0.5" max="500" step="1">
-    </label>
-    <label><input type="checkbox" id="map-tester-rails"> Rails</label>
-  </div>
-  <div id="map-tester-canvas" style="width:360px;height:360px;max-width:100%;background:#eee;margin-top:0.8rem;overflow:hidden;border-radius:50%;"></div>
-  <div class="map-tester-readout" style="margin-top:0.4rem;display:flex;align-items:flex-start;gap:0.8rem;flex-wrap:wrap;">
-    <button type="button" id="map-tester-render">Render</button>
-    <button type="button" id="map-tester-export">Save PNG</button>
-    <label style="display:inline-flex;align-items:center;gap:0.4rem;font-size:0.9rem;color:var(--text);" title="Tile zoom level for the export PNG. Each +1 doubles each side of the file (4× total area). Empty = match the on-screen tile zoom. Range 0–19.">
-      at zoom <input type="number" id="map-tester-exportzoom" min="0" max="19" step="1" placeholder="auto" style="width:4rem;font:inherit;padding:0.3rem 0.1rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;">
-    </label>
-    <div style="font-size:0.8rem;color:var(--muted);font-variant-numeric:tabular-nums;display:flex;flex-direction:column;gap:0.1rem;">
-      <span id="map-tester-coord"></span>
-      <span id="map-tester-rz"></span>
-      <span id="map-tester-actual"></span>
-    </div>
-  </div>
+  <label class="city-list-toggle">
+    <input type="checkbox" id="include-lived"> Include cities I've lived in
+  </label>
 
+  <div id="city-explorer"></div>
   <script>
-  (function () {
-    var cityEl = document.getElementById('map-tester-city');
-    var shapeEl = document.getElementById('map-tester-shape');
-    var sizeEl = document.getElementById('map-tester-size');
-    var radiusEl = document.getElementById('map-tester-radius');
-    var railsEl = document.getElementById('map-tester-rails');
-    var btn = document.getElementById('map-tester-render');
-    var canvas = document.getElementById('map-tester-canvas');
-    var actualEl = document.getElementById('map-tester-actual');
-    var coordEl = document.getElementById('map-tester-coord');
-    var rzEl = document.getElementById('map-tester-rz');
-    var lmap = null;
-    // OpenRailwayMap overlay — transparent tiles on top of OSM base.
-    // Lazy-created on first toggle, then added/removed on change.
-    var railsLayer = null;
-    function updateRails() {
-      if (!lmap) return;
-      if (railsEl.checked) {
-        if (!railsLayer) {
-          railsLayer = L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            // crossOrigin: needed so the export can draw rails tiles
-            // onto the canvas without tainting it.
-            crossOrigin: true,
-            attribution: '© OpenRailwayMap (CC-BY-SA)'
-          });
-        }
-        railsLayer.addTo(lmap);
-      } else if (railsLayer) {
-        railsLayer.remove();
-      }
-    }
-    // Match the shared map-popover.js formula: fractional zoom computed
-    // per-latitude so every city shows the same ground span regardless
-    // of how far from the equator it sits.
-    function computeZoom(lat, widthPx, radiusKm) {
-      var latRad = lat * Math.PI / 180;
-      return Math.log2(156543.03392 * Math.cos(latRad) * widthPx / (2000 * radiusKm));
-    }
-    function updateCoordReadout() {
-      var opt = cityEl.options[cityEl.selectedIndex];
-      var lat = opt.dataset.lat;
-      var lon = opt.dataset.lon;
-      if (!lat || !lon) { coordEl.textContent = ''; return; }
-      // Full precision: print the raw data-lat/data-lon strings rather
-      // than parseFloat→toFixed, so trailing zeros are preserved.
-      coordEl.textContent = lat + ', ' + lon;
-    }
-    updateCoordReadout();
-    // Shape → border-radius applied directly to the canvas div.
-    var SHAPE_RADIUS = { circle: '50%', square: '10px' };
-    function render() {
-      var opt = cityEl.options[cityEl.selectedIndex];
-      var lat = parseFloat(opt.dataset.lat);
-      var lon = parseFloat(opt.dataset.lon);
-      var size = parseInt(sizeEl.value, 10);
-      var radiusKm = parseFloat(radiusEl.value);
-      if (!isFinite(size) || size < 50) return;
-      if (!isFinite(radiusKm) || radiusKm <= 0) return;
-      // Clamp to the available column width — going wider would trigger
-      // canvas's max-width:100% (which leaves height untouched and breaks
-      // the square aspect ratio). Probe the real max by stretching the
-      // canvas to width:100% and reading what the layout gives back.
-      var prevW = canvas.style.width;
-      canvas.style.width = '100%';
-      var maxSize = Math.floor(canvas.getBoundingClientRect().width);
-      canvas.style.width = prevW;
-      if (maxSize > 0 && size > maxSize) {
-        size = maxSize;
-        sizeEl.value = size;
-      }
-      canvas.style.width = size + 'px';
-      canvas.style.height = size + 'px';
-      canvas.style.borderRadius = SHAPE_RADIUS[shapeEl.value] || '0';
-      if (!lmap) {
-        lmap = L.map(canvas, {
-          // zoomSnap: 0 — we pass fractional zooms from computeZoom
-          // and don't want them rounded.
-          zoomSnap: 0,
-          zoomControl: false, attributionControl: false,
-          dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
-          touchZoom: false, boxZoom: false, keyboard: false
-        });
-        // crossOrigin: true — needed so the export can draw tile <img>s
-        // onto the canvas without tainting it.
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, crossOrigin: true }).addTo(lmap);
-      }
-      updateRails();
-      // Zoom is computed from RADIUS_KM + latitude + container width, so
-      // the visible ground span stays at 2 × radius km regardless of
-      // city / canvas size. Compute after invalidateSize so the canvas
-      // has its laid-out width.
-      setTimeout(function () {
-        lmap.invalidateSize();
-        var r = canvas.getBoundingClientRect();
-        var z = computeZoom(lat, r.width, radiusKm);
-        lmap.setView([lat, lon], z);
-        rzEl.textContent = radiusKm + ' km radius · zoom ' + z.toFixed(4);
-        actualEl.textContent = 'rendered: ' + Math.round(r.width) + ' × ' + Math.round(r.height) + ' px';
-        refreshExportZoomLimit();
-      }, 50);
-    }
-    btn.addEventListener('click', render);
-    cityEl.addEventListener('change', function () { updateCoordReadout(); render(); });
-    shapeEl.addEventListener('change', render);
-    sizeEl.addEventListener('change', render);
-    radiusEl.addEventListener('change', render);
-    railsEl.addEventListener('change', updateRails);
-
-    // Compute the highest export zoom whose resulting canvas would fit
-    // inside EXPORT_MAX_CANVAS_DIM. Reflected back into the input's max
-    // attribute and placeholder so the user sees the limit; values
-    // typed above it are clamped on commit.
-    var exportzoomEl = document.getElementById('map-tester-exportzoom');
-    function exportMaxZoom() {
-      if (!lmap) return 19;
-      var w = canvas.getBoundingClientRect().width;
-      if (!w) return 19;
-      var maxScale = (window.EXPORT_MAX_CANVAS_DIM || 8192) / w;
-      return Math.min(19, Math.floor(lmap.getZoom() + Math.log2(maxScale)));
-    }
-    function refreshExportZoomLimit() {
-      var mz = exportMaxZoom();
-      exportzoomEl.max = mz;
-      exportzoomEl.placeholder = 'auto · max ' + mz;
-    }
-    exportzoomEl.addEventListener('change', function () {
-      var v = parseInt(this.value, 10);
-      if (!isFinite(v)) return;
-      var mz = exportMaxZoom();
-      if (v > mz) this.value = mz;
-      if (v < 0) this.value = 0;
+    // Data lists come from cities.js (loaded above): URBANISM_DATA holds
+    // {gawcList, livedList} — pure GaWC 2024 vs lived-in-prepended.
+    var widget = createMapExplorer({
+      mount: '#city-explorer',
+      locationLabel: 'City',
+      defaultRadiusKm: 17,
+      filenamePrefix: 'map',
+      locations: URBANISM_DATA.gawcList  // default: checkbox unchecked
     });
-    document.getElementById('map-tester-export').addEventListener('click', function () {
-      if (!lmap) return;
-      var btnEl = this;
-      var opt = cityEl.options[cityEl.selectedIndex];
-      var exportZ = parseInt(exportzoomEl.value, 10);
-      if (!isFinite(exportZ)) exportZ = Math.round(lmap.getZoom());
-      var name = 'map-' + opt.value + '-' + radiusEl.value + 'km-z' + exportZ + '.png';
-      var oldText = btnEl.textContent;
-      btnEl.disabled = true;
-      btnEl.textContent = 'Saving…';
-      Promise.resolve(window.exportMapAsPng(lmap, canvas, shapeEl.value, name, function (done, total) {
-        btnEl.textContent = 'Saving ' + done + '/' + total + '…';
-      }, exportZ))
-        .catch(function (e) { console.error(e); })
-        .then(function () {
-          btnEl.disabled = false;
-          btnEl.textContent = oldText;
-        });
+    document.getElementById('include-lived').addEventListener('change', function () {
+      widget.setLocations(this.checked ? URBANISM_DATA.livedList : URBANISM_DATA.gawcList);
     });
-
-    // Initial render on page load — the map is the page's main content,
-    // so eager init beats lazy init here. (Test page used a <details>
-    // toggle + lazy init because the map sat alongside many other
-    // sections; here it's the whole page.)
-    render();
-  })();
   </script>
 </div>
 

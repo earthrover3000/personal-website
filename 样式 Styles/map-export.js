@@ -237,8 +237,8 @@ window.exportMapAsPng = async function (map, container, shape, filename, onProgr
   if (onProgress) onProgress(0, totalTiles);
 
   // Process layers serially in z-order; tiles within a layer go
-  // through the shared limiter. The rails overlay (added after the
-  // OSM base) lands on top because we process layers in addition
+  // through the shared limiter. The railways overlay (added after
+  // the OSM base) lands on top because we process layers in addition
   // order.
   for (var i = 0; i < layers.length; i++) {
     var layer = layers[i];
