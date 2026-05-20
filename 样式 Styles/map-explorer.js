@@ -51,6 +51,11 @@
       '  border:1px solid var(--border); border-radius:4px;' +
       '}' +
       '.map-tester-controls input[type="number"] { width:5.5rem; }' +
+      '.map-tester-controls .map-radius-group {' +
+      '  display:inline-flex; align-items:center; gap:0.5rem; flex-wrap:wrap;' +
+      '  font-size:0.9rem; color:var(--text);' +
+      '}' +
+      '.map-tester-controls .map-radius-group input[type="number"]:disabled { opacity:0.5; }' +
       '.map-explorer-canvas {' +
       '  width:360px; height:360px; max-width:100%;' +
       '  background:#eee; margin-top:0.8rem;' +
@@ -131,6 +136,11 @@
     var idPfx = mount.id || ('map-explorer-' + Math.random().toString(36).slice(2, 8));
     var locationLabel = config.locationLabel || 'Location';
     var defaultRadiusKm = config.defaultRadiusKm || 17;
+    // Optional preset list. When provided (e.g. [17, 63]), the radius
+    // control becomes "<preset> <preset> Custom" radios with the number
+    // input only editable while Custom is selected. Omitted → original
+    // freeform number input.
+    var radiusPresets = Array.isArray(config.radiusPresets) ? config.radiusPresets : null;
     var filenamePrefix = config.filenamePrefix || 'map';
     var locations = config.locations || [];
 
@@ -138,6 +148,7 @@
     var selectId = idPfx + '-loc';
     var sizeId = idPfx + '-size';
     var radiusId = idPfx + '-radius';
+    var radiusModeName = idPfx + '-radius-mode';
     var railwaysId = idPfx + '-railways';
     var canvasId = idPfx + '-canvas';
     var renderBtnId = idPfx + '-render';
@@ -148,6 +159,30 @@
     var rzId = idPfx + '-rz';
     var actualId = idPfx + '-actual';
 
+    // Radius control: presets → radio group + (initially-disabled) number
+    // input next to a "Custom" radio. No presets → original freeform input.
+    var radiusControlHtml;
+    if (radiusPresets) {
+      var defaultMatchesPreset = radiusPresets.indexOf(defaultRadiusKm) >= 0;
+      var presetRadiosHtml = radiusPresets.map(function (p) {
+        var checked = (defaultMatchesPreset && p === defaultRadiusKm) ? ' checked' : '';
+        return '<label><input type="radio" name="' + radiusModeName + '" value="' + p + '"' + checked + '> ' + p + '</label>';
+      }).join('');
+      var customChecked = defaultMatchesPreset ? '' : ' checked';
+      var numberDisabled = defaultMatchesPreset ? ' disabled' : '';
+      radiusControlHtml =
+        '<span class="map-radius-group">Radius (km):' +
+          presetRadiosHtml +
+          '<label><input type="radio" name="' + radiusModeName + '" value="custom"' + customChecked + '> Custom</label>' +
+          '<input type="number" id="' + radiusId + '" value="' + defaultRadiusKm + '" min="0.5" max="5000" step="1"' + numberDisabled + '>' +
+        '</span>';
+    } else {
+      radiusControlHtml =
+        '<label>Radius (km):' +
+          '<input type="number" id="' + radiusId + '" value="' + defaultRadiusKm + '" min="0.5" max="5000" step="1">' +
+        '</label>';
+    }
+
     mount.innerHTML =
       '<div class="map-tester-controls">' +
         '<label>' + escHtml(locationLabel) + ':' +
@@ -156,9 +191,7 @@
         '<label>Size (px):' +
           '<input type="number" id="' + sizeId + '" value="360" min="50" max="2000" step="10">' +
         '</label>' +
-        '<label>Radius (km):' +
-          '<input type="number" id="' + radiusId + '" value="' + defaultRadiusKm + '" min="0.5" max="5000" step="1">' +
-        '</label>' +
+        radiusControlHtml +
         '<label><input type="checkbox" id="' + railwaysId + '"> Railways</label>' +
       '</div>' +
       '<div class="map-explorer-canvas" id="' + canvasId + '"></div>' +
@@ -220,11 +253,63 @@
       coordEl.textContent = '(' + lat + ', ' + lon + ')';
     }
 
+    // ---- Radius read/write helpers ----
+    // With presets, the "current" radius is the selected radio's value
+    // (or the number-input value when Custom is selected). Without
+    // presets, the number input is the single source of truth.
+    function radiusRadios() {
+      return radiusPresets
+        ? mount.querySelectorAll('input[name="' + radiusModeName + '"]')
+        : null;
+    }
+    function selectedRadiusMode() {
+      var rs = radiusRadios();
+      if (!rs) return null;
+      for (var i = 0; i < rs.length; i++) if (rs[i].checked) return rs[i].value;
+      return null;
+    }
+    function getRadiusKm() {
+      if (!radiusPresets) return parseFloat(radiusEl.value);
+      var v = selectedRadiusMode();
+      if (v && v !== 'custom') return parseFloat(v);
+      return parseFloat(radiusEl.value);
+    }
+    function syncRadiusModeUI() {
+      if (!radiusPresets) return;
+      var v = selectedRadiusMode();
+      if (v === 'custom') {
+        radiusEl.disabled = false;
+      } else {
+        radiusEl.disabled = true;
+        if (v) radiusEl.value = parseFloat(v);
+      }
+    }
+    function setRadiusKm(r) {
+      if (!isFinite(r) || r <= 0) return;
+      if (!radiusPresets) { radiusEl.value = r; return; }
+      var rs = radiusRadios();
+      var matched = false;
+      for (var i = 0; i < rs.length; i++) {
+        if (rs[i].value !== 'custom' && parseFloat(rs[i].value) === r) {
+          rs[i].checked = true;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        for (var j = 0; j < rs.length; j++) {
+          if (rs[j].value === 'custom') { rs[j].checked = true; break; }
+        }
+        radiusEl.value = r;
+      }
+      syncRadiusModeUI();
+    }
+
     function applyLocationRadius() {
       var opt = locEl.options[locEl.selectedIndex];
       if (!opt) return;
       var r = parseFloat(opt.dataset.radiusKm);
-      if (isFinite(r) && r > 0) radiusEl.value = r;
+      if (isFinite(r) && r > 0) setRadiusKm(r);
     }
 
     function exportMaxZoom() {
@@ -265,7 +350,7 @@
       var lat = parseFloat(opt.dataset.lat);
       var lon = parseFloat(opt.dataset.lon);
       var size = parseInt(sizeEl.value, 10);
-      var radiusKm = parseFloat(radiusEl.value);
+      var radiusKm = getRadiusKm();
       if (!isFinite(size) || size < 50) return;
       if (!isFinite(radiusKm) || radiusKm <= 0) return;
       // Clamp to the available column width — going wider would trigger
@@ -324,6 +409,13 @@
     });
     sizeEl.addEventListener('change', render);
     radiusEl.addEventListener('change', render);
+    if (radiusPresets) {
+      // Radios fire 'change' only on the newly-checked one; sync the
+      // number-input enable state, then re-render with the new value.
+      mount.querySelectorAll('input[name="' + radiusModeName + '"]').forEach(function (r) {
+        r.addEventListener('change', function () { syncRadiusModeUI(); render(); });
+      });
+    }
     railwaysEl.addEventListener('change', updateRailways);
 
     // Snap to integer + clamp to [min, max] on commit. The export
@@ -352,7 +444,7 @@
       // [min, max] (formulas could drift if MIN_OUTPUT_DIM or
       // EXPORT_MAX_CANVAS_DIM change but the user already had a value).
       exportZ = Math.max(exportMinZoom(), Math.min(exportMaxZoom(), exportZ));
-      var name = filenamePrefix + '-' + opt.value + '-' + radiusEl.value + 'km-z' + exportZ + '.png';
+      var name = filenamePrefix + '-' + opt.value + '-' + getRadiusKm() + 'km-z' + exportZ + '.png';
       var oldText = btnEl.textContent;
       btnEl.disabled = true;
       btnEl.textContent = 'Saving…';

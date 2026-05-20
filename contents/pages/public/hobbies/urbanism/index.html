@@ -4,7 +4,7 @@
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Urban Planning & Transport · City Map Explorer</title>
+  <title>Cities & Transport · City Map Explorer</title>
   <link rel="stylesheet" href="../../../../../样式 Styles/base.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -60,8 +60,8 @@
 <body>
 
 <div class="container">
-  <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../../">Home</a> <span class="sep">›</span> <a href="../../">Index</a> <span class="sep">›</span> <span aria-current="page">Urban Planning & Transport</span></nav>
-  <h1>Urban Planning &amp; Transport</h1>
+  <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../../">Home</a> <span class="sep">›</span> <a href="../../">Index</a> <span class="sep">›</span> <span aria-current="page">Cities & Transport</span></nav>
+  <h1>Cities &amp; Transport</h1>
   <p class="head-meta">&nbsp;</p>
 
   <h2>City Map Explorer</h2>
@@ -81,6 +81,10 @@
       mount: '#city-explorer',
       locationLabel: 'City',
       defaultRadiusKm: 17,
+      // Two quick presets + a free-form Custom input. 17 km is the
+      // dense-city default; 63 km roughly captures the surrounding metro
+      // footprint at the same map size.
+      radiusPresets: [17, 63],
       filenamePrefix: 'map',
       locations: URBANISM_DATA.gawcList  // default: checkbox unchecked
     });
@@ -88,6 +92,16 @@
       widget.setLocations(this.checked ? URBANISM_DATA.livedList : URBANISM_DATA.gawcList);
     });
   </script>
+
+    <h2>Cities</h2>
+  <ul>
+    <li><a href="https://luminocity3d.org/">LuminoCity3D</a> — interactive 3D atlas of urban density, height, and sprawl across world cities.</li>
+    <li><a href="https://gawc.lboro.ac.uk/gawc-worlds/the-world-according-to-gawc/">GaWC: The World According to GaWC</a> — the Globalization and World Cities ranking from Loughborough University; source for this page&#x27;s city list.</li>
+  </ul>
+  <h2>Transport</h2>
+  <ul>
+    <li><a href="https://cartometro.com/">Cartometro</a> — hand-drawn schematic maps of the world&#x27;s metro, tram, and suburban-rail networks at a common visual scale.</li>
+  </ul>
 </div>
 
 </body>
