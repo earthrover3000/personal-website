@@ -10,7 +10,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <!-- Shared map widget (markup + Leaflet wiring) and the lossless-PNG
        exporter it depends on. Single source of truth in 样式 Styles/;
-       the urbanism page uses the same two files. -->
+       the cities-transport page uses the same two files. -->
   <script src="../../../../../样式 Styles/map-export.js"></script>
   <script src="../../../../../样式 Styles/map-explorer.js"></script>
   <!-- Page-local data — sibling file in this folder, deployed by
@@ -55,7 +55,7 @@
 
   <h2>Region Map Explorer</h2>
   <p class="lede">
-    Sibling of the <a href="../urbanism/">City Map Explorer</a> at regional scale — pick a well-known geographic region and render its extent at exactly the chosen pixel size and radius, clipped to a circle. Toggle <strong>Railways</strong> for an <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> overlay. Use <strong>Save PNG</strong> to export a lossless image of the visible circle.
+    Sibling of the <a href="../cities-transport/">City Map Explorer</a> at regional scale — pick a well-known geographic region and render its extent at exactly the chosen pixel size and radius, clipped to a circle. Toggle <strong>Railways</strong> for an <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> overlay. Use <strong>Save PNG</strong> to export a lossless image of the visible circle.
   </p>
 
   <div id="region-explorer"></div>
@@ -70,7 +70,36 @@
       locations: GEOGRAPHY_DATA.regions
     });
   </script>
+
+  <h2>Great Circle Mapper</h2>
+  <p class="lede">
+    A world map you can re-project live, entirely in the browser. Pick a coordinate framing
+    (Eastern / Western / Northern / Southern) and a projection (<strong>Winkel Tripel</strong>
+    or Hǎo's <strong>等差分多圆锥</strong> vertical map), toggle country borders, and draw
+    great-circle flight paths — the preset routes, or your own: type 3-letter IATA codes such as
+    <code>PEK-JFK, LHR-HND-SIN</code>. It runs on the same projection maths as my printed-map
+    reconstruction. Coastlines &amp; borders:
+    <a href="https://www.naturalearthdata.com/">Natural Earth</a> (public domain); airports:
+    <a href="https://ourairports.com/data/">OurAirports</a> (public domain).
+  </p>
+  <div id="great-circle-mapper"></div>
 </div>
+
+<!-- Shared client-side projection toolkit (样式 Styles/projection/): the generic map
+     engine, reused across pages. Loaded at end-of-body so the large geo-data globals
+     don't block first paint. Order matters: config (window.PROJECTION_CONFIG) → kernels
+     → geometry → data globals → widget. -->
+<script src="../../../../../样式 Styles/projection/projection-config.js"></script>
+<script src="../../../../../样式 Styles/projection/projection.js"></script>
+<script src="../../../../../样式 Styles/projection/map-geometry.js"></script>
+<script src="../../../../../样式 Styles/projection/coastline.js"></script>
+<script src="../../../../../样式 Styles/projection/boundaries.js"></script>
+<script src="../../../../../样式 Styles/projection/lakes.js"></script>
+<script src="../../../../../样式 Styles/projection/airports.js"></script>
+<script src="../../../../../样式 Styles/projection/world-map.js"></script>
+<script>
+  createWorldMap({ mount: '#great-circle-mapper', controls: true });
+</script>
 
 </body>
 </html>

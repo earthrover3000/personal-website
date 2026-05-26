@@ -9,7 +9,7 @@
 // Each region carries its own defaultRadiusKm so the widget can pick a
 // sensible scale per location when the user switches between them.
 //
-// Symmetric in structure to urbanism/cities.js — currently only two
+// Symmetric in structure to cities-transport/cities.js — currently only two
 // entries, but extracted so the pattern matches across both
 // map-explorer pages and so adding new regions is a one-place edit.
 

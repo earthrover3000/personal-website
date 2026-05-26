@@ -1,0 +1,681 @@
+// world-map.js — reusable client-side world-map widget. Renders coastlines,
+// graticule, optional country boundaries, and great-circle flight paths on a
+// chosen projection + coordinate framing, all client-side on a Canvas. Built on
+// PROJECTION_CONFIG + PROJ + MAPGEO + the WORLD_COASTLINE/BOUNDARIES/AIRPORTS
+// data globals (all from 样式 Styles/projection/).
+//
+// Usage (maps-projections "Great Circle Mapper" — full interactive controls):
+//   createWorldMap({ mount: '#great-circle-mapper', controls: true });
+// Usage (embed, e.g. travel-calendar — fixed framing + own routes, no UI):
+//   createWorldMap({ mount: el, controls: false, coordinate: 'north',
+//                    projection: 'winkel', routes: [['LHR','HND'], ...] });
+
+(function (root) {
+  'use strict';
+  var PROJ = root.PROJ, MAPGEO = root.MAPGEO;
+
+  var PAL = {
+    ocean: '#b7d2ea', land: '#cde0a8', coast: '#5f7d43',
+    graticule: '#9bb6d0', edge: '#4f7193', border: '#9a7b5a', marker: '#15202b'
+  };
+  var ROUTE_COLORS = ['#c0392b', '#1f6f3d', '#6c3483', '#b9770e', '#1a5276', '#7b241c'];
+  var GRAT = 15;            // graticule spacing, degrees
+  var NSAMP = 500;          // samples per graticule line / arc
+  var DEFAULT_SIZE = 360;   // box px — matches the Region Map Explorer default
+  var ZOOM_LEVELS = [1, 2, 4, 8, 16, 32];   // each step doubles: 100, 200, 400, 800, 1600, 3200 %
+  var WORLDMAP_UID = 0;
+
+  var STYLE_ID = '__world-map-styles';
+  function injectStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+    var s = document.createElement('style'); s.id = STYLE_ID;
+    s.textContent =
+      '.gcm-controls{display:flex;flex-wrap:wrap;gap:0.8rem 1.4rem;align-items:flex-start;margin:0.4rem 0 0.9rem;}' +
+      '.gcm-group{border:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.25rem;}' +
+      '.gcm-group .gcm-legend{font-size:0.72rem;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted);}' +
+      '.gcm-opts{display:flex;flex-wrap:wrap;gap:0.3rem 0.8rem;align-items:center;}' +
+      '.gcm-controls label{display:inline-flex;align-items:center;gap:0.35rem;font-size:0.9rem;color:var(--text);cursor:pointer;}' +
+      '.gcm-controls input[type=radio],.gcm-controls input[type=checkbox]{accent-color:var(--accent);}' +
+      '.gcm-controls input[type=number]{font:inherit;width:5rem;padding:0.3rem 0.5rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
+      '.gcm-free{display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;margin:0 0 0.7rem;}' +
+      '.gcm-free input[type=text]{font:inherit;padding:0.4rem 0.6rem;min-width:16rem;flex:1 1 16rem;' +
+      'background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
+      '.gcm-free select,.gcm-routesel select{font:inherit;padding:0.4rem 0.6rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
+      '.gcm-flightgroup{flex-basis:100%;}' +                            // Flight paths takes its own full-width row
+      '.gcm-routeslot{display:grid;align-items:center;flex:1 1 12rem;}' +   // grows to fill the rest of the Flight-paths line; dropdown + text-box share one cell, so the slot is always sized to the taller control → row height never changes across Off/Selected/Free
+      '.gcm-routeslot > span{grid-row:1;grid-column:1;}' +
+      '.gcm-routesel{justify-self:start;display:inline-flex;align-items:center;gap:0.35rem;}' +
+      '.gcm-routefree{justify-self:stretch;display:flex;align-items:center;gap:0.4rem;}' +
+      '.gcm-routefree input[type=text]{flex:1 1 auto;min-width:0;font:inherit;padding:0.4rem 0.6rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
+      '.gcm-btn{font:inherit;padding:0.35rem 0.7rem;background:var(--surface);color:var(--text);' +
+      'border:1px solid var(--border);border-radius:4px;cursor:pointer;}' +
+      '.gcm-btn:hover{border-color:var(--accent);}' +
+      '.gcm-stage{display:flex;align-items:flex-start;gap:0.6rem;}' +
+      '.gcm-zoom{display:flex;flex-direction:column;gap:0.4rem;width:6rem;flex:0 0 auto;}' +
+      '.gcm-zbtns{display:flex;flex-direction:column;gap:0.3rem;align-items:center;}' +
+      '.gcm-zbtns .gcm-zoombtn{width:2.4rem;}' +
+      '.gcm-railbtn{width:100%;white-space:nowrap;}' +
+      '.gcm-compass{display:flex;cursor:pointer;flex:0 0 auto;}' +
+      '.gcm-compass:hover{opacity:0.82;}' +
+      '.gcm-zoombtn{height:2.2rem;text-align:center;padding:0;font-size:1.2rem;line-height:1;}' +
+      '.gcm-zoom-readout{text-align:center;font-size:0.8rem;color:var(--muted);font-variant-numeric:tabular-nums;}' +
+      '.gcm-dial .gcm-zoombtn{min-width:2.2rem;padding:0 0.35rem;}' +
+      '.gcm-orient-readout{min-width:7.5rem;white-space:nowrap;text-align:center;font-size:0.85rem;color:var(--muted);font-variant-numeric:tabular-nums;}' +
+      '.gcm-compassrow{display:flex;align-items:center;justify-content:center;gap:0.2rem;margin-bottom:0.2rem;}' +
+      '.gcm-northup,.gcm-northlive{display:inline-flex;align-items:center;gap:0.15rem;font-size:0.78rem;color:var(--muted);}' +
+      '.gcm-zoombtn:disabled{opacity:0.4;cursor:default;}' +
+      '.gcm-err{color:#d9534f;font-size:0.85rem;}' +
+      '.gcm-canvas{display:block;background:transparent;border:1px solid var(--border);border-radius:6px;' +
+      'touch-action:none;cursor:grab;}' +
+      '.gcm-canvas:active{cursor:grabbing;}' +
+      '.gcm-bar{display:flex;justify-content:flex-end;margin-top:0.5rem;}';
+    document.head.appendChild(s);
+  }
+
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+
+  function createWorldMap(opts) {
+    opts = opts || {};
+    var instanceId = ++WORLDMAP_UID;
+    var cfg = root.PROJECTION_CONFIG;
+    var mount = typeof opts.mount === 'string' ? document.querySelector(opts.mount) : opts.mount;
+    if (!mount) throw new Error('createWorldMap: mount not found');
+    injectStyles();
+    var showControls = opts.controls !== false;
+    var state = {
+      coordinate: opts.coordinate || cfg.default_coordinate,
+      projection: opts.projection || cfg.default_projection,
+      boundaries: opts.boundaries != null ? opts.boundaries : !!(cfg.defaults && cfg.defaults.boundaries),
+      edges: !!opts.edges,                                // overlay the Hǎo Northern & Southern map edges (seam half-meridians) as geographic curves
+      middleLine: !!opts.middleLine,                      // draw the central meridian (the straight middle axis a centred route lies on) at graticule weight
+      flightMode: opts.flightMode || (cfg.defaults && cfg.defaults.flight_paths) || 'selected',
+      routeGroup: (cfg.routes && cfg.routes.default_group) || '',   // '' → dropdown rests on "(none)" = no flights
+      freeRoutes: opts.routes || [], freePoints: [],
+      size: opts.size || DEFAULT_SIZE,
+      detail: opts.detail || (cfg.defaults && cfg.defaults.detail) || 'fine',   // fine (50m) | coarse (110m)
+      orientation: normalizeOrient(opts.orientation),   // fixed-dial rotation in degrees, multiple of 15 (pure rotation, never a flip)
+      orientMode: opts.northUp ? 'north' : 'fixed',      // fixed (manual dial) | north (dynamic: keep local north at the view centre up)
+      northLive: !!opts.northLive,                       // north mode: re-orient live during drag (default off → settle on release)
+      _theta: -normalizeOrient(opts.orientation) * Math.PI / 180,  // applied rotation (radians); recomputed each render in north mode
+      zoom: 1, cx: null, cy: null,   // projected coords shown at the canvas centre (null → init to the projection centre); rotation/zoom pivot here
+      centreOverride: null,          // {lat,lon}: a custom vertical-framing centre (from "Centre on arc"); overrides the preset hemisphere
+      centreArc: null                // [codeA, codeB]: the arc we re-centred on, drawn straight down the middle
+    };
+    var DEFAULT_ORIENT = state.orientation, DEFAULT_MODE = state.orientMode;   // page-load orientation, restored by Reset
+    if (opts.centreArc && opts.centreArc.length === 2) {                 // embed/init: centre on an arc so it runs straight down the middle
+      var _a = root.WORLD_AIRPORTS[opts.centreArc[0].toUpperCase()], _b = root.WORLD_AIRPORTS[opts.centreArc[1].toUpperCase()];
+      if (_a && _b) { var _c = PROJ.centreForStraightLine([_a[0], _a[1]], [_b[0], _b[1]]); if (_c) { state.centreOverride = _c; state.centreArc = [opts.centreArc[0].toUpperCase(), opts.centreArc[1].toUpperCase()]; } }
+    } else if (opts.centre) { state.centreOverride = opts.centre; }       // or a direct {lat,lon} centre
+
+    var canvas = el('canvas', 'gcm-canvas');
+    var ctx = canvas.getContext('2d');
+    var freeWrap, errSpan, zoomReadout, orientReadout, selectedWrap, syncOrientUI = function () {}, lastScale = 1, compassEl, compassNeedle, compassCircle, liveLab, liveChk, latBox, lonBox;
+
+    if (showControls) {
+      var controls = el('div', 'gcm-controls');
+      controls.appendChild(radioGroup('Focused hemisphere', 'coordinate', cfg.coordinates.map(idLabel), state.coordinate, function (v) { state.coordinate = v; state.centreOverride = null; state.centreArc = null; updateCentreBoxes(); resetView(); render(); }));
+      controls.appendChild(radioGroup('Projection', 'projection', cfg.projections.map(idLabel), state.projection, function (v) { state.projection = v; resetView(); render(); }));
+      controls.appendChild(orientationGroup());
+      controls.appendChild(radioGroup('Detail', 'detail', [
+        { id: 'coarse', label: 'Coarse (110m)' }, { id: 'fine', label: 'Fine (50m)' }
+      ], state.detail, function (v) { state.detail = v; render(); }));
+      controls.appendChild(checkboxGroup('Boundaries', 'Countries', state.boundaries, function (v) { state.boundaries = v; render(); }));
+      controls.appendChild(checkboxGroup('Hǎo edges', 'N / S seams', state.edges, function (v) { state.edges = v; render(); }));
+      controls.appendChild(checkboxGroup('Middle line', 'Central axis', state.middleLine, function (v) { state.middleLine = v; render(); }));
+      controls.appendChild(viewGroup());                                 // Size (px) sits on the row above Flight paths
+      var flightGroup = el('fieldset', 'gcm-group gcm-flightgroup');     // a preset group AND custom routes can be shown together (custom is additive)
+      flightGroup.appendChild(el('span', 'gcm-legend', 'Airports / flight paths'));
+      var flightOpts = el('div', 'gcm-opts');
+
+      selectedWrap = el('span', 'gcm-routesel');                         // preset route-group dropdown
+      var groupSel = el('select');
+      var noneOpt = document.createElement('option'); noneOpt.value = ''; noneOpt.textContent = 'Preset routes…';   // resting state = no preset (custom can still add)
+      if (!state.routeGroup) noneOpt.selected = true; groupSel.appendChild(noneOpt);
+      var optgroups = {}, catOrder = [];                                 // group options under <optgroup> headers by `category`
+      ((cfg.routes && cfg.routes.groups) || []).forEach(function (g) {
+        var cat = g.category || 'Other';
+        if (!optgroups[cat]) { optgroups[cat] = document.createElement('optgroup'); optgroups[cat].label = cat; catOrder.push(cat); }
+        var o = document.createElement('option'); o.value = g.id; o.textContent = g.label;
+        if (g.id === state.routeGroup) o.selected = true; optgroups[cat].appendChild(o);
+      });
+      catOrder.forEach(function (cat) { groupSel.appendChild(optgroups[cat]); });
+      groupSel.addEventListener('change', function () { state.routeGroup = groupSel.value; render(); });
+      selectedWrap.appendChild(groupSel);
+
+      freeWrap = el('span', 'gcm-routefree'); freeWrap.style.flex = '1 1 16rem';   // custom routes ADDED on top of the selected preset; grows to fill the row
+      var input = el('input'); input.type = 'text'; input.placeholder = '+ add your own: NRT, PEK-JFK, LHR-HND-SIN';
+      var drawBtn = el('button', 'gcm-btn', 'Add'); errSpan = el('span', 'gcm-err');
+      function applyFree() { var r = parseRoutes(input.value); state.freeRoutes = r.routes; state.freePoints = r.points; errSpan.textContent = r.errors.length ? 'Unknown: ' + r.errors.join(', ') : ''; render(); }
+      drawBtn.addEventListener('click', applyFree);
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyFree(); });
+      freeWrap.appendChild(input); freeWrap.appendChild(drawBtn);
+
+      flightOpts.appendChild(selectedWrap); flightOpts.appendChild(freeWrap); flightOpts.appendChild(errSpan);   // dropdown + custom box shown together
+      flightGroup.appendChild(flightOpts);
+      controls.appendChild(flightGroup);
+
+      var centreGroup = el('fieldset', 'gcm-group gcm-flightgroup');      // CENTRE: from an arc (two airport codes) OR typed directly as lat/lon
+      centreGroup.appendChild(el('span', 'gcm-legend', 'Centre'));
+      var centreOpts = el('div', 'gcm-opts'), centreErr = el('span', 'gcm-err');
+      var codeStyle = 'font:inherit;width:4.2rem;padding:0.35rem 0.5rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;text-transform:uppercase;';
+      var numStyle = 'font:inherit;width:5rem;padding:0.35rem 0.5rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;';
+      var box1 = el('input'), box2 = el('input');
+      box1.type = box2.type = 'text'; box1.maxLength = box2.maxLength = 3; box1.placeholder = box2.placeholder = 'AAA';
+      box1.style.cssText = box2.style.cssText = codeStyle;
+      var centreBtn = el('button', 'gcm-btn', 'Centre!');
+      latBox = el('input'); lonBox = el('input'); latBox.type = lonBox.type = 'text';
+      latBox.style.cssText = lonBox.style.cssText = numStyle; latBox.title = 'centre latitude °  (+ = N)'; lonBox.title = 'centre longitude °  (+ = E)';
+      function clearCodes() { if (box1) box1.value = ''; if (box2) box2.value = ''; }
+      function doCentre() {                                              // airport codes → straightening centre, written into the lat/lon boxes
+        var a = box1.value.trim().toUpperCase(), b = box2.value.trim().toUpperCase(), AIR = root.WORLD_AIRPORTS;
+        var A = AIR[a], B = AIR[b], bad = [];
+        if (!A) bad.push(a || '(empty)'); if (!B) bad.push(b || '(empty)');
+        if (bad.length) { centreErr.textContent = 'Unknown: ' + bad.join(', '); return; }
+        var c = PROJ.centreForStraightLine([A[0], A[1]], [B[0], B[1]]);
+        if (!c) { centreErr.textContent = 'No unique great circle (identical or antipodal points).'; return; }
+        centreErr.textContent = ''; state.centreOverride = c; state.centreArc = [a, b];
+        updateCentreBoxes(); resetView(); render();
+      }
+      function applyManualCentre() {                                     // typed lat/lon → custom centre; drops any arc and clears the airport boxes
+        var la = parseFloat(latBox.value), lo = parseFloat(lonBox.value);
+        if (isNaN(la) || isNaN(lo) || la < -90 || la > 90 || lo < -180 || lo > 180) { centreErr.textContent = 'centre needs lat ∈ [−90,90], lon ∈ [−180,180]'; return; }
+        centreErr.textContent = ''; state.centreOverride = { lat: la, lon: lo }; state.centreArc = null; clearCodes();
+        updateCentreBoxes(); render();   // keep the current zoom/pan — nudging the centre shouldn't reset the view
+      }
+      centreBtn.addEventListener('click', doCentre);
+      box1.addEventListener('keydown', function (e) { if (e.key === 'Enter') doCentre(); });
+      box2.addEventListener('keydown', function (e) { if (e.key === 'Enter') doCentre(); });
+      latBox.addEventListener('change', applyManualCentre); lonBox.addEventListener('change', applyManualCentre);
+      latBox.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyManualCentre(); });
+      lonBox.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyManualCentre(); });
+      centreOpts.appendChild(box1); centreOpts.appendChild(el('span', null, '–')); centreOpts.appendChild(box2); centreOpts.appendChild(centreBtn);
+      centreOpts.appendChild(el('span', null, ' · lat')); centreOpts.appendChild(latBox); centreOpts.appendChild(el('span', null, 'lon')); centreOpts.appendChild(lonBox);
+      centreOpts.appendChild(centreErr);
+      centreGroup.appendChild(centreOpts); controls.appendChild(centreGroup);
+      updateCentreBoxes();                                               // show the starting framing's centre immediately
+
+      mount.appendChild(controls);
+    }
+
+    var stage = el('div', 'gcm-stage');
+    stage.appendChild(canvas);
+    if (showControls) {                                                  // right rail beside the map: compass, zoom (+/−/readout), Reset / Save PNG
+      var zoom = el('div', 'gcm-zoom');
+      compassEl = el('div', 'gcm-compass');
+      compassEl.innerHTML = '<svg width="48" height="48" viewBox="-28 -28 56 56" aria-label="compass: needle points to north">'
+        + '<circle r="18" fill="#fff" stroke="#bbb" stroke-width="1"/>'
+        + '<g class="gcm-needle">'
+        + '<polygon points="0,-14 4,1 -4,1" fill="#c0392b"/>'           // north half (red), tip up by default
+        + '<polygon points="0,14 4,-1 -4,-1" fill="#9aa0a6"/>'          // south half (grey)
+        + '<text x="0" y="-20" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#c0392b">N</text>'  // just outside the bezel at the north tip (viewBox padded so it never clips)
+        + '</g></svg>';
+      compassNeedle = compassEl.querySelector('.gcm-needle');
+      compassCircle = compassEl.querySelector('circle');
+      compassEl.title = 'Click to lock north up';
+      compassEl.addEventListener('click', function () {                  // compass IS the north-up toggle: click to lock, click again to unlock
+        state.orientMode = state.orientMode === 'north' ? 'fixed' : 'north';
+        syncOrientUI(); render();
+      });
+      liveLab = el('label', 'gcm-northlive');                            // shown only when locked: live re-orient during drag vs settle on release
+      liveChk = el('input'); liveChk.type = 'checkbox'; liveChk.checked = state.northLive;
+      liveChk.addEventListener('change', function () { state.northLive = liveChk.checked; render(); });
+      liveLab.appendChild(liveChk); liveLab.appendChild(document.createTextNode('live'));
+      liveLab.title = 'Re-orient north live while dragging (off = settle on release)';
+      var compassRow = el('div', 'gcm-compassrow'); compassRow.appendChild(compassEl); compassRow.appendChild(liveLab);
+      var zbtns = el('div', 'gcm-zbtns');
+      var zin = el('button', 'gcm-btn gcm-zoombtn', '+'); zin.title = 'Zoom in';
+      var zout = el('button', 'gcm-btn gcm-zoombtn', '−'); zout.title = 'Zoom out';
+      zoomReadout = el('span', 'gcm-zoom-readout', '100%');
+      zin.addEventListener('click', function () { stepZoom(1); });
+      zout.addEventListener('click', function () { stepZoom(-1); });
+      zbtns.appendChild(zin); zbtns.appendChild(zout); zbtns.appendChild(zoomReadout);
+      var reset = el('button', 'gcm-btn gcm-railbtn', 'Reset'); reset.title = 'Back to 100%, preset centre (orientation unchanged)';
+      reset.addEventListener('click', function () { state.centreOverride = null; state.centreArc = null; updateCentreBoxes(); resetView(); render(); });
+      var save = el('button', 'gcm-btn gcm-railbtn', 'Save PNG'); save.addEventListener('click', savePng);
+      zoom.appendChild(compassRow); zoom.appendChild(zbtns); zoom.appendChild(reset); zoom.appendChild(save);
+      stage.appendChild(zoom);
+      syncOrientUI();                                                     // set the "live" checkbox's initial visibility now that it exists
+    }
+    mount.appendChild(stage);
+
+    function idLabel(o) { return { id: o.id, label: o.label }; }
+    function syncFlightUI() { }   // preset dropdown and custom box are both always visible now (custom is additive)
+
+    function radioGroup(legend, name, items, sel, onchange) {
+      var g = el('fieldset', 'gcm-group'); g.appendChild(el('span', 'gcm-legend', legend));
+      var opts = el('div', 'gcm-opts');
+      items.forEach(function (it) {
+        var lab = el('label'); var r = el('input'); r.type = 'radio'; r.name = name + '-' + instanceId; r.value = it.id; r.checked = (it.id === sel);
+        r.addEventListener('change', function () { if (r.checked) onchange(it.id); });
+        lab.appendChild(r); lab.appendChild(document.createTextNode(it.label)); opts.appendChild(lab);
+      });
+      g.appendChild(opts); return g;
+    }
+    function checkboxGroup(legend, label, checked, onchange) {
+      var g = el('fieldset', 'gcm-group'); g.appendChild(el('span', 'gcm-legend', legend));
+      var lab = el('label'); var c = el('input'); c.type = 'checkbox'; c.checked = checked;
+      c.addEventListener('change', function () { onchange(c.checked); });
+      lab.appendChild(c); lab.appendChild(document.createTextNode(label)); g.appendChild(lab); return g;
+    }
+    function normalizeOrient(o) {                                     // -> degrees, multiple of 15, in [0,360)
+      if (o == null || o === 'top') return 0;
+      if (o === 'bottom') return 180;
+      var n = parseFloat(o); if (!isFinite(n)) return 0;
+      return ((Math.round(n / 15) * 15) % 360 + 360) % 360;
+    }
+    function updateOrientReadout() {
+      if (!orientReadout) return;
+      if (state.orientMode === 'north') { orientReadout.textContent = 'north up'; return; }
+      var d = state.orientation;
+      orientReadout.textContent = d + '°' + (d === 0 ? ' (top)' : (d === 180 ? ' (bottom)' : ''));
+    }
+    function orientationGroup() {                                     // fixed dial (15° steps; 0°=top, 180°=bottom) OR dynamic North up
+      var g = el('fieldset', 'gcm-group'); g.appendChild(el('span', 'gcm-legend', 'Orientation'));
+      var opts = el('div', 'gcm-opts gcm-dial');
+      var dec = el('button', 'gcm-btn gcm-zoombtn', '↺'); dec.title = 'Rotate counter-clockwise 15°';
+      orientReadout = el('span', 'gcm-orient-readout');
+      var inc = el('button', 'gcm-btn gcm-zoombtn', '↻'); inc.title = 'Rotate clockwise 15°';
+      var flip = el('button', 'gcm-btn gcm-zoombtn', '180°'); flip.title = 'Rotate 180°';
+      function step(deg) { if (state.orientMode === 'north') return; state.orientation = ((state.orientation + deg) % 360 + 360) % 360; updateOrientReadout(); render(); }
+      dec.addEventListener('click', function () { step(-15); });      // ↺ counts the readout down (345…); ↻ counts up (15…)
+      inc.addEventListener('click', function () { step(15); });
+      flip.addEventListener('click', function () { step(180); });
+      opts.appendChild(dec); opts.appendChild(orientReadout); opts.appendChild(inc); opts.appendChild(flip);
+      // North up (and its "live" toggle) live in the right rail beside the compass, not here.
+      syncOrientUI = function () {
+        var on = state.orientMode === 'north';
+        dec.disabled = on; inc.disabled = on; flip.disabled = on;
+        if (liveLab) { liveLab.style.visibility = on ? 'visible' : 'hidden'; if (liveChk) liveChk.checked = state.northLive; }   // keep its space reserved when hidden (no layout shift)
+        updateOrientReadout(); updateCompass();
+      };
+      g.appendChild(opts); syncOrientUI(); return g;
+    }
+    function viewGroup() {
+      var g = el('fieldset', 'gcm-group'); g.appendChild(el('span', 'gcm-legend', 'View'));
+      var opts = el('div', 'gcm-opts');
+      var sizeLab = el('label'); sizeLab.appendChild(document.createTextNode('Size (px) '));
+      var sizeIn = el('input'); sizeIn.type = 'number'; sizeIn.value = state.size; sizeIn.min = 50; sizeIn.max = 2000; sizeIn.step = 10;
+      sizeIn.addEventListener('change', function () { var v = parseInt(sizeIn.value, 10); if (isFinite(v)) { state.size = Math.max(50, Math.min(2000, v)); render(); } });
+      sizeLab.appendChild(sizeIn); opts.appendChild(sizeLab);
+      g.appendChild(opts); return g;
+    }
+    function stepZoom(dir) {                                          // move to the next/prev round stop
+      var idx = 0, best = Infinity;
+      for (var i = 0; i < ZOOM_LEVELS.length; i++) { var d = Math.abs(ZOOM_LEVELS[i] - state.zoom); if (d < best) { best = d; idx = i; } }
+      setZoom(ZOOM_LEVELS[Math.max(0, Math.min(ZOOM_LEVELS.length - 1, idx + dir))]);
+    }
+    function setZoom(z) {
+      if (z < 1) z = 1;
+      state.zoom = z; updateZoomReadout(); render();                  // zoom pivots on the centre point automatically
+    }
+    function resetView() { state.zoom = 1; state.cx = null; state.cy = null; updateZoomReadout(); }   // size + centre only — orientation mode/angle are left as the user set them
+    // The framing in effect: a custom vertical centre (from "Centre on arc") if set, else the preset hemisphere.
+    var _customCoord = null;
+    function activeCoord() {
+      if (state.centreOverride) {
+        if (!_customCoord || _customCoord.centre !== state.centreOverride) _customCoord = { id: 'custom', kind: 'vertical', centre: state.centreOverride };
+        return _customCoord;
+      }
+      return PROJ.coordById(state.coordinate);
+    }
+    function coordKey() { return state.centreOverride ? ('C' + state.centreOverride.lat.toFixed(3) + ',' + state.centreOverride.lon.toFixed(3)) : state.coordinate; }
+    function updateCentreBoxes() {                                        // mirror the active framing's centre into the editable lat/lon boxes (blank for seam-based horizontal framings)
+      if (!latBox || !lonBox) return;
+      var c = activeCoord();
+      if (c.kind === 'vertical' && c.centre) { latBox.value = (+c.centre.lat).toFixed(1); lonBox.value = (+c.centre.lon).toFixed(1); }
+      else { latBox.value = ''; lonBox.value = ''; }
+    }
+    function updateZoomReadout() { if (zoomReadout) zoomReadout.textContent = Math.round(state.zoom * 100) + '%'; }
+
+    function parseRoutes(text) {
+      var routes = [], points = [], errors = [];
+      (text || '').split(',').forEach(function (seg) {
+        var parts = seg.trim().split(/[\s>\-]+/).filter(Boolean).map(function (s) { return s.toUpperCase(); });
+        parts.forEach(function (code) { if (!(code.length === 3 && root.WORLD_AIRPORTS[code]) && errors.indexOf(code) < 0) errors.push(code); });
+        if (parts.length === 1) {                                        // a lone code (no dash) → just label that airport, no arc
+          if (root.WORLD_AIRPORTS[parts[0]] && points.indexOf(parts[0]) < 0) points.push(parts[0]);
+        } else {
+          for (var i = 0; i + 1 < parts.length; i++) { if (root.WORLD_AIRPORTS[parts[i]] && root.WORLD_AIRPORTS[parts[i + 1]]) routes.push([parts[i], parts[i + 1]]); }
+        }
+      });
+      return { routes: routes, points: points, errors: errors };
+    }
+    function groupById(id) { return ((cfg.routes && cfg.routes.groups) || []).filter(function (x) { return x.id === id; })[0]; }
+    function groupSpec(g) {                                              // a group's routes/points; `routes` may be a text-box-grammar STRING or a legacy [[a,b],…] array
+      if (!g) return { routes: [], points: [] };
+      if (typeof g.routes === 'string') { var p = parseRoutes(g.routes); return { routes: p.routes, points: p.points }; }
+      return { routes: g.routes || [], points: g.points || [] };
+    }
+    function activeRoutes() {                                            // selected preset group AND custom routes together (custom is additive, not a replacement)
+      if (!showControls) return opts.routes || [];
+      return groupSpec(groupById(state.routeGroup)).routes.concat(state.freeRoutes || []);   // "(none)"/no match → []
+    }
+    function activePoints() {                                            // lone airports to mark (no arc) — preset group + custom, combined
+      if (!showControls) return opts.points || [];
+      return groupSpec(groupById(state.routeGroup)).points.concat(state.freePoints || []);
+    }
+    function endpoint(code) { if (Array.isArray(code)) return code; var a = root.WORLD_AIRPORTS[code]; return a ? [a[0], a[1]] : null; }
+
+    // ---- fit + draw -------------------------------------------------------
+    function orientationAngle() {                                         // map-space rotation (radians); a pure rotation, never a flip
+      return state.orientMode === 'north' ? state._theta : -state.orientation * Math.PI / 180;   // negate so ↻ (readout counts up) turns the map clockwise on screen
+    }
+    // Dynamic "North up": rotate so the LOCAL north at the point under the canvas centre points up.
+    // Local north varies across an oblique map, so this re-rotates as you pan. We precompute a
+    // per-coordinate/projection field of (projected x, y, north-screen-angle) sampled on a grid,
+    // then look up the nearest sample to the centre point each render.
+    var northFields = {};
+    function northField() {
+      var key = coordKey() + '|' + state.projection;
+      if (northFields[key]) return northFields[key];
+      var coord = activeCoord(), proj = state.projection, pts = [], lat, lon, p0, p1, a, eps = 0.5;
+      for (lat = -88; lat <= 88; lat += 3) {
+        for (lon = -180; lon < 180; lon += 3) {
+          p0 = PROJ.project(coord, proj, lat, lon); p1 = PROJ.project(coord, proj, lat + eps, lon);
+          a = Math.atan2(p1.y - p0.y, p1.x - p0.x); pts.push([p0.x, p0.y, Math.cos(a), Math.sin(a)]);   // store the direction as a unit vector (so it averages without angle-wrap issues)
+        }
+      }
+      northFields[key] = pts; return pts;
+    }
+    function northAngleAt(field, x, y) {                                  // inverse-distance-weighted mean of the local-north direction — smooth, and exactly 90° at the framing centre (no grid-snap rotation)
+      var C = 0, S = 0, i, dx, dy, w;
+      for (i = 0; i < field.length; i++) { dx = field[i][0] - x; dy = field[i][1] - y; w = 1 / (dx * dx + dy * dy + 1e-3); C += w * field[i][2]; S += w * field[i][3]; }
+      return Math.atan2(S, C);
+    }
+    function northTargetTheta() { return Math.PI / 2 - northAngleAt(northField(), state.cx, state.cy); }  // θ that puts local north at the centre up
+    function updateNorthTheta() {                                         // the centre point is tracked directly (state.cx/cy), so no inverse/iteration needed
+      if (state.cx == null) return;
+      state._theta = northTargetTheta();
+    }
+    function animateNorthTo() {                                           // ease _theta to north-up over ~300 ms (used on drag release in locked mode)
+      if (state.cx == null) return;
+      var start = state._theta, target = northTargetTheta(), d = target - start;
+      while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;   // shortest way round
+      cancelAnimationFrame(animRaf);
+      if (Math.abs(d) < 0.002 || typeof requestAnimationFrame !== 'function') { state._theta = target; animating = false; render(); return; }
+      var now = function () { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); };
+      var t0 = now(), dur = 300; animating = true;
+      (function frame() {
+        var k = Math.min(1, (now() - t0) / dur);
+        state._theta = start + d * (1 - Math.pow(1 - k, 3));              // ease-out cubic
+        render();
+        if (k < 1) animRaf = requestAnimationFrame(frame);
+        else { state._theta = target; animating = false; render(); }
+      })();
+    }
+    function updateCompass() {                                            // needle points to geographic north at the view centre; click toggles north-up lock
+      if (!compassEl || state.cx == null) return;
+      var north = state.orientMode === 'north';
+      var aDeg = north ? 0                                                // locked: needle pinned up, even while north is momentarily off during a drag
+        : 90 - (northAngleAt(northField(), state.cx, state.cy) + orientationAngle()) * 180 / Math.PI;  // fixed: CSS clockwise rotation toward north
+      if (compassNeedle) compassNeedle.setAttribute('transform', 'rotate(' + aDeg.toFixed(1) + ')');
+      if (compassCircle) { compassCircle.setAttribute('stroke', north ? '#c0392b' : '#bbb'); compassCircle.setAttribute('stroke-width', north ? '2.5' : '1'); }
+      compassEl.title = north ? 'North up locked — click to unlock' : 'Click to lock north up';
+    }
+    // Geographic curves for the Hǎo Northern & Southern map EDGES (the seam = generalized λ=±180,
+    // an open great-circle arc from one pole-point through the apex to the other). Fixed per framing.
+    var _seams = null;
+    function seams() {
+      if (_seams) return _seams;
+      function seamGeo(centre) {
+        var M = PROJ.rotFromCentre(centre), vc = M[0], vp = M[2], D = Math.PI / 180, lat = [], lon = [], phi, c, s, x, y, z;
+        for (phi = -90; phi <= 90; phi += 1) {                           // pole→pole (incl. ±90) so the line meets the generalized-pole dots; geo = −cosφ·vc + sinφ·vp
+          c = Math.cos(phi * D); s = Math.sin(phi * D);
+          x = -c * vc[0] + s * vp[0]; y = -c * vc[1] + s * vp[1]; z = -c * vc[2] + s * vp[2];
+          z = z < -1 ? -1 : (z > 1 ? 1 : z);
+          lat.push(Math.asin(z) / D); lon.push(Math.atan2(y, x) / D);
+        }
+        return { lat: lat, lon: lon };
+      }
+      var by = {}; ((cfg.coordinates) || []).forEach(function (c) { if (c.kind === 'vertical') by[c.id] = c; });
+      _seams = { north: by.north && seamGeo(by.north.centre), south: by.south && seamGeo(by.south.centre) };
+      return _seams;
+    }
+    // A constant-width BELT around each seam centre line (a "conveyor belt"): every point within
+    // BELT_HALF degrees of GREAT-CIRCLE distance from the seam, on EACH side (total width 2·BELT_HALF).
+    // Because the offset is a true arc distance (measured perpendicular to the seam, along the gen-y
+    // axis), the belt never tapers — unlike a fixed gen-longitude band, which narrows toward the poles
+    // where meridians converge. Built from two long sides + two rounded pole-end caps (radius BELT_HALF,
+    // so the cap reaches gen φ = 90−BELT_HALF); MAPGEO.bandFillPolys ladders each into quads (no boundary
+    // closure, so it can never fill the map; the draw step also clips it to the lens).
+    var BELT_HALF = 3, _bands = null;                                    // half-width: degrees of ARC on EACH side of the seam — the single tunable knob
+    function bands() {
+      if (_bands) return _bands;
+      var D = Math.PI / 180, half = BELT_HALF, EPS = 0.001;             // sub-pixel inset off the exact seam: avoids the atan2 flip there without a visible centre gap
+      function geoOf(M, gx, gy, gz) {                                    // generalized unit vector -> geographic [lat,lon] (geo = M^T · gen)
+        var vc = M[0], vy = M[1], vp = M[2];
+        var x = gx * vc[0] + gy * vy[0] + gz * vp[0], y = gx * vc[1] + gy * vy[1] + gz * vp[1], z = gx * vc[2] + gy * vy[2] + gz * vp[2];
+        z = z < -1 ? -1 : (z > 1 ? 1 : z); return [Math.asin(z) / D, Math.atan2(y, x) / D];
+      }
+      // Belt point at along-seam position θ∈[−90,90]° and perpendicular arc offset ψ°. The seam
+      // meridian (gen λ=180) is ψ=0; the perpendicular runs along the gen-y axis, so ψ is a genuine
+      // arc distance for every θ → the width stays constant from pole to pole.
+      function beltPt(M, th, psi) {
+        var t = th * D, p = psi * D, cp = Math.cos(p), sp = Math.sin(p), ct = Math.cos(t), st = Math.sin(t);
+        return geoOf(M, -cp * ct, sp, cp * st);
+      }
+      function side(M, psiA, psiB) {                                     // one long side of the belt, swept pole→pole at constant offset
+        var lonA = [], latA = [], lonB = [], latB = [], th, p;
+        for (th = -90; th <= 90; th++) { p = beltPt(M, th, psiA); latA.push(p[0]); lonA.push(p[1]); p = beltPt(M, th, psiB); latB.push(p[0]); lonB.push(p[1]); }
+        return { lonA: lonA, latA: latA, lonB: lonB, latB: latB };
+      }
+      function cap(M, phiA, phiB, lamA, lamB) {                          // rounded pole-end ring (gen parallels phiA→phiB) over the gen-longitude range [lamA,lamB]
+        var lonA = [], latA = [], lonB = [], latB = [], lam, lc, p;
+        for (lam = lamA; lam <= lamB; lam += 2) {
+          lc = lam < -180 + EPS ? -180 + EPS : (lam > 180 - EPS ? 180 - EPS : lam);
+          p = geoOf(M, Math.cos(phiA * D) * Math.cos(lc * D), Math.cos(phiA * D) * Math.sin(lc * D), Math.sin(phiA * D)); latA.push(p[0]); lonA.push(p[1]);
+          p = geoOf(M, Math.cos(phiB * D) * Math.cos(lc * D), Math.cos(phiB * D) * Math.sin(lc * D), Math.sin(phiB * D)); latB.push(p[0]); lonB.push(p[1]);
+        }
+        return { lonA: lonA, latA: latA, lonB: lonB, latB: latB };
+      }
+      // The belt = two long sides + two rounded caps. caps = whole disc (gen λ all); capsOuter = the
+      // TIP half only (gen λ∈[−90,90], the side away from the seam). Kept separate so the draw step
+      // can layer opacity: strip → +caps (inner half) → +capsOuter (outer half), stepping darker to the tips.
+      function frame(centre) {
+        var M = PROJ.rotFromCentre(centre), step = Math.max(0.5, half / 4), sides = [side(M, EPS, half), side(M, -half, -EPS)], caps = [], capsOuter = [], t, hi;
+        for (t = 90 - half; t < 90 - 1e-9; t += step) { hi = Math.min(t + step, 90); caps.push(cap(M, t, hi, -180, 180)); capsOuter.push(cap(M, t, hi, -90, 90)); }
+        for (t = -90; t < -90 + half - 1e-9; t += step) { hi = Math.min(t + step, -90 + half); caps.push(cap(M, t, hi, -180, 180)); capsOuter.push(cap(M, t, hi, -90, 90)); }
+        return { sides: sides, caps: caps, capsOuter: capsOuter };
+      }
+      var by = {}; ((cfg.coordinates) || []).forEach(function (c) { if (c.kind === 'vertical') by[c.id] = c; });
+      _bands = { north: by.north && frame(by.north.centre), south: by.south && frame(by.south.centre) };
+      return _bands;
+    }
+    // The framing's central meridian as a geographic curve — the straight MIDDLE axis of the lens
+    // (where a centred route lies). Vertical framing: gen-λ=0, the great circle through centre & poles
+    // (geo = cosφ·vc + sinφ·vp). Horizontal framing: the meridian at the central longitude.
+    function midMeridian(coord) {
+      var lat = [], lon = [], a, D = Math.PI / 180;
+      if (coord.kind === 'vertical') {
+        var M = PROJ.rotFromCentre(coord.centre), vc = M[0], vp = M[2], c, s, x, y, z;
+        for (a = -90; a <= 90; a += 1) { c = Math.cos(a * D); s = Math.sin(a * D);
+          x = c * vc[0] + s * vp[0]; y = c * vc[1] + s * vp[1]; z = c * vc[2] + s * vp[2];
+          z = z < -1 ? -1 : (z > 1 ? 1 : z); lat.push(Math.asin(z) / D); lon.push(Math.atan2(y, x) / D); }
+      } else {
+        var cm = PROJ.centralOf(coord);
+        for (a = -90; a <= 90; a += 1) { lat.push(a); lon.push(cm); }
+      }
+      return { lat: lat, lon: lon };
+    }
+    // Project + seam-cut the whole basemap ONCE per coordinate/projection/detail and cache the
+    // resulting projected segments. Pan, zoom and rotation are applied later in px() (a cheap
+    // affine), so a drag re-uses this cache and only re-runs px() — no per-frame re-projection of
+    // the 50m geometry. Rebuilds only when coordinate/projection/detail changes.
+    var geomCache = null, geomKey = '';
+    function geom() {
+      var key = coordKey() + '|' + state.projection + '|' + state.detail;
+      if (geomCache && geomKey === key) return geomCache;
+      var coord = activeCoord(), proj = state.projection, b = MAPGEO.boundary(coord, proj), i, x, y, lon, lat;
+      var uMinX = Infinity, uMaxX = -Infinity, uMinY = Infinity, uMaxY = -Infinity;
+      for (i = 0; i < b.X.length; i++) { x = b.X[i]; y = b.Y[i]; if (x < uMinX) uMinX = x; if (x > uMaxX) uMaxX = x; if (y < uMinY) uMinY = y; if (y > uMaxY) uMaxY = y; }
+      var spike = 0.04 * Math.max(uMaxX - uMinX, uMaxY - uMinY);            // UNSCALED projected units (rotation-invariant)
+      var grat = [];
+      for (lon = -180; lon <= 180; lon += GRAT) push(grat, MAPGEO.lineSegs(coord, proj, lin(-89.5, 89.5, NSAMP), fillArr(lon, NSAMP), spike));
+      for (lat = -75; lat <= 75; lat += GRAT) push(grat, MAPGEO.lineSegs(coord, proj, fillArr(lat, NSAMP), lin(-180, 180, NSAMP), spike));
+      var coastFill = [], coastLine = [];
+      layer(root.WORLD_COASTLINE).forEach(function (rg) {
+        var ln = [], lt = [], r = rg.ring, k; for (k = 0; k < r.length; k++) { ln.push(r[k][0]); lt.push(r[k][1]); }
+        MAPGEO.ringFillPolys(coord, proj, ln, lt).forEach(function (pl) { coastFill.push({ seg: pl, hole: rg.hole }); });
+        push(coastLine, MAPGEO.ringOutlineArcs(coord, proj, ln, lt, spike));
+      });
+      var lakesFill = [], lakesLine = [], LK = layer(root.WORLD_LAKES);
+      if (LK) LK.forEach(function (ring) {
+        var ln = [], lt = [], k; for (k = 0; k < ring.length; k++) { ln.push(ring[k][0]); lt.push(ring[k][1]); }
+        MAPGEO.ringFillPolys(coord, proj, ln, lt).forEach(function (pl) { lakesFill.push(pl); });
+        push(lakesLine, MAPGEO.ringOutlineArcs(coord, proj, ln, lt, spike));
+      });
+      var bndLine = [], BN = layer(root.WORLD_BOUNDARIES);
+      if (BN) BN.forEach(function (ring) {
+        var ln = [], lt = [], k; for (k = 0; k < ring.length; k++) { ln.push(ring[k][0]); lt.push(ring[k][1]); }
+        push(bndLine, MAPGEO.ringOutlineArcs(coord, proj, ln, lt, spike));
+      });
+      var sm = seams(), bd = bands();                                      // Hǎo N/S seam belts, projected through the current framing
+      // The belt is always drawn; the centre LINE is skipped on its own framing (it would just retrace
+      // the lens boundary). Sides and caps fill separately so the pole-end caps can render darker.
+      var maxJump = 0.7 * Math.max(uMaxX - uMinX, uMaxY - uMinY);          // a cell larger than this has wrapped the seam (corners land on opposite map edges ≈ full span); smaller cells near projection-stretched poles are kept
+      function fillStrips(strips) {
+        var out = []; (strips || []).forEach(function (s) { MAPGEO.bandFillPolys(coord, proj, s.lonA, s.latA, s.lonB, s.latB, maxJump).forEach(function (p) { out.push(p); }); });
+        return out;
+      }
+      function fillBelt(b) {                                                // all = sides+caps (one uniform base layer); caps and capsOuter are extra layers stacked on top
+        if (!b) return { all: [], caps: [], capsOuter: [] };
+        var s = fillStrips(b.sides), c = fillStrips(b.caps);
+        return { all: s.concat(c), caps: c, capsOuter: fillStrips(b.capsOuter) };
+      }
+      var bandN = fillBelt(bd.north), bandS = fillBelt(bd.south);
+      var own = state.centreOverride ? '' : state.coordinate;             // on a custom centre, neither N nor S is the "own" framing → draw both seam lines
+      var edgeN = (own !== 'north' && sm.north) ? MAPGEO.lineSegs(coord, proj, sm.north.lat, sm.north.lon, spike) : [];
+      var edgeS = (own !== 'south' && sm.south) ? MAPGEO.lineSegs(coord, proj, sm.south.lat, sm.south.lon, spike) : [];
+      var mm = midMeridian(coord), midLine = MAPGEO.lineSegs(coord, proj, mm.lat, mm.lon, spike);   // central axis (always built; drawn only when toggled)
+      geomCache = { b: b, px0: (uMinX + uMaxX) / 2, py0: (uMinY + uMaxY) / 2, spanX: uMaxX - uMinX, spanY: uMaxY - uMinY,
+                    spike: spike, grat: grat, coastFill: coastFill, coastLine: coastLine, lakesFill: lakesFill, lakesLine: lakesLine, bndLine: bndLine,
+                    bandN: bandN, bandS: bandS, edgeN: edgeN, edgeS: edgeS, midLine: midLine };
+      geomKey = key; return geomCache;
+    }
+    function computeFit() {                                               // cheap: cached geometry metrics + the current rotation
+      var g = geom(), theta = orientationAngle();
+      return { b: g.b, px0: g.px0, py0: g.py0, c: Math.cos(theta), s: Math.sin(theta), spike: g.spike, spanX: g.spanX, spanY: g.spanY };
+    }
+
+    function draw(ctx2, W, H, f) {
+      var G = geom();                                                       // cached projected + seam-cut geometry
+      var scale = Math.min(W / f.spanX, H / f.spanY) * 0.98 * state.zoom;
+      lastScale = scale;
+      var cx = state.cx == null ? f.px0 : state.cx, cy = state.cy == null ? f.py0 : state.cy;   // projected point pinned to the canvas centre
+      function px(x, y) { var dx = x - cx, dy = y - cy, rx = dx * f.c - dy * f.s, ry = dx * f.s + dy * f.c; return [W / 2 + rx * scale, H / 2 - ry * scale]; }
+
+      ctx2.clearRect(0, 0, W, H); ctx2.lineJoin = 'round'; ctx2.lineCap = 'round';
+      function poly(seg) { ctx2.beginPath(); for (var k = 0; k < seg.X.length; k++) { var p = px(seg.X[k], seg.Y[k]); if (k === 0) ctx2.moveTo(p[0], p[1]); else ctx2.lineTo(p[0], p[1]); } }
+      function fill(seg, color) { poly(seg); ctx2.fillStyle = color; ctx2.fill(); }
+      function fillAll(segs, color) {                                       // many polys, ONE fill op → translucent overlaps don't compound
+        ctx2.beginPath();
+        for (var s = 0; s < segs.length; s++) { var sg = segs[s]; for (var k = 0; k < sg.X.length; k++) { var p = px(sg.X[k], sg.Y[k]); if (k === 0) ctx2.moveTo(p[0], p[1]); else ctx2.lineTo(p[0], p[1]); } ctx2.closePath(); }
+        ctx2.fillStyle = color; ctx2.fill();
+      }
+      function stroke(segs, color, w) { ctx2.strokeStyle = color; ctx2.lineWidth = w; for (var s = 0; s < segs.length; s++) { if (segs[s].X.length < 2) continue; poly(segs[s]); ctx2.stroke(); } }
+
+      fill(G.b, PAL.ocean); poly(G.b); ctx2.strokeStyle = PAL.edge; ctx2.lineWidth = 1.1; ctx2.stroke();   // ocean lens
+      stroke(G.grat, PAL.graticule, 0.6);                                   // graticule
+      for (var ci = 0; ci < G.coastFill.length; ci++) fill(G.coastFill[ci].seg, G.coastFill[ci].hole ? PAL.ocean : PAL.land);  // land + holes
+      for (var li = 0; li < G.lakesFill.length; li++) fill(G.lakesFill[li], PAL.ocean);   // inland water painted over land
+      stroke(G.coastLine, PAL.coast, 0.6);                                  // coastline outline
+      stroke(G.lakesLine, PAL.coast, 0.4);                                  // lake shores
+      if (state.boundaries) stroke(G.bndLine, PAL.border, 0.45);            // country borders
+      if (state.edges) {                                                    // Hǎo Northern (purple) & Southern (orange) edge bands + seam centre lines
+        ctx2.save(); poly(G.b); ctx2.clip();                                // clip belt fills to the lens so no shading (or its anti-aliased edge) escapes the boundary
+        // Three superposed layers at the same 0.22 → a staircase darkening toward the tips:
+        // strip 0.22, cap inner half 0.39 (all+caps), cap outer half 0.52 (all+caps+capsOuter).
+        fillAll(G.bandN.all, 'rgba(142,36,170,0.22)'); fillAll(G.bandN.caps, 'rgba(142,36,170,0.22)'); fillAll(G.bandN.capsOuter, 'rgba(142,36,170,0.22)');
+        fillAll(G.bandS.all, 'rgba(239,108,0,0.22)'); fillAll(G.bandS.caps, 'rgba(239,108,0,0.22)'); fillAll(G.bandS.capsOuter, 'rgba(239,108,0,0.22)');
+        ctx2.restore();
+        stroke(G.edgeN, '#8e24aa', 0.6); stroke(G.edgeS, '#ef6c00', 0.6);   // solid seam centre line, as thin as a graticule line (empty on its own framing)
+      }
+      if (state.middleLine) stroke(G.midLine, PAL.edge, 0.6);              // the central axis (straight middle line a centred route lies on), graticule weight
+
+      var coord = activeCoord(), proj = state.projection;  // flight arcs + markers (dynamic, few points → projected per frame)
+      var routes = activeRoutes(), seen = {};
+      routes.forEach(function (rt, ri) {
+        var A = endpoint(rt[0]), B = endpoint(rt[1]); if (!A || !B) return;
+        var gc = PROJ.greatCircle(A, B, NSAMP);
+        stroke(MAPGEO.lineSegs(coord, proj, gc.lat, gc.lon, G.spike), ROUTE_COLORS[ri % ROUTE_COLORS.length], 1.6);
+        mark(rt[0], A); mark(rt[1], B);
+      });
+      activePoints().forEach(function (code) { var A = endpoint(code); if (A) mark(code, A); });   // lone airports: label, no arc
+      if (state.centreArc) {                                              // the arc we re-centred on — drawn bold; runs straight down the middle
+        var ca = endpoint(state.centreArc[0]), cb = endpoint(state.centreArc[1]);
+        if (ca && cb) {
+          var cgc = PROJ.greatCircle(ca, cb, NSAMP);
+          stroke(MAPGEO.lineSegs(coord, proj, cgc.lat, cgc.lon, G.spike), '#15202b', 2.2);
+          mark(state.centreArc[0], ca); mark(state.centreArc[1], cb);
+        }
+      }
+      function mark(code, AB) {
+        if (seen[code]) return; seen[code] = 1;
+        var pr = PROJ.project(coord, proj, AB[0], AB[1]); var p = px(pr.x, pr.y);
+        ctx2.beginPath(); ctx2.arc(p[0], p[1], 2.6, 0, 2 * Math.PI); ctx2.fillStyle = PAL.marker; ctx2.fill();
+        if (typeof code === 'string') { ctx2.fillStyle = PAL.marker; ctx2.font = '11px -apple-system,Segoe UI,sans-serif'; ctx2.fillText(code, p[0] + 4, p[1] - 4); }
+      }
+      if (dragging && state.orientMode === 'north') {                     // north-locked drag: mark the canvas centre — the point north-up is computed from (hidden on release)
+        ctx2.beginPath(); ctx2.arc(W / 2, H / 2, 5, 0, 2 * Math.PI); ctx2.fillStyle = '#c0392b'; ctx2.fill();
+        ctx2.beginPath(); ctx2.arc(W / 2, H / 2, 5, 0, 2 * Math.PI); ctx2.strokeStyle = '#fff'; ctx2.lineWidth = 1.4; ctx2.stroke();
+      }
+    }
+
+    function lin(a, b, n) { var o = []; for (var i = 0; i < n; i++) o.push(a + (b - a) * i / (n - 1)); return o; }
+    function fillArr(v, n) { var o = []; for (var i = 0; i < n; i++) o.push(v); return o; }
+    function push(dst, segs) { for (var i = 0; i < segs.length; i++) dst.push(segs[i]); }
+    function layer(g) { return g ? (Array.isArray(g) ? g : g[state.detail]) : null; }   // pick fine/coarse (or accept a flat array)
+
+    // ---- sizing + render --------------------------------------------------
+    function render() {
+      var maxW = (mount.clientWidth || 9999) - 104;                        // leave room for the right rail (zoom + Reset/Save)
+      var size = Math.max(50, Math.min(state.size, maxW));                  // square box, clamped to container
+      var cssW = size, cssH = size;                                        // 360×360 by default; map auto-fits inside
+      var f = computeFit();
+      if (state.cx == null) { state.cx = f.px0; state.cy = f.py0; }         // first render: centre on the projection centre
+      if (state.orientMode === 'north' && !animating && (!dragging || state.northLive)) { updateNorthTheta(); f = computeFit(); }  // north-up: live while dragging if northLive, else only when not dragging; never mid-tween
+      canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+      var dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw(ctx, cssW, cssH, f);
+      updateCompass();
+    }
+
+    function savePng() {
+      var k = 2, cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+      var off = document.createElement('canvas'); off.width = cssW * k; off.height = cssH * k;
+      var octx = off.getContext('2d'); octx.setTransform(k, 0, 0, k, 0, 0);
+      octx.fillStyle = (getComputedStyle(document.body).backgroundColor) || '#fff'; octx.fillRect(0, 0, cssW, cssH);
+      draw(octx, cssW, cssH, computeFit());
+      off.toBlob(function (blob) {
+        var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = 'great-circle-' + state.coordinate + '-' + state.projection + '.png';
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      }, 'image/png');
+    }
+
+    // ---- drag to pan (moves the projected centre point; works at any rotation) ----
+    var dragging = false, lastX = 0, lastY = 0, animating = false, animRaf = 0, rafPending = false;
+    var raf = window.requestAnimationFrame || function (cb) { return setTimeout(cb, 16); };
+    function scheduleRender() { if (rafPending) return; rafPending = true; raf(function () { rafPending = false; render(); }); }  // coalesce drag moves to one render/frame
+    canvas.addEventListener('pointerdown', function (e) { cancelAnimationFrame(animRaf); animating = false; dragging = true; lastX = e.clientX; lastY = e.clientY; try { canvas.setPointerCapture(e.pointerId); } catch (x) {} render(); });   // render now so the centre dot appears on grab
+    canvas.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var mx = e.clientX - lastX, my = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
+      var th = orientationAngle(), c = Math.cos(th), s = Math.sin(th);     // shift the centre opposite the drag, un-rotated into projected space
+      state.cx += (-mx * c + my * s) / lastScale;
+      state.cy += (mx * s + my * c) / lastScale;
+      scheduleRender();
+    });
+    function endDrag() { dragging = false; if (state.orientMode === 'north') { if (state.northLive) render(); else animateNorthTo(); } else render(); }   // re-render to drop the centre dot; north mode: live already oriented, else ease to north
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', endDrag);
+
+    var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(render, 150); });
+    render();
+    return { render: render, state: state };
+  }
+
+  root.createWorldMap = createWorldMap;
+})(typeof self !== 'undefined' ? self : (typeof globalThis !== 'undefined' ? globalThis : this));

@@ -1,6 +1,6 @@
 // Shared lossless-PNG map exporter, used by the City Map Explorer
-// (public/hobbies/urbanism/) and the Region Map Explorer
-// (public/hobbies/geography/). Both pages link this file directly so
+// (public/hobbies/cities-transport/) and the Region Map Explorer
+// (public/hobbies/maps-projections/). Both pages link this file directly so
 // they share one source of truth for the export pipeline; per-page
 // inline JS only handles the page-specific controls (location list,
 // default radius, etc.) and calls window.exportMapAsPng() to save.

@@ -1,7 +1,7 @@
 // map-explorer.js — shared "pick a location, render its map at a fixed
 // circular radius, save as a lossless PNG" widget. Used by:
-//   - /public/hobbies/urbanism/        (City Map Explorer, ~30 cities)
-//   - /public/hobbies/geography/       (Region Map Explorer, regional scales)
+//   - /public/hobbies/cities-transport/   (City Map Explorer, ~30 cities)
+//   - /public/hobbies/maps-projections/   (Region Map Explorer, regional scales)
 //
 // Per-page differences are pure config; the markup, Leaflet wiring,
 // railway-overlay handling, export-zoom clamping, save-button
@@ -466,7 +466,7 @@
     render();
 
     // Public API — currently just setLocations, used by pages that want
-    // to swap the dropdown contents at runtime (e.g. urbanism's "include
+    // to swap the dropdown contents at runtime (e.g. cities-transport's "include
     // cities I've lived in" toggle). Picks the first option as the new
     // selection and re-renders.
     return {
