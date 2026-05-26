@@ -14,15 +14,29 @@
   'use strict';
   var PROJ = root.PROJ, MAPGEO = root.MAPGEO;
 
-  var PAL = {
+  // Canvas palette, theme-aware (the site is dark by default, light only under prefers-color-scheme: light).
+  var LIGHT_PAL = {
     ocean: '#b7d2ea', land: '#cde0a8', coast: '#5f7d43',
     graticule: '#9bb6d0', edge: '#4f7193', border: '#9a7b5a', marker: '#15202b'
   };
+  var DARK_PAL = {
+    ocean: '#172430', land: '#36422f', coast: '#76926a',
+    graticule: '#314a5e', edge: '#5e83a3', border: '#8f7458', marker: '#e9eef2'
+  };
+  function darkMode() { return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches; }
+  function palette() { return darkMode() ? DARK_PAL : LIGHT_PAL; }
   var ROUTE_COLORS = ['#c0392b', '#1f6f3d', '#6c3483', '#b9770e', '#1a5276', '#7b241c'];
   var GRAT = 15;            // graticule spacing, degrees
   var NSAMP = 500;          // samples per graticule line / arc
   var DEFAULT_SIZE = 360;   // box px — matches the Region Map Explorer default
   var ZOOM_LEVELS = [1, 2, 4, 8, 16, 32];   // each step doubles: 100, 200, 400, 800, 1600, 3200 %
+  // Quick-orient presets: which region sits at the top, as a fixed-dial angle (°, multiple of 15),
+  // per vertical framing. Only the vertical (Northern/Southern) framings have these; the horizontal
+  // (Eastern/Western) framings get an empty list.
+  var ORIENT_PRESETS = {
+    north: [['East Asia', 135], ['Europe', 30], ['North America', 285]],
+    south: [['South America', 120], ['Oceania', 315], ['Africa', 15]]
+  };
   var WORLDMAP_UID = 0;
 
   var STYLE_ID = '__world-map-styles';
@@ -40,7 +54,7 @@
       '.gcm-free{display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;margin:0 0 0.7rem;}' +
       '.gcm-free input[type=text]{font:inherit;padding:0.4rem 0.6rem;min-width:16rem;flex:1 1 16rem;' +
       'background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
-      '.gcm-free select,.gcm-routesel select{font:inherit;padding:0.4rem 0.6rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
+      '.gcm-controls select{font:inherit;padding:0.4rem 0.6rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
       '.gcm-flightgroup{flex-basis:100%;}' +                            // Flight paths takes its own full-width row
       '.gcm-routeslot{display:grid;align-items:center;flex:1 1 12rem;}' +   // grows to fill the rest of the Flight-paths line; dropdown + text-box share one cell, so the slot is always sized to the taller control → row height never changes across Off/Selected/Free
       '.gcm-routeslot > span{grid-row:1;grid-column:1;}' +
@@ -109,11 +123,11 @@
 
     var canvas = el('canvas', 'gcm-canvas');
     var ctx = canvas.getContext('2d');
-    var freeWrap, errSpan, zoomReadout, orientReadout, selectedWrap, syncOrientUI = function () {}, lastScale = 1, compassEl, compassNeedle, compassCircle, liveLab, liveChk, latBox, lonBox;
+    var freeWrap, errSpan, zoomReadout, orientReadout, selectedWrap, syncOrientUI = function () {}, syncOrientPresets = function () {}, orientSel, lastScale = 1, compassEl, compassNeedle, compassCircle, liveLab, liveChk, latBox, lonBox;
 
     if (showControls) {
       var controls = el('div', 'gcm-controls');
-      controls.appendChild(radioGroup('Focused hemisphere', 'coordinate', cfg.coordinates.map(idLabel), state.coordinate, function (v) { state.coordinate = v; state.centreOverride = null; state.centreArc = null; updateCentreBoxes(); resetView(); render(); }));
+      controls.appendChild(radioGroup('Focused hemisphere', 'coordinate', cfg.coordinates.map(idLabel), state.coordinate, function (v) { state.coordinate = v; state.centreOverride = null; state.centreArc = null; updateCentreBoxes(); syncOrientPresets(); resetView(); render(); }));
       controls.appendChild(radioGroup('Projection', 'projection', cfg.projections.map(idLabel), state.projection, function (v) { state.projection = v; resetView(); render(); }));
       controls.appendChild(orientationGroup());
       controls.appendChild(radioGroup('Detail', 'detail', [
@@ -214,6 +228,7 @@
       compassEl.title = 'Click to lock north up';
       compassEl.addEventListener('click', function () {                  // compass IS the north-up toggle: click to lock, click again to unlock
         state.orientMode = state.orientMode === 'north' ? 'fixed' : 'north';
+        if (orientSel) orientSel.value = '';                             // north-up isn't a region preset → clear the dropdown
         syncOrientUI(); render();
       });
       liveLab = el('label', 'gcm-northlive');                            // shown only when locked: live re-orient during drag vs settle on release
@@ -229,8 +244,13 @@
       zin.addEventListener('click', function () { stepZoom(1); });
       zout.addEventListener('click', function () { stepZoom(-1); });
       zbtns.appendChild(zin); zbtns.appendChild(zout); zbtns.appendChild(zoomReadout);
-      var reset = el('button', 'gcm-btn gcm-railbtn', 'Reset'); reset.title = 'Back to 100%, preset centre (orientation unchanged)';
-      reset.addEventListener('click', function () { state.centreOverride = null; state.centreArc = null; updateCentreBoxes(); resetView(); render(); });
+      var reset = el('button', 'gcm-btn gcm-railbtn', 'Reset'); reset.title = 'Back to 100%, preset centre & original orientation';
+      reset.addEventListener('click', function () {
+        state.centreOverride = null; state.centreArc = null;
+        state.orientation = DEFAULT_ORIENT; state.orientMode = DEFAULT_MODE; state._theta = -DEFAULT_ORIENT * Math.PI / 180;   // restore the page-load orientation
+        if (orientSel) orientSel.value = '';
+        updateCentreBoxes(); syncOrientPresets(); syncOrientUI(); resetView(); render();
+      });
       var save = el('button', 'gcm-btn gcm-railbtn', 'Save PNG'); save.addEventListener('click', savePng);
       zoom.appendChild(compassRow); zoom.appendChild(zbtns); zoom.appendChild(reset); zoom.appendChild(save);
       stage.appendChild(zoom);
@@ -276,11 +296,24 @@
       orientReadout = el('span', 'gcm-orient-readout');
       var inc = el('button', 'gcm-btn gcm-zoombtn', '↻'); inc.title = 'Rotate clockwise 15°';
       var flip = el('button', 'gcm-btn gcm-zoombtn', '180°'); flip.title = 'Rotate 180°';
-      function step(deg) { if (state.orientMode === 'north') return; state.orientation = ((state.orientation + deg) % 360 + 360) % 360; updateOrientReadout(); render(); }
+      function step(deg) { if (state.orientMode === 'north') return; state.orientation = ((state.orientation + deg) % 360 + 360) % 360; if (orientSel) orientSel.value = ''; updateOrientReadout(); render(); }   // manual rotate ≠ a region preset → clear the dropdown
       dec.addEventListener('click', function () { step(-15); });      // ↺ counts the readout down (345…); ↻ counts up (15…)
       inc.addEventListener('click', function () { step(15); });
       flip.addEventListener('click', function () { step(180); });
       opts.appendChild(dec); opts.appendChild(orientReadout); opts.appendChild(inc); opts.appendChild(flip);
+      orientSel = el('select'); orientSel.title = 'Snap the rotation so a region sits at the top';   // quick-orient: pick a region to put at the top
+      syncOrientPresets = function () {                                  // populate per focused hemisphere (empty for Eastern/Western)
+        orientSel.innerHTML = ''; var def = document.createElement('option'); def.value = ''; def.textContent = 'Put region up…'; orientSel.appendChild(def);
+        var presets = ORIENT_PRESETS[state.coordinate] || [];
+        presets.forEach(function (r) { var o = document.createElement('option'); o.value = r[1]; o.textContent = r[0]; orientSel.appendChild(o); });
+        orientSel.disabled = presets.length === 0;
+      };
+      orientSel.addEventListener('change', function () {
+        if (orientSel.value === '') return;
+        state.orientMode = 'fixed'; state.orientation = normalizeOrient(parseFloat(orientSel.value));   // a region preset is a fixed angle → leave north-lock
+        syncOrientUI(); render();                                        // keep the chosen region showing in the dropdown
+      });
+      syncOrientPresets(); opts.appendChild(orientSel);
       // North up (and its "live" toggle) live in the right rail beside the compass, not here.
       syncOrientUI = function () {
         var on = state.orientMode === 'north';
@@ -558,6 +591,7 @@
     }
 
     function draw(ctx2, W, H, f) {
+      var PAL = palette();                                                  // light or dark cartographic palette, per the OS theme
       var G = geom();                                                       // cached projected + seam-cut geometry
       var scale = Math.min(W / f.spanX, H / f.spanY) * 0.98 * state.zoom;
       lastScale = scale;
@@ -605,7 +639,7 @@
         var ca = endpoint(state.centreArc[0]), cb = endpoint(state.centreArc[1]);
         if (ca && cb) {
           var cgc = PROJ.greatCircle(ca, cb, NSAMP);
-          stroke(MAPGEO.lineSegs(coord, proj, cgc.lat, cgc.lon, G.spike), '#15202b', 2.2);
+          stroke(MAPGEO.lineSegs(coord, proj, cgc.lat, cgc.lon, G.spike), PAL.marker, 2.2);   // theme-aware (dark on light, light on dark)
           mark(state.centreArc[0], ca); mark(state.centreArc[1], cb);
         }
       }
@@ -673,6 +707,7 @@
     canvas.addEventListener('pointercancel', endDrag);
 
     var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(render, 150); });
+    if (typeof matchMedia === 'function') { try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render); } catch (e) {} }   // repaint when the OS light/dark theme flips
     render();
     return { render: render, state: state };
   }
