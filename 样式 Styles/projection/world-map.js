@@ -44,45 +44,51 @@
     if (document.getElementById(STYLE_ID)) return;
     var s = document.createElement('style'); s.id = STYLE_ID;
     s.textContent =
-      '.gcm-controls{display:flex;flex-wrap:wrap;gap:0.8rem 1.4rem;align-items:flex-start;margin:0.4rem 0 0.9rem;}' +
-      '.gcm-group{border:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.25rem;}' +
+      // Controls live in a floating ⚙ panel overlaying a full-bleed map; the map gets the
+      // whole widget area. A small always-visible rail (compass + zoom + reset/save) stays out.
+      '.gcm-controls{display:flex;flex-direction:column;gap:1rem;margin:0;}' +
+      '.gcm-group{border:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.3rem;}' +
       '.gcm-group .gcm-legend{font-size:0.72rem;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted);}' +
-      '.gcm-opts{display:flex;flex-wrap:wrap;gap:0.3rem 0.8rem;align-items:center;}' +
+      '.gcm-opts{display:flex;flex-wrap:wrap;gap:0.35rem 0.8rem;align-items:center;}' +
       '.gcm-controls label{display:inline-flex;align-items:center;gap:0.35rem;font-size:0.9rem;color:var(--text);cursor:pointer;}' +
       '.gcm-controls input[type=radio],.gcm-controls input[type=checkbox]{accent-color:var(--accent);}' +
       '.gcm-controls input[type=number]{font:inherit;width:5rem;padding:0.3rem 0.5rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
-      '.gcm-free{display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;margin:0 0 0.7rem;}' +
-      '.gcm-free input[type=text]{font:inherit;padding:0.4rem 0.6rem;min-width:16rem;flex:1 1 16rem;' +
-      'background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
-      '.gcm-controls select{font:inherit;padding:0.4rem 0.6rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
-      '.gcm-flightgroup{flex-basis:100%;}' +                            // Flight paths takes its own full-width row
-      '.gcm-routeslot{display:grid;align-items:center;flex:1 1 12rem;}' +   // grows to fill the rest of the Flight-paths line; dropdown + text-box share one cell, so the slot is always sized to the taller control → row height never changes across Off/Selected/Free
-      '.gcm-routeslot > span{grid-row:1;grid-column:1;}' +
-      '.gcm-routesel{justify-self:start;display:inline-flex;align-items:center;gap:0.35rem;}' +
-      '.gcm-routefree{justify-self:stretch;display:flex;align-items:center;gap:0.4rem;}' +
+      '.gcm-controls select{font:inherit;padding:0.4rem 0.6rem;max-width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
+      '.gcm-routesel{display:inline-flex;align-items:center;gap:0.35rem;}' +
+      '.gcm-routefree{display:flex;align-items:center;gap:0.4rem;width:100%;}' +
       '.gcm-routefree input[type=text]{flex:1 1 auto;min-width:0;font:inherit;padding:0.4rem 0.6rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
       '.gcm-btn{font:inherit;padding:0.35rem 0.7rem;background:var(--surface);color:var(--text);' +
       'border:1px solid var(--border);border-radius:4px;cursor:pointer;}' +
       '.gcm-btn:hover{border-color:var(--accent);}' +
-      '.gcm-stage{display:flex;align-items:flex-start;gap:0.6rem;}' +
-      '.gcm-zoom{display:flex;flex-direction:column;gap:0.4rem;width:6rem;flex:0 0 auto;}' +
+      // full-bleed map stage (interactive only); embeds keep a plain block canvas sized by state.size
+      '.gcm-wrap{display:flex;align-items:flex-start;gap:0.6rem;width:100%;}' +   // square map + the rail beside it (rail is NOT part of the square)
+      '.gcm-stage{position:relative;}' +
+      '.gcm-stage.gcm-interactive{flex:1 1 auto;min-width:0;max-width:min(100%,82vh);aspect-ratio:1/1;}' +   // always a square map area, as large as fits the viewport
+      '.gcm-canvas{display:block;background:transparent;border:1px solid var(--border);border-radius:6px;touch-action:none;cursor:grab;}' +
+      '.gcm-canvas:active{cursor:grabbing;}' +
+      '.gcm-interactive .gcm-canvas{position:absolute;inset:0;width:100%;height:100%;}' +
+      '.gcm-gear{position:absolute;top:10px;left:10px;z-index:3;font-size:1.15rem;line-height:1;padding:0.3rem 0.55rem;box-shadow:0 2px 8px rgba(0,0,0,0.28);}' +
+      '.gcm-panel{position:absolute;top:10px;left:10px;z-index:4;width:min(330px,calc(100% - 20px));max-height:calc(100% - 20px);overflow:auto;' +
+      'background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0.7rem 0.85rem;box-shadow:0 8px 28px rgba(0,0,0,0.32);}' +
+      '.gcm-panel.gcm-hidden,.gcm-gear.gcm-hidden{display:none;}' +
+      '.gcm-panelhead{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:0.6rem;}' +
+      '.gcm-paneltitle{font-size:0.74rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);font-weight:600;}' +
+      '.gcm-panelclose{padding:0.15rem 0.5rem;line-height:1;}' +
+      '.gcm-rail{flex:0 0 auto;display:flex;flex-direction:column;gap:0.4rem;width:5.2rem;align-items:center;}' +
       '.gcm-zbtns{display:flex;flex-direction:column;gap:0.3rem;align-items:center;}' +
       '.gcm-zbtns .gcm-zoombtn{width:2.4rem;}' +
       '.gcm-railbtn{width:100%;white-space:nowrap;}' +
-      '.gcm-compass{display:flex;cursor:pointer;flex:0 0 auto;}' +
+      '.gcm-compass{display:flex;cursor:pointer;}' +
       '.gcm-compass:hover{opacity:0.82;}' +
       '.gcm-zoombtn{height:2.2rem;text-align:center;padding:0;font-size:1.2rem;line-height:1;}' +
-      '.gcm-zoom-readout{text-align:center;font-size:0.8rem;color:var(--muted);font-variant-numeric:tabular-nums;}' +
+      '.gcm-zoom-readout{text-align:center;font-size:0.8rem;color:var(--muted);font-variant-numeric:tabular-nums;background:var(--surface);border-radius:4px;padding:0 0.3rem;}' +
       '.gcm-dial .gcm-zoombtn{min-width:2.2rem;padding:0 0.35rem;}' +
-      '.gcm-orient-readout{min-width:7.5rem;white-space:nowrap;text-align:center;font-size:0.85rem;color:var(--muted);font-variant-numeric:tabular-nums;}' +
+      '.gcm-orient-readout{min-width:7rem;white-space:nowrap;text-align:center;font-size:0.85rem;color:var(--muted);font-variant-numeric:tabular-nums;}' +
       '.gcm-compassrow{display:flex;align-items:center;justify-content:center;gap:0.2rem;margin-bottom:0.2rem;}' +
       '.gcm-northup,.gcm-northlive{display:inline-flex;align-items:center;gap:0.15rem;font-size:0.78rem;color:var(--muted);}' +
+      '.gcm-northlive{background:var(--surface);border-radius:4px;padding:0 0.25rem;}' +
       '.gcm-zoombtn:disabled{opacity:0.4;cursor:default;}' +
-      '.gcm-err{color:#d9534f;font-size:0.85rem;}' +
-      '.gcm-canvas{display:block;background:transparent;border:1px solid var(--border);border-radius:6px;' +
-      'touch-action:none;cursor:grab;}' +
-      '.gcm-canvas:active{cursor:grabbing;}' +
-      '.gcm-bar{display:flex;justify-content:flex-end;margin-top:0.5rem;}';
+      '.gcm-err{color:#d9534f;font-size:0.85rem;}';
     document.head.appendChild(s);
   }
 
@@ -92,6 +98,11 @@
     opts = opts || {};
     var instanceId = ++WORLDMAP_UID;
     var cfg = root.PROJECTION_CONFIG;
+    // PAGE policy (preset route groups + initial control state) is NOT in the shared engine config —
+    // the consumer passes it in: maps-projections supplies opts.presets / opts.uiDefaults from its
+    // own great-circle.js. (cfg.routes / cfg.defaults are accepted as a legacy fallback only.)
+    var presets = opts.presets || cfg.routes || {};
+    var uiDefaults = opts.uiDefaults || cfg.defaults || {};
     var mount = typeof opts.mount === 'string' ? document.querySelector(opts.mount) : opts.mount;
     if (!mount) throw new Error('createWorldMap: mount not found');
     injectStyles();
@@ -99,14 +110,14 @@
     var state = {
       coordinate: opts.coordinate || cfg.default_coordinate,
       projection: opts.projection || cfg.default_projection,
-      boundaries: opts.boundaries != null ? opts.boundaries : !!(cfg.defaults && cfg.defaults.boundaries),
+      boundaries: opts.boundaries != null ? opts.boundaries : !!uiDefaults.boundaries,
       edges: !!opts.edges,                                // overlay the Hǎo Northern & Southern map edges (seam half-meridians) as geographic curves
       middleLine: !!opts.middleLine,                      // draw the central meridian (the straight middle axis a centred route lies on) at graticule weight
-      flightMode: opts.flightMode || (cfg.defaults && cfg.defaults.flight_paths) || 'selected',
-      routeGroup: (cfg.routes && cfg.routes.default_group) || '',   // '' → dropdown rests on "(none)" = no flights
+      flightMode: opts.flightMode || uiDefaults.flight_paths || 'selected',
+      routeGroup: presets.default_group || '',            // '' → dropdown rests on "(none)" = no flights
       freeRoutes: opts.routes || [], freePoints: [],
       size: opts.size || DEFAULT_SIZE,
-      detail: opts.detail || (cfg.defaults && cfg.defaults.detail) || 'fine',   // fine (50m) | coarse (110m)
+      detail: opts.detail || uiDefaults.detail || 'fine',   // fine (50m) | coarse (110m)
       orientation: normalizeOrient(opts.orientation),   // fixed-dial rotation in degrees, multiple of 15 (pure rotation, never a flip)
       orientMode: opts.northUp ? 'north' : 'fixed',      // fixed (manual dial) | north (dynamic: keep local north at the view centre up)
       northLive: !!opts.northLive,                       // north mode: re-orient live during drag (default off → settle on release)
@@ -127,16 +138,12 @@
 
     if (showControls) {
       var controls = el('div', 'gcm-controls');
+      // PROJECTION — what to draw and from where
       controls.appendChild(radioGroup('Focused hemisphere', 'coordinate', cfg.coordinates.map(idLabel), state.coordinate, function (v) { state.coordinate = v; state.centreOverride = null; state.centreArc = null; updateCentreBoxes(); syncOrientPresets(); resetView(); render(); }));
       controls.appendChild(radioGroup('Projection', 'projection', cfg.projections.map(idLabel), state.projection, function (v) { state.projection = v; resetView(); render(); }));
-      controls.appendChild(orientationGroup());
-      controls.appendChild(radioGroup('Detail', 'detail', [
-        { id: 'coarse', label: 'Coarse (110m)' }, { id: 'fine', label: 'Fine (50m)' }
-      ], state.detail, function (v) { state.detail = v; render(); }));
-      controls.appendChild(checkboxGroup('Boundaries', 'Countries', state.boundaries, function (v) { state.boundaries = v; render(); }));
-      controls.appendChild(checkboxGroup('Hǎo edges', 'N / S seams', state.edges, function (v) { state.edges = v; render(); }));
-      controls.appendChild(checkboxGroup('Middle line', 'Central axis', state.middleLine, function (v) { state.middleLine = v; render(); }));
-      controls.appendChild(viewGroup());                                 // Size (px) sits on the row above Flight paths
+      // LAYERS — detail + the overlays toggled on the basemap (Size px control is gone; the map is full-bleed)
+      controls.appendChild(layersGroup());
+      // ROUTES — a preset group AND your own additive paths
       var flightGroup = el('fieldset', 'gcm-group gcm-flightgroup');     // a preset group AND custom routes can be shown together (custom is additive)
       flightGroup.appendChild(el('span', 'gcm-legend', 'Airports / flight paths'));
       var flightOpts = el('div', 'gcm-opts');
@@ -146,7 +153,7 @@
       var noneOpt = document.createElement('option'); noneOpt.value = ''; noneOpt.textContent = 'Preset routes…';   // resting state = no preset (custom can still add)
       if (!state.routeGroup) noneOpt.selected = true; groupSel.appendChild(noneOpt);
       var optgroups = {}, catOrder = [];                                 // group options under <optgroup> headers by `category`
-      ((cfg.routes && cfg.routes.groups) || []).forEach(function (g) {
+      ((presets && presets.groups) || []).forEach(function (g) {
         var cat = g.category || 'Other';
         if (!optgroups[cat]) { optgroups[cat] = document.createElement('optgroup'); optgroups[cat].label = cat; catOrder.push(cat); }
         var o = document.createElement('option'); o.value = g.id; o.textContent = g.label;
@@ -167,6 +174,9 @@
       flightOpts.appendChild(selectedWrap); flightOpts.appendChild(freeWrap); flightOpts.appendChild(errSpan);   // dropdown + custom box shown together
       flightGroup.appendChild(flightOpts);
       controls.appendChild(flightGroup);
+
+      // ORIENTATION — dial + region presets (north-up lock lives on the compass in the rail)
+      controls.appendChild(orientationGroup());
 
       var centreGroup = el('fieldset', 'gcm-group gcm-flightgroup');      // CENTRE: from an arc (two airport codes) OR typed directly as lat/lon
       centreGroup.appendChild(el('span', 'gcm-legend', 'Centre'));
@@ -208,13 +218,28 @@
       centreGroup.appendChild(centreOpts); controls.appendChild(centreGroup);
       updateCentreBoxes();                                               // show the starting framing's centre immediately
 
-      mount.appendChild(controls);
     }
 
-    var stage = el('div', 'gcm-stage');
+    var stage = el('div', 'gcm-stage' + (showControls ? ' gcm-interactive' : ''));
     stage.appendChild(canvas);
-    if (showControls) {                                                  // right rail beside the map: compass, zoom (+/−/readout), Reset / Save PNG
-      var zoom = el('div', 'gcm-zoom');
+    if (showControls) {
+      // floating ⚙ settings panel (holds the regrouped controls) over a full-bleed map; open on
+      // first visit, then the open/closed choice is remembered so the map can stay unobstructed.
+      var gearBtn = el('button', 'gcm-btn gcm-gear', '⚙'); gearBtn.title = 'Map settings';
+      var panel = el('div', 'gcm-panel');
+      var phead = el('div', 'gcm-panelhead');
+      phead.appendChild(el('span', 'gcm-paneltitle', 'Map settings'));
+      var pclose = el('button', 'gcm-btn gcm-panelclose', '✕'); pclose.title = 'Close settings';
+      phead.appendChild(pclose); panel.appendChild(phead); panel.appendChild(controls);
+      function setPanel(open) { panel.classList.toggle('gcm-hidden', !open); gearBtn.classList.toggle('gcm-hidden', open); try { localStorage.setItem('gcmPanelOpen', open ? '1' : '0'); } catch (e) {} }
+      gearBtn.addEventListener('click', function () { setPanel(true); });
+      pclose.addEventListener('click', function () { setPanel(false); });
+      stage.appendChild(gearBtn); stage.appendChild(panel);
+      var open0 = true; try { if (localStorage.getItem('gcmPanelOpen') === '0') open0 = false; } catch (e) {}
+      setPanel(open0);
+
+      // always-visible rail beside the map: compass (north-up toggle), zoom (+/−/readout), Reset / Save PNG
+      var zoom = el('div', 'gcm-rail');
       compassEl = el('div', 'gcm-compass');
       compassEl.innerHTML = '<svg width="48" height="48" viewBox="-28 -28 56 56" aria-label="compass: needle points to north">'
         + '<circle r="18" fill="#fff" stroke="#bbb" stroke-width="1"/>'
@@ -253,10 +278,13 @@
       });
       var save = el('button', 'gcm-btn gcm-railbtn', 'Save PNG'); save.addEventListener('click', savePng);
       zoom.appendChild(compassRow); zoom.appendChild(zbtns); zoom.appendChild(reset); zoom.appendChild(save);
-      stage.appendChild(zoom);
       syncOrientUI();                                                     // set the "live" checkbox's initial visibility now that it exists
     }
-    mount.appendChild(stage);
+    if (showControls) {                                                  // square map + rail beside it; the ⚙ panel still floats OVER the square map
+      var wrap = el('div', 'gcm-wrap'); wrap.appendChild(stage); wrap.appendChild(zoom); mount.appendChild(wrap);
+    } else {
+      mount.appendChild(stage);                                          // embed: just the square canvas, no rail
+    }
 
     function idLabel(o) { return { id: o.id, label: o.label }; }
     function syncFlightUI() { }   // preset dropdown and custom box are both always visible now (custom is additive)
@@ -276,6 +304,24 @@
       var lab = el('label'); var c = el('input'); c.type = 'checkbox'; c.checked = checked;
       c.addEventListener('change', function () { onchange(c.checked); });
       lab.appendChild(c); lab.appendChild(document.createTextNode(label)); g.appendChild(lab); return g;
+    }
+    function layersGroup() {                                          // detail resolution + the basemap overlay toggles, merged into one "Layers" group
+      var g = el('fieldset', 'gcm-group'); g.appendChild(el('span', 'gcm-legend', 'Layers'));
+      var opts = el('div', 'gcm-opts');
+      function radio(val, text) {
+        var lab = el('label'); var r = el('input'); r.type = 'radio'; r.name = 'detail-' + instanceId; r.value = val; r.checked = (state.detail === val);
+        r.addEventListener('change', function () { if (r.checked) { state.detail = val; render(); } });
+        lab.appendChild(r); lab.appendChild(document.createTextNode(text)); opts.appendChild(lab);
+      }
+      function check(text, on, fn) {
+        var lab = el('label'); var c = el('input'); c.type = 'checkbox'; c.checked = on;
+        c.addEventListener('change', function () { fn(c.checked); }); lab.appendChild(c); lab.appendChild(document.createTextNode(text)); opts.appendChild(lab);
+      }
+      radio('coarse', 'Coarse'); radio('fine', 'Fine'); opts.appendChild(el('span', null, '·'));
+      check('Countries', state.boundaries, function (v) { state.boundaries = v; render(); });
+      check('N/S seam belts', state.edges, function (v) { state.edges = v; render(); });
+      check('Central axis', state.middleLine, function (v) { state.middleLine = v; render(); });
+      g.appendChild(opts); return g;
     }
     function normalizeOrient(o) {                                     // -> degrees, multiple of 15, in [0,360)
       if (o == null || o === 'top') return 0;
@@ -373,7 +419,7 @@
       });
       return { routes: routes, points: points, errors: errors };
     }
-    function groupById(id) { return ((cfg.routes && cfg.routes.groups) || []).filter(function (x) { return x.id === id; })[0]; }
+    function groupById(id) { return ((presets && presets.groups) || []).filter(function (x) { return x.id === id; })[0]; }
     function groupSpec(g) {                                              // a group's routes/points; `routes` may be a text-box-grammar STRING or a legacy [[a,b],…] array
       if (!g) return { routes: [], points: [] };
       if (typeof g.routes === 'string') { var p = parseRoutes(g.routes); return { routes: p.routes, points: p.points }; }
@@ -545,16 +591,21 @@
       var grat = [];
       for (lon = -180; lon <= 180; lon += GRAT) push(grat, MAPGEO.lineSegs(coord, proj, lin(-89.5, 89.5, NSAMP), fillArr(lon, NSAMP), spike));
       for (lat = -75; lat <= 75; lat += GRAT) push(grat, MAPGEO.lineSegs(coord, proj, fillArr(lat, NSAMP), lin(-180, 180, NSAMP), spike));
+      // Keep each ring's seam-cut fill pieces GROUPED so they can be filled as one even-odd path:
+      // a ring that encircles a pole (Antarctica) cuts into nested pieces whose crude seam-edge
+      // closures overlap, and even-odd makes the overlap cancel — re-opening bays at the seam that
+      // a per-piece nonzero fill would bury (the Ross Sea drawn green). A normal ring is one piece,
+      // where even-odd == nonzero, so nothing else changes.
       var coastFill = [], coastLine = [];
       layer(root.WORLD_COASTLINE).forEach(function (rg) {
         var ln = [], lt = [], r = rg.ring, k; for (k = 0; k < r.length; k++) { ln.push(r[k][0]); lt.push(r[k][1]); }
-        MAPGEO.ringFillPolys(coord, proj, ln, lt).forEach(function (pl) { coastFill.push({ seg: pl, hole: rg.hole }); });
+        coastFill.push({ polys: MAPGEO.ringFillPolys(coord, proj, ln, lt), hole: rg.hole });
         push(coastLine, MAPGEO.ringOutlineArcs(coord, proj, ln, lt, spike));
       });
       var lakesFill = [], lakesLine = [], LK = layer(root.WORLD_LAKES);
       if (LK) LK.forEach(function (ring) {
         var ln = [], lt = [], k; for (k = 0; k < ring.length; k++) { ln.push(ring[k][0]); lt.push(ring[k][1]); }
-        MAPGEO.ringFillPolys(coord, proj, ln, lt).forEach(function (pl) { lakesFill.push(pl); });
+        lakesFill.push(MAPGEO.ringFillPolys(coord, proj, ln, lt));
         push(lakesLine, MAPGEO.ringOutlineArcs(coord, proj, ln, lt, spike));
       });
       var bndLine = [], BN = layer(root.WORLD_BOUNDARIES);
@@ -606,12 +657,17 @@
         for (var s = 0; s < segs.length; s++) { var sg = segs[s]; for (var k = 0; k < sg.X.length; k++) { var p = px(sg.X[k], sg.Y[k]); if (k === 0) ctx2.moveTo(p[0], p[1]); else ctx2.lineTo(p[0], p[1]); } ctx2.closePath(); }
         ctx2.fillStyle = color; ctx2.fill();
       }
+      function fillRing(polys, color) {                                     // one ring's seam-pieces as a single even-odd path (overlapping seam closures cancel → bays stay open)
+        ctx2.beginPath();
+        for (var s = 0; s < polys.length; s++) { var sg = polys[s]; for (var k = 0; k < sg.X.length; k++) { var p = px(sg.X[k], sg.Y[k]); if (k === 0) ctx2.moveTo(p[0], p[1]); else ctx2.lineTo(p[0], p[1]); } ctx2.closePath(); }
+        ctx2.fillStyle = color; ctx2.fill('evenodd');
+      }
       function stroke(segs, color, w) { ctx2.strokeStyle = color; ctx2.lineWidth = w; for (var s = 0; s < segs.length; s++) { if (segs[s].X.length < 2) continue; poly(segs[s]); ctx2.stroke(); } }
 
       fill(G.b, PAL.ocean); poly(G.b); ctx2.strokeStyle = PAL.edge; ctx2.lineWidth = 1.1; ctx2.stroke();   // ocean lens
       stroke(G.grat, PAL.graticule, 0.6);                                   // graticule
-      for (var ci = 0; ci < G.coastFill.length; ci++) fill(G.coastFill[ci].seg, G.coastFill[ci].hole ? PAL.ocean : PAL.land);  // land + holes
-      for (var li = 0; li < G.lakesFill.length; li++) fill(G.lakesFill[li], PAL.ocean);   // inland water painted over land
+      for (var ci = 0; ci < G.coastFill.length; ci++) fillRing(G.coastFill[ci].polys, G.coastFill[ci].hole ? PAL.ocean : PAL.land);  // land + holes
+      for (var li = 0; li < G.lakesFill.length; li++) fillRing(G.lakesFill[li], PAL.ocean);   // inland water painted over land
       stroke(G.coastLine, PAL.coast, 0.6);                                  // coastline outline
       stroke(G.lakesLine, PAL.coast, 0.4);                                  // lake shores
       if (state.boundaries) stroke(G.bndLine, PAL.border, 0.45);            // country borders
@@ -662,13 +718,17 @@
 
     // ---- sizing + render --------------------------------------------------
     function render() {
-      var maxW = (mount.clientWidth || 9999) - 104;                        // leave room for the right rail (zoom + Reset/Save)
-      var size = Math.max(50, Math.min(state.size, maxW));                  // square box, clamped to container
-      var cssW = size, cssH = size;                                        // 360×360 by default; map auto-fits inside
+      var cssW, cssH;
+      if (showControls) {                                                  // full-bleed: the canvas fills the stage (CSS sets its display size); controls float on top
+        cssW = stage.clientWidth || mount.clientWidth || DEFAULT_SIZE;
+        cssH = stage.clientHeight || cssW;
+      } else {                                                             // embed (no controls): keep the legacy square box sized by state.size
+        cssW = cssH = Math.max(50, Math.min(state.size, (mount.clientWidth || 9999)));
+        canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+      }
       var f = computeFit();
       if (state.cx == null) { state.cx = f.px0; state.cy = f.py0; }         // first render: centre on the projection centre
       if (state.orientMode === 'north' && !animating && (!dragging || state.northLive)) { updateNorthTheta(); f = computeFit(); }  // north-up: live while dragging if northLive, else only when not dragging; never mid-tween
-      canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
       var dpr = window.devicePixelRatio || 1;
       canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

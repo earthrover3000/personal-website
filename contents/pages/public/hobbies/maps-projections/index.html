@@ -97,8 +97,12 @@
 <script src="../../../../../样式 Styles/projection/lakes.js"></script>
 <script src="../../../../../样式 Styles/projection/airports.js"></script>
 <script src="../../../../../样式 Styles/projection/world-map.js"></script>
+<!-- Page-local config: the preset route groups + initial control state for THIS page's mapper.
+     The engine (above) is projection-agnostic; great-circle.js is what maps-projections feeds it.
+     Sibling file, deployed by build.py via the project config's extra_files. -->
+<script src="great-circle.js"></script>
 <script>
-  createWorldMap({ mount: '#great-circle-mapper', controls: true });
+  createWorldMap({ mount: '#great-circle-mapper', controls: true, presets: GREAT_CIRCLE.routes, uiDefaults: GREAT_CIRCLE.defaults });
 </script>
 
 </body>

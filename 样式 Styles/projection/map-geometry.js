@@ -141,17 +141,43 @@
   // close along the map boundary — a band is a strip, not a blob — so it can never fill the map
   // interior. A cell that wraps across the seam projects with its corners on OPPOSITE map edges,
   // so its projected bounding box explodes past maxJump → drop it (a hairline on the seam).
-  // The test is on PROJECTED size, not longitude range, so pole-cap cells (whose longitude is
-  // degenerate at the pole) are kept — they project to a tidy little patch. Returns [{X,Y}].
+  // Each cell is cut at the seam in DOMAIN space (b = the seam coord; ±180 is the cut): a cell that
+  // straddles the seam is split into a main piece (b∈[−180,180]) plus the overflow, which is shifted
+  // ±360 so it lands on the OPPOSITE map edge — exactly where the band continues. This is what makes
+  // a belt that crosses the projection seam meet the edge cleanly (and wrap to the other side) instead
+  // of being dropped, which left a flat stub short of the seam. Every emitted piece is normalized to
+  // ONE winding so the draw step's single nonzero-winding union stays hole-free at the side↔cap
+  // corners. (maxJump is no longer needed — kept for signature compatibility.)
   function bandFillPolys(coord, projId, lonA, latA, lonB, latB, maxJump) {
-    var n = latA.length, AX = [], AY = [], BX = [], BY = [], polys = [], i, pr;
-    for (i = 0; i < n; i++) { pr = PROJ.project(coord, projId, latA[i], lonA[i]); AX.push(pr.x); AY.push(pr.y); pr = PROJ.project(coord, projId, latB[i], lonB[i]); BX.push(pr.x); BY.push(pr.y); }
-    for (i = 0; i < n - 1; i++) {
-      var X = [AX[i], BX[i], BX[i + 1], AX[i + 1]], Y = [AY[i], BY[i], BY[i + 1], AY[i + 1]];
-      var dx = Math.max(X[0], X[1], X[2], X[3]) - Math.min(X[0], X[1], X[2], X[3]);
-      var dy = Math.max(Y[0], Y[1], Y[2], Y[3]) - Math.min(Y[0], Y[1], Y[2], Y[3]);
-      if (Math.max(dx, dy) > maxJump) continue;                      // seam wrap: corners on opposite map edges → drop
+    var n = latA.length, polys = [], i, d, aA = [], bA = [], aB = [], bB = [];
+    for (i = 0; i < n; i++) { d = PROJ.toDomain(coord, latA[i], lonA[i]); aA.push(d[0]); bA.push(d[1]); d = PROJ.toDomain(coord, latB[i], lonB[i]); aB.push(d[0]); bB.push(d[1]); }
+    function unwrap(ref, b) { while (b - ref > 180) b -= 360; while (b - ref < -180) b += 360; return b; }
+    function clipB(poly, below, lim) {                               // keep b≤lim (below) or b≥lim; insert the b=lim crossing (a interpolated linearly)
+      var out = [], m = poly.length, j;
+      for (j = 0; j < m; j++) {
+        var cur = poly[j], nxt = poly[(j + 1) % m];
+        var ci = below ? cur[1] <= lim : cur[1] >= lim, ni = below ? nxt[1] <= lim : nxt[1] >= lim;
+        if (ci) out.push(cur);
+        if (ci !== ni) { var t = (lim - cur[1]) / (nxt[1] - cur[1]); out.push([cur[0] + t * (nxt[0] - cur[0]), lim]); }
+      }
+      return out;
+    }
+    function emit(poly, shift) {                                     // project a domain polygon (b shifted ±360 for the wrapped copy) with normalized winding
+      if (poly.length < 3) return;
+      var X = [], Y = [], s, k;
+      for (k = 0; k < poly.length; k++) { s = PROJ.projectDomain(coord, projId, poly[k][0], poly[k][1] + (shift || 0)); X.push(s[0]); Y.push(s[1]); }
+      var area2 = (X[1] - X[0]) * (Y[2] - Y[0]) - (X[2] - X[0]) * (Y[1] - Y[0]);
+      if (area2 < 0) { X.reverse(); Y.reverse(); }
       polys.push({ X: X, Y: Y });
+    }
+    for (i = 0; i < n - 1; i++) {
+      var q0 = bA[i], q1 = unwrap(q0, bB[i]), q2 = unwrap(q1, bB[i + 1]), q3 = unwrap(q2, bA[i + 1]);
+      var quad = [[aA[i], q0], [aB[i], q1], [aB[i + 1], q2], [aA[i + 1], q3]];
+      var lo = Math.min(q0, q1, q2, q3), hi = Math.max(q0, q1, q2, q3);
+      if (lo >= -180 && hi <= 180) { emit(quad, 0); continue; }      // wholly inside one panel — no seam cut
+      emit(clipB(clipB(quad, true, 180), false, -180), 0);           // main panel [−180,180]
+      if (hi > 180) emit(clipB(quad, false, 180), -360);             // overflow past +180 → wraps to the left edge
+      if (lo < -180) emit(clipB(quad, true, -180), 360);             // overflow past −180 → wraps to the right edge
     }
     return polys;
   }
