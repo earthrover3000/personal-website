@@ -4,7 +4,7 @@
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Maps &amp; Projections · Region Map Explorer</title>
+  <title>Maps &amp; Projections · Great Circle Mapper</title>
   <link rel="stylesheet" href="../../../../../样式 Styles/base.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -53,24 +53,6 @@
   <h1>Maps &amp; Projections</h1>
   <p class="head-meta">&nbsp;</p>
 
-  <h2>Region Map Explorer</h2>
-  <p class="lede">
-    Sibling of the <a href="../cities-transport/">City Map Explorer</a> at regional scale — pick a well-known geographic region and render its extent at exactly the chosen pixel size and radius, clipped to a circle. Toggle <strong>Railways</strong> for an <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> overlay. Use <strong>Save PNG</strong> to export a lossless image of the visible circle.
-  </p>
-
-  <div id="region-explorer"></div>
-  <script>
-    // Data list comes from regions.js (loaded above): GEOGRAPHY_DATA
-    // holds { regions: [...] } with per-region default radius.
-    createMapExplorer({
-      mount: '#region-explorer',
-      locationLabel: 'Location',
-      defaultRadiusKm: 510,
-      filenamePrefix: 'map',
-      locations: GEOGRAPHY_DATA.regions
-    });
-  </script>
-
   <h2>Great Circle Mapper</h2>
   <p class="lede">
     A world map you can re-project live, entirely in the browser. Pick a coordinate framing
@@ -83,26 +65,70 @@
     <a href="https://ourairports.com/data/">OurAirports</a> (public domain).
   </p>
   <div id="great-circle-mapper"></div>
+
+  <h2>Region Map Explorer</h2>
+  <p class="lede">
+    Sibling of the <a href="../cities-transport/">City Map Explorer</a> at regional scale — pick a well-known geographic region and render its extent at exactly the chosen pixel size and radius, clipped to a circle. Toggle <strong>Railways</strong> for an <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> overlay. Use <strong>Save PNG</strong> to export a lossless image of the visible circle.
+  </p>
+
+  <div id="region-explorer"></div>
+  <!-- The Region Map Explorer is initialised at END OF BODY (not here): its empty
+       state mounts a static Northern-Hǎo overview built with createWorldMap, which
+       the projection toolkit below defines. -->
 </div>
 
-<!-- Shared client-side projection toolkit (样式 Styles/projection/): the generic map
-     engine, reused across pages. Loaded at end-of-body so the large geo-data globals
-     don't block first paint. Order matters: config (window.PROJECTION_CONFIG) → kernels
-     → geometry → data globals → widget. -->
+<!-- Boxes-first load. The ENGINE (small) is synchronous so createWorldMap is defined when the inline
+     init below runs DURING parse — it builds the map DOM (controls + correctly-sized empty canvas
+     boxes) immediately, so the page reserves their space at first paint and nothing reflows later.
+     The heavy geo-data globals (~3 MB) are `defer` so they parse AFTER first paint; each map's first
+     projection+draw waits until then (createWorldMap renders on DOMContentLoaded). Order matters:
+     config (window.PROJECTION_CONFIG) → kernels → geometry → widget. -->
 <script src="../../../../../样式 Styles/projection/projection-config.js"></script>
 <script src="../../../../../样式 Styles/projection/projection.js"></script>
 <script src="../../../../../样式 Styles/projection/map-geometry.js"></script>
-<script src="../../../../../样式 Styles/projection/coastline.js"></script>
-<script src="../../../../../样式 Styles/projection/boundaries.js"></script>
-<script src="../../../../../样式 Styles/projection/lakes.js"></script>
-<script src="../../../../../样式 Styles/projection/airports.js"></script>
 <script src="../../../../../样式 Styles/projection/world-map.js"></script>
-<!-- Page-local config: the preset route groups + initial control state for THIS page's mapper.
-     The engine (above) is projection-agnostic; great-circle.js is what maps-projections feeds it.
-     Sibling file, deployed by build.py via the project config's extra_files. -->
+<!-- Page-local config (preset route groups + initial control state) — needed by the init below, so
+     synchronous too. The engine above is projection-agnostic; great-circle.js is what this page feeds it. -->
 <script src="great-circle.js"></script>
+<!-- Heavy basemap data — deferred so the big parse happens after the UI paints. Read only at render
+     time (DOMContentLoaded), never when the boxes are built. -->
+<script defer src="../../../../../样式 Styles/projection/coastline.js"></script>
+<script defer src="../../../../../样式 Styles/projection/boundaries.js"></script>
+<script defer src="../../../../../样式 Styles/projection/lakes.js"></script>
+<script defer src="../../../../../样式 Styles/projection/airports.js"></script>
 <script>
+  // Built synchronously (during parse) so the canvas boxes + controls are in the DOM at first paint
+  // and the heavy render (deferred to DOMContentLoaded inside createWorldMap) fills them without
+  // shifting layout. The Great Circle Mapper's square box is reserved by its stage's aspect-ratio
+  // CSS; the region overview's box is pre-sized in createWorldMap's embed branch.
   createWorldMap({ mount: '#great-circle-mapper', controls: true, presets: GREAT_CIRCLE.routes, uiDefaults: GREAT_CIRCLE.defaults });
+
+  // Region Map Explorer — its empty state mounts a static Northern-Hǎo map. The dropdown rests on a
+  // re-selectable "Select location…" option; while it's chosen the display shows that overview, with
+  // each region's exact Web-Mercator crop circle outlined on the Hǎo map (PROJ.mercatorDisc). Pick a
+  // region → the Leaflet Mercator crop; pick the prompt again → back to the overview. COARSE (110m)
+  // basemap detail — it's a small static picker, so the fine 50m data is wasteful here.
+  createMapExplorer({
+    mount: '#region-explorer',
+    locationLabel: 'Location',
+    defaultRadiusKm: 510,
+    filenamePrefix: 'map',
+    placeholder: 'Select location…',
+    locations: GEOGRAPHY_DATA.regions,
+    overview: function (el, api) {
+      // Static (disablePan) Northern-Hǎo map; clicking a region's enclosed area selects it
+      // (api.selectLocation → the Leaflet crop for that region).
+      var h = createWorldMap({
+        mount: el, controls: false, coordinate: 'north', projection: 'hao', detail: 'coarse',
+        regions: GEOGRAPHY_DATA.regions,
+        disablePan: true,
+        onRegionClick: function (rg) { api.selectLocation(rg.value); }
+      });
+      // Size (px) control resizes this static map. Skip a no-op (initial sync, px already == default)
+      // so it doesn't force an early synchronous render before the deferred first draw.
+      return { setSize: function (px) { if (px === h.state.size) return; h.state.size = px; h.render(); } };
+    }
+  });
 </script>
 
 </body>

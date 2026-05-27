@@ -26,6 +26,7 @@
   function darkMode() { return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches; }
   function palette() { return darkMode() ? DARK_PAL : LIGHT_PAL; }
   var ROUTE_COLORS = ['#c0392b', '#1f6f3d', '#6c3483', '#b9770e', '#1a5276', '#7b241c'];
+  var REGION_COLOR = '#e91e63';   // region-disc outline — vivid pink, distinct from the route palette + seam belts, legible on land/ocean in both themes
   var GRAT = 15;            // graticule spacing, degrees
   var NSAMP = 500;          // samples per graticule line / arc
   var DEFAULT_SIZE = 360;   // box px — matches the Region Map Explorer default
@@ -103,6 +104,13 @@
     // own great-circle.js. (cfg.routes / cfg.defaults are accepted as a legacy fallback only.)
     var presets = opts.presets || cfg.routes || {};
     var uiDefaults = opts.uiDefaults || cfg.defaults || {};
+    // Static region-disc overlays: each {lat, lon, radiusKm|defaultRadiusKm} is drawn as the image,
+    // on THIS framing, of the exact Web-Mercator crop the Region Map Explorer shows (PROJ.mercatorDisc).
+    // Outline only. The {defaultRadiusKm} alias lets the Region Explorer's region list pass straight through.
+    var regions = opts.regions || [];
+    var onRegionClick = typeof opts.onRegionClick === 'function' ? opts.onRegionClick : null;   // click a disc's area → callback(region)
+    var disablePan = !!opts.disablePan;                                                          // skip drag-to-pan (used by the static Region overview)
+    var lastRegionPolys = [];                                                                    // each region's px-space outline from the last draw(), for click hit-testing
     var mount = typeof opts.mount === 'string' ? document.querySelector(opts.mount) : opts.mount;
     if (!mount) throw new Error('createWorldMap: mount not found');
     injectStyles();
@@ -234,6 +242,13 @@
       function setPanel(open) { panel.classList.toggle('gcm-hidden', !open); gearBtn.classList.toggle('gcm-hidden', open); try { localStorage.setItem('gcmPanelOpen', open ? '1' : '0'); } catch (e) {} }
       gearBtn.addEventListener('click', function () { setPanel(true); });
       pclose.addEventListener('click', function () { setPanel(false); });
+      // Click anywhere outside the open panel (including the map itself) closes it. pointerdown so it
+      // fires before a map drag begins; the gear's own click (panel still hidden at that point) is unaffected.
+      document.addEventListener('pointerdown', function (e) {
+        if (panel.classList.contains('gcm-hidden')) return;
+        if (panel.contains(e.target) || gearBtn.contains(e.target)) return;
+        setPanel(false);
+      });
       stage.appendChild(gearBtn); stage.appendChild(panel);
       var open0 = true; try { if (localStorage.getItem('gcmPanelOpen') === '0') open0 = false; } catch (e) {}
       setPanel(open0);
@@ -284,6 +299,12 @@
       var wrap = el('div', 'gcm-wrap'); wrap.appendChild(stage); wrap.appendChild(zoom); mount.appendChild(wrap);
     } else {
       mount.appendChild(stage);                                          // embed: just the square canvas, no rail
+      // Reserve the box at the default size NOW (before the deferred first render) so the page
+      // doesn't reflow when the map later fills in. render() recomputes the exact size; on a
+      // container at least this wide that's identical, so there's no shift. (The interactive
+      // stage reserves itself via its aspect-ratio CSS, so this is only needed for embeds.)
+      canvas.style.width = canvas.style.height = state.size + 'px';
+      canvas.style.maxWidth = '100%';
     }
 
     function idLabel(o) { return { id: o.id, label: o.label }; }
@@ -699,6 +720,28 @@
           mark(state.centreArc[0], ca); mark(state.centreArc[1], cb);
         }
       }
+      // Region discs: the exact Web-Mercator crop circle, warped onto this framing. Drawn as a thin
+      // ring (graticule weight) sitting ENTIRELY OUTSIDE the disc, so the enclosed area stays clear of
+      // red: clip to the disc's EXTERIOR, then stroke at 2× so only the outer half survives — the ring's
+      // inner edge lands exactly on the disc boundary. The px-space outline is cached for click hit-testing.
+      lastRegionPolys = [];
+      regions.forEach(function (rg) {
+        var rk = rg && (rg.radiusKm != null ? rg.radiusKm : rg.defaultRadiusKm);   // accept the Region Explorer's {defaultRadiusKm} shape directly
+        if (!(rg && isFinite(rg.lat) && isFinite(rg.lon) && rk > 0)) return;
+        var loop = PROJ.mercatorDisc({ lat: rg.lat, lon: rg.lon }, rk, 256);
+        var outline = MAPGEO.lineSegs(coord, proj, loop.lat, loop.lon, G.spike);   // seam-safe outline arcs (no artificial seam closure)
+        var fillPolys = MAPGEO.ringFillPolys(coord, proj, loop.lon, loop.lat);     // seam-safe interior, to clip the ring to the disc's exterior
+        ctx2.save();
+        ctx2.beginPath(); ctx2.rect(0, 0, W, H);                                   // whole canvas …
+        for (var fp = 0; fp < fillPolys.length; fp++) { var sg = fillPolys[fp]; for (var fk = 0; fk < sg.X.length; fk++) { var fpx = px(sg.X[fk], sg.Y[fk]); if (fk === 0) ctx2.moveTo(fpx[0], fpx[1]); else ctx2.lineTo(fpx[0], fpx[1]); } ctx2.closePath(); }
+        ctx2.clip('evenodd');                                                      // … minus the disc interior = its exterior; even-odd cancels seam-piece overlaps
+        stroke(outline, REGION_COLOR, 2.0);                                        // 2.0 centred on the boundary; outer 1.0 survives the clip → a 1.0-wide ring, inner edge on the boundary
+        ctx2.restore();
+        if (onRegionClick) {                                                       // cache the px-space outline (full loop, pre-seam-cut) for point-in-area hit-testing
+          var poly = []; for (var qi = 0; qi < loop.lat.length; qi++) { var qp = PROJ.project(coord, proj, loop.lat[qi], loop.lon[qi]); poly.push(px(qp.x, qp.y)); }
+          lastRegionPolys.push({ rg: rg, poly: poly });
+        }
+      });
       function mark(code, AB) {
         if (seen[code]) return; seen[code] = 1;
         var pr = PROJ.project(coord, proj, AB[0], AB[1]); var p = px(pr.x, pr.y);
@@ -753,22 +796,49 @@
     var dragging = false, lastX = 0, lastY = 0, animating = false, animRaf = 0, rafPending = false;
     var raf = window.requestAnimationFrame || function (cb) { return setTimeout(cb, 16); };
     function scheduleRender() { if (rafPending) return; rafPending = true; raf(function () { rafPending = false; render(); }); }  // coalesce drag moves to one render/frame
-    canvas.addEventListener('pointerdown', function (e) { cancelAnimationFrame(animRaf); animating = false; dragging = true; lastX = e.clientX; lastY = e.clientY; try { canvas.setPointerCapture(e.pointerId); } catch (x) {} render(); });   // render now so the centre dot appears on grab
-    canvas.addEventListener('pointermove', function (e) {
-      if (!dragging) return;
-      var mx = e.clientX - lastX, my = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
-      var th = orientationAngle(), c = Math.cos(th), s = Math.sin(th);     // shift the centre opposite the drag, un-rotated into projected space
-      state.cx += (-mx * c + my * s) / lastScale;
-      state.cy += (mx * s + my * c) / lastScale;
-      scheduleRender();
-    });
-    function endDrag() { dragging = false; if (state.orientMode === 'north') { if (state.northLive) render(); else animateNorthTo(); } else render(); }   // re-render to drop the centre dot; north mode: live already oriented, else ease to north
-    canvas.addEventListener('pointerup', endDrag);
-    canvas.addEventListener('pointercancel', endDrag);
+    if (!disablePan) {                                                     // static overviews opt out of panning (but can still take region clicks below)
+      canvas.addEventListener('pointerdown', function (e) { cancelAnimationFrame(animRaf); animating = false; dragging = true; lastX = e.clientX; lastY = e.clientY; try { canvas.setPointerCapture(e.pointerId); } catch (x) {} render(); });   // render now so the centre dot appears on grab
+      canvas.addEventListener('pointermove', function (e) {
+        if (!dragging) return;
+        var mx = e.clientX - lastX, my = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
+        var th = orientationAngle(), c = Math.cos(th), s = Math.sin(th);     // shift the centre opposite the drag, un-rotated into projected space
+        state.cx += (-mx * c + my * s) / lastScale;
+        state.cy += (mx * s + my * c) / lastScale;
+        scheduleRender();
+      });
+      function endDrag() { dragging = false; if (state.orientMode === 'north') { if (state.northLive) render(); else animateNorthTo(); } else render(); }   // re-render to drop the centre dot; north mode: live already oriented, else ease to north
+      canvas.addEventListener('pointerup', endDrag);
+      canvas.addEventListener('pointercancel', endDrag);
+    }
+
+    // ---- click a region's area to select it (overview only) ----
+    if (onRegionClick) {
+      function pointInPoly(poly, x, y) {                                  // ray-casting, px space
+        var inside = false, n = poly.length, j = n - 1;
+        for (var i = 0; i < n; i++) {
+          var xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+          if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
+          j = i;
+        }
+        return inside;
+      }
+      function regionAt(mx, my) {                                         // topmost (last-drawn) disc whose area contains the point
+        for (var k = lastRegionPolys.length - 1; k >= 0; k--) if (pointInPoly(lastRegionPolys[k].poly, mx, my)) return lastRegionPolys[k].rg;
+        return null;
+      }
+      canvas.addEventListener('click', function (e) { var rg = regionAt(e.offsetX, e.offsetY); if (rg) onRegionClick(rg); });
+      canvas.addEventListener('mousemove', function (e) { canvas.style.cursor = regionAt(e.offsetX, e.offsetY) ? 'pointer' : 'default'; });
+    }
 
     var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(render, 150); });
     if (typeof matchMedia === 'function') { try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render); } catch (e) {} }   // repaint when the OS light/dark theme flips
-    render();
+    // Defer the heavy first projection+draw. The DOM/box above is built synchronously (so the page
+    // reserves space and won't reflow), but the projection of the ~3 MB basemap is expensive: during
+    // initial load the geo-data globals arrive `defer` (after first paint), so we render on
+    // DOMContentLoaded (by which point those have run); a widget created later renders next frame.
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { render(); }, { once: true });
+    else if (typeof requestAnimationFrame === 'function') requestAnimationFrame(function () { render(); });
+    else render();
     return { render: render, state: state };
   }
 

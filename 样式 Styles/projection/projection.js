@@ -17,6 +17,7 @@
 (function (root) {
   'use strict';
   var D2R = Math.PI / 180, R2D = 180 / Math.PI;
+  var EARTH_RADIUS_KM = 6378.137;   // Web-Mercator sphere (WGS84 semi-major axis); the radius EPSG:3857 / Leaflet assume
   function clamp1(x) { return x < -1 ? -1 : (x > 1 ? 1 : x); }
 
   function cfg() { return root.PROJECTION_CONFIG; }
@@ -56,6 +57,34 @@
   function mercator(phiDeg, lamDeg) {
     var lat = Math.max(-85.0511, Math.min(85.0511, phiDeg)) * D2R;
     return [lamDeg * D2R, Math.log(Math.tan(Math.PI / 4 + lat / 2))];
+  }
+
+  // Inverse of mercator(): normalized plane [x=east(λ rad), y=north] -> geographic [latDeg, lonDeg].
+  function mercatorInverse(x, y) {
+    return [R2D * (2 * Math.atan(Math.exp(y)) - Math.PI / 2), R2D * x];
+  }
+
+  // The boundary loop of the Web-Mercator DISC the Region Map Explorer crops for a {lat,lon}
+  // centre at a given ground radius (km). The on-screen crop is a CSS-circle clip of a fixed-zoom
+  // Leaflet view, which is an isotropic linear scaling of EPSG:3857 — so it is EXACTLY a circle in
+  // the Mercator plane. Working the page's computeZoom() through (the pixel size cancels), that
+  // circle is centred at mercator(centre) with normalized-plane radius
+  //     r = radiusKm / (EARTH_RADIUS_KM · cos φ0).
+  // We sample the circle and invert back to geographic coords, so the caller can project the loop
+  // onto ANY framing (e.g. draw the Hǎo image of the exact Mercator crop). NB the image on a
+  // non-conformal projection is generally NOT a circle. Returns {lat:[], lon:[]}, closed
+  // (last point == first). Shape mirrors greatCircle() so consumers treat both the same way.
+  function mercatorDisc(centre, radiusKm, n) {
+    n = n || 256;
+    var c = mercator(centre.lat, centre.lon);                       // [x0 = λ rad, y0]
+    var r = radiusKm / (EARTH_RADIUS_KM * Math.cos(centre.lat * D2R));
+    var lat = [], lon = [], i, t, g;
+    for (i = 0; i <= n; i++) {                                       // <= n closes the loop (i=n repeats i=0)
+      t = 2 * Math.PI * i / n;
+      g = mercatorInverse(c[0] + r * Math.cos(t), c[1] + r * Math.sin(t));
+      lat.push(g[0]); lon.push(g[1]);
+    }
+    return { lat: lat, lon: lon };
   }
 
   // Normalise any base projection to [east, north].
@@ -157,7 +186,9 @@
 
   root.PROJ = {
     cfg: cfg, projById: projById, coordById: coordById,
+    EARTH_RADIUS_KM: EARTH_RADIUS_KM,
     pBase: pBase, winkel: winkel, baseProject: baseProject,
+    mercator: mercator, mercatorInverse: mercatorInverse, mercatorDisc: mercatorDisc,
     genCoords: genCoords, wrap180: wrap180, greatCircle: greatCircle,
     rotFromCentre: rotFromCentre, centralOf: centralOf,
     toDomain: toDomain, projectDomain: projectDomain, project: project,
