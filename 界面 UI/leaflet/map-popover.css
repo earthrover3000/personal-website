@@ -1,0 +1,144 @@
+/* Floating map popover — single source of truth.
+
+   Shared between the bio root (inlined at build time by
+   build.py:_read_map_popover_assets()) and any raw HTML page that links
+   this file directly (test page, future authored pages). The companion
+   map-popover.js auto-injects the #map-popover element on DOMContentLoaded
+   and wires every .map-trigger span to a Leaflet preview centred on its
+   data-lat / data-lon.
+
+   Two modes, toggled per host page:
+     - default — peek mode: fades in, holds ~2 s, fades out. Clicks pass
+       through the empty area (pointer-events: none on the container).
+     - persistent — set <body data-map-popover-persistent>: stays open
+       until dismissed. An X button, click outside the card, and Escape
+       all close it. The container catches clicks (pointer-events: auto)
+       so the outside-click works.
+
+   Armored per the css-leak-defense rule: every property the host page
+   might set (color, font-family, line-height, font-size, font-weight,
+   text-align, background) is locked here so the popover renders
+   identically wherever it appears. */
+
+.map-trigger { cursor: pointer; }
+.map-trigger:hover { text-decoration: underline; }
+
+/* Dark by default (mirrors base.css's structure: dark :root, light via
+   @media prefers-color-scheme: light). The popover stays armored — no
+   var(--*) reads from the host page — so its theme decision is made
+   here, independent of whatever the host's CSS does. The OSM tiles
+   themselves remain light; only the card chrome (background, label
+   bar, close button) flips. */
+
+#map-popover {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+}
+
+#map-popover .map-popover-card {
+  position: relative;
+  pointer-events: auto;
+  /* Width is the popover's only knob — override per page via the CSS
+     custom property (the test-page size tester does this to preview
+     different sizes). Default cap is 360 px; otherwise allow up to 90%
+     of the smaller viewport dimension so the popover can fill a phone. */
+  width: var(--map-popover-card-width, min(90vw, 90vh, 360px));
+  background: #1a1a1a;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+#map-popover-map {
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  /* Default shape: circle. Override per page via
+     <body data-map-popover-shape="square"> or window.mapPopover.setShape(). */
+  border-radius: 50%;
+}
+
+#map-popover.shape-square #map-popover-map {
+  /* Rounded-square mode: the map fills the card; corner-clipping comes
+     from the card's own border-radius (10 px — the original design from
+     before the popover went circular). No radius on the map itself. */
+  border-radius: 0;
+}
+
+#map-popover-label {
+  padding: 0.55rem 1rem;
+  text-align: center;
+  color: #e0e0e0;
+  font-weight: 500;
+  font-size: 1rem;
+  font-family: inherit;
+  line-height: 1.4;
+  border-top: 1px solid #2e2e2e;
+  background: #141414;
+}
+
+#map-popover .map-popover-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 20, 20, 0.92);
+  border: none;
+  border-radius: 50%;
+  color: #ccc;
+  font-family: inherit;
+  font-size: 1.2rem;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+#map-popover.is-persistent .map-popover-close { display: flex; }
+
+#map-popover .map-popover-close:hover {
+  color: #fff;
+  background: #1a1a1a;
+}
+
+@media (prefers-color-scheme: light) {
+  #map-popover { color: #222; }
+  #map-popover .map-popover-card {
+    background: #fff;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  }
+  #map-popover-label {
+    color: #222;
+    background: #fafafa;
+    border-top: 1px solid #eee;
+  }
+  #map-popover .map-popover-close {
+    background: rgba(255, 255, 255, 0.92);
+    color: #555;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  }
+  #map-popover .map-popover-close:hover {
+    color: #000;
+    background: #fff;
+  }
+}

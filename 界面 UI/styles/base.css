@@ -1,0 +1,346 @@
+/* Shared base styles for index pages (root, protected, private) and docs
+   pages (site-map, site-stats, lifespan-atlas plan). Loaded BEFORE the
+   page-specific stylesheet so page rules can override.
+
+   Workflow.css is intentionally NOT layered on top of this — it ships its
+   own GitHub-style palette and doesn't share these tokens. */
+
+/* ---- Theme tokens ---- */
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --border: #2e2e2e;
+  --accent: #7c9ef5;
+  --text: #e0e0e0;
+  --muted: #888;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f5f5f5;
+    --surface: #ffffff;
+    --border: #d0d0d0;
+    --accent: #3a5fd9;
+    --text: #1a1a1a;
+    --muted: #666;
+  }
+}
+
+/* ---- Reset + base ---- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Reserve scrollbar gutter so short pages (no scrollbar) and long pages
+   (with scrollbar) use the same content width — no horizontal jump when
+   navigating between them. */
+html { scrollbar-gutter: stable; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  /* Stack adopted from chinese-languages: native Apple system font on macOS/iOS,
+     Segoe UI on Windows, system-ui as a generic fallback, then sans-serif. */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  line-height: 1.7;
+  padding: 2rem;
+}
+
+/* ---- Layout ---- */
+/* 800px keeps prose/index lines around the readability sweet spot
+   (50–75 characters at default font size). Apps that benefit from more
+   horizontal space (lifespan-atlas, life-clock) override this. */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Back-link sits at the top-right corner of the container so the h1
+   lands at the same vertical position across docs pages, regardless of
+   whether the back-link wraps or how long it is.
+   Armored against index.css's block-style global `a` rule — explicit
+   resets so cascade can't make the back-link a block-shaped button. */
+.back-link {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+  display: inline;
+  padding: 0;
+  border-radius: 0;
+  line-height: inherit;
+  background: none;
+  transition: none;
+}
+.back-link:hover { background: none; text-decoration: underline; }
+
+/* Breadcrumb nav above the h1. Tells visitors WHERE they are within the
+   site by spelling out the path from Home to the current page. Replaces
+   the back-link on shell pages (apps stay plain, with their own back-link).
+   Armored against index.css's block-style global `a` rule — explicit resets
+   so cascade can't make breadcrumb links into block-shaped buttons. */
+.breadcrumb {
+  color: var(--muted);
+  font-size: 0.85em;
+  margin: 0 0 0.6rem;
+  display: block;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  line-height: 1.5;
+}
+.breadcrumb a {
+  color: var(--accent);
+  text-decoration: none;
+  display: inline;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  line-height: inherit;
+  transition: none;
+}
+.breadcrumb a:hover { background: none; text-decoration: underline; }
+.breadcrumb [aria-current="page"] { color: var(--text); }
+.breadcrumb .sep { margin: 0 0.3em; opacity: 0.5; }
+
+/* ---- Head-region typography ---- */
+h1 {
+  font-size: 1.6rem;
+  color: var(--text);
+  margin-bottom: 1.2rem;
+}
+
+/* Stats / metadata line directly under the h1. Used for build info,
+   tier label, line counts, page-progress, etc. The negative top margin
+   pulls it up close to the h1 so they read as one heading unit. */
+.head-meta {
+  color: var(--muted);
+  font-size: 0.85em;
+  margin: -0.5rem 0 1rem;
+}
+/* Inline links inside .head-meta — explicit overrides because index pages'
+   global `a` rule turns links into block-style buttons (display:block,
+   padding, etc.); we have to neutralize all of that for inline meta links.
+   These overrides are no-ops on docs pages (where `a` is already inline) so
+   they're safe to live in shared base. */
+.head-meta a {
+  color: inherit;
+  text-decoration: none;
+  display: inline;
+  font-size: inherit;
+  line-height: inherit;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  transition: none;
+}
+.head-meta a:hover { background: none; text-decoration: underline; }
+
+/* ---- Page-level search filter ---- */
+/* Sits directly under .head-meta on pages that have a list to filter
+   (index pages, site-map). Hides matched-out rows via `.search-hidden`. */
+.filter {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.8rem;
+  margin-bottom: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1rem;
+}
+.filter:focus { outline: none; border-color: var(--accent); }
+.filter::placeholder { color: var(--muted); }
+.search-hidden { display: none !important; }
+
+/* ---- Tables (shared shell; pages override padding / colors) ---- */
+table { width: 100%; border-collapse: collapse; }
+
+/* ---- Inline utility: muted secondary text ---- */
+/* Same grey as .head-meta — used inline for "this is a footnote / cited
+   form / secondary annotation" within otherwise-primary text. */
+.muted { color: var(--muted); }
+
+/* ---- Buttons ---- */
+/* Site-wide primary/secondary action buttons. Works on both <button>
+   and <a> (the latter needs text-decoration: none, set explicitly).
+   Page-specific layout (margins, alignment) stays at the call site —
+   only visual primitives live here.
+   - .btn-primary: accent-fill (the dominant action; e.g. dissertation
+     "Read PDF", map-explorer "Render" / "Save PNG").
+   - .btn-secondary: accent-outline on transparent (the lower-weight
+     companion; e.g. dissertation "Download LaTeX source").
+   - :disabled state used by the map exporter while a save runs. */
+.btn-primary,
+.btn-secondary {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.12s;
+}
+.btn-primary { background: var(--accent); color: var(--bg); }
+.btn-secondary { background: transparent; color: var(--accent); }
+.btn-primary:hover,
+.btn-secondary:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.55;
+  cursor: wait;
+  transform: none;
+}
+
+/* ---- Bio entry page (site root) ---- */
+/* Bio block — paragraph stack with modest vertical breath, mathematical-set
+   notation and emoji-prefixed lines. Rendered as a 2-column CSS Grid so
+   that all .bio-hint cells align at the same x position regardless of
+   how long the substantive content (.bio-content) on each line happens
+   to be. `max-content` on the first column makes the grid auto-fit to the
+   widest line; `display: contents` on each <p> hoists the inner spans
+   into the grid so each row is exactly [content, hint]. Lines without a
+   hint still emit an empty .bio-hint to preserve column alignment. */
+.bio {
+  margin: 1.5rem 0 2rem;
+  display: grid;
+  grid-template-columns: max-content auto;
+  column-gap: 1.5em;
+  row-gap: 0.4rem;
+  align-items: baseline;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text);
+}
+.bio p { display: contents; }
+.bio-hint {
+  color: var(--muted);
+  font-size: 0.85em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Linktree-style buttons under the bio. Same aesthetic family as a.app-card
+   on index pages but slimmed: no icon, no description, label-only, full-width.
+   Grid with `grid-auto-rows: 1fr` so every button stretches to the tallest
+   row's height — keeps Enter (two lines: label + "best on a laptop") and
+   Instagram (one line) vertically aligned regardless of content. */
+.entry-links { display: grid; grid-auto-rows: 1fr; gap: 0.6rem; margin-top: 1.5rem; }
+.entry-links a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1.05rem;
+  line-height: 1.4;
+  text-decoration: none;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+}
+.entry-links a:hover {
+  border-color: var(--accent);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+/* Primary entry link — light-blue fill marks the intended path into the
+   site, distinguishing it from secondary social links rendered as surface
+   cards. Fixed light-blue (rather than var(--accent)) keeps the button
+   the same gentle shade in both themes; dark text in both modes preserves
+   legibility on the light background. */
+.entry-links a.primary {
+  background: #a8c5ff;
+  border-color: #a8c5ff;
+  color: #1a1a1a;
+  font-weight: 500;
+}
+.entry-links a.primary:hover {
+  background: #bdd3ff;
+  border-color: #bdd3ff;
+}
+.entry-hint {
+  font-size: 0.75em;
+  font-weight: normal;
+  color: var(--muted);
+}
+.entry-links a.primary .entry-hint { color: #1a1a1a; opacity: 0.65; }
+
+/* ---- Table of contents ---- */
+/* Used by site-map, lifespan-atlas plan, workflow. Boxed surface card with a
+   nested ordered list; folders render as <details>/<summary> for collapse. */
+.toc { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.2rem 1.5rem; margin-bottom: 2.5rem; }
+.toc-desc { color: var(--muted); }
+/* Explicitly reset every property a page-level `h2` rule might set
+   (workflow.css's body h2 has border-bottom, padding-bottom, monospace,
+   etc.) so they can't leak into the TOC heading via the cascade. */
+.toc h2 {
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: none;
+  padding-bottom: 0;
+  margin: 0 0 0.8rem;
+}
+.toc-header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.toc-header h2 { margin: 0 0 0.8rem; }
+.toc-controls { display: flex; align-items: baseline; font-size: 0.8rem; color: var(--muted); }
+.toc-toggle-btn { background: transparent; border: 0; padding: 0; color: var(--muted); cursor: pointer; font: inherit; font-size: 0.8rem; }
+.toc-toggle-btn:hover { color: var(--accent); text-decoration: underline; }
+.toc ol { padding-left: 0.6rem; list-style: none; text-indent: 0; }
+.toc li { margin: 0.3rem 0; }
+.toc > ol > li > ol > li                               { padding-left: 3ch;   text-indent: -3ch; }
+.toc > ol > li > ol > li > ol                          { margin-left: -3ch; }
+.toc > ol > li > ol > li > ol > li                     { padding-left: 4.5ch; text-indent: -4.5ch; }
+.toc > ol > li > ol > li > ol > li > ol                { margin-left: -4.5ch; }
+.toc > ol > li > ol > li > ol > li > ol > li           { padding-left: 6ch;   text-indent: -6ch; }
+/* Inline link styling armored against page-CSS leaks (e.g. index.css's
+   button-style global `a` rule). Every property a global `a` might set
+   is explicitly redeclared here so cascade can't fall through. */
+.toc a {
+  color: var(--accent);
+  text-decoration: none;
+  display: inline;
+  font-size: inherit;
+  line-height: inherit;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  transition: none;
+}
+.toc a:hover { background: none; text-decoration: underline; }
+.toc details { margin: 0.2rem 0; }
+/* Same armor pattern as .toc h2: redeclare every property a page-CSS
+   `details > summary` rule (e.g. workflow.css) might set, so the cascade
+   can't reach in. */
+.toc summary {
+  cursor: pointer;
+  list-style: none;
+  display: list-item;
+  font-weight: inherit;
+  font-size: inherit;
+  color: inherit;
+  border-bottom: none;
+  padding: 0;
+  margin: 0;
+  gap: 0;
+}
+.toc summary::-webkit-details-marker { display: none; }
+.toc summary::before { content: "\25B8 "; color: var(--muted); font-size: 0.8em; }
+.toc details[open] > summary::before { content: "\25BE "; }
+/* Leaf entries (no <details> wrapper) reserve the same space as the triangle
+   so leaves and folders align at the same indent. */
+.toc li > a::before { content: "\25B8 "; color: transparent; font-size: 0.8em; }
+.toc details > ol { margin-top: 0.3rem; }

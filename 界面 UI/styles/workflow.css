@@ -1,0 +1,186 @@
+/* Workflow-page-specific styles. Layered on top of base.css — theme tokens,
+   body, h1, .head-meta, .container, .back-link live there. This file owns
+   the workflow-specific surfaces: code blocks, step list, URL grid,
+   collapsible details sections, kbd, inline tags. */
+
+/* ---- Workflow-specific theme tokens ---- */
+:root {
+  --text-h:        #e6edf3;          /* slightly brighter heading text */
+  --accent-h:      #79c0ff;          /* hover variant of --accent */
+  --orange:        #ffa657;          /* inline code highlight */
+  --gitignored:    #484f58;          /* dimmed file paths */
+  --tag-blue:      #1f3a5f;
+  --tag-blue-text: #79c0ff;
+  --tag-green:     #1a3a2a;
+  --tag-green-text:#56d364;
+  --tag-red:       #3d1f1f;
+  --tag-red-text:  #ff7b72;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --text-h:        #1f2328;
+    --accent-h:      #0550ae;
+    --orange:        #953800;
+    --gitignored:    #8c959f;
+    --tag-blue:      #ddf4ff;
+    --tag-blue-text: #0550ae;
+    --tag-green:     #dafbe1;
+    --tag-green-text:#1a7f37;
+    --tag-red:       #ffebe9;
+    --tag-red-text:  #cf222e;
+  }
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code {
+  font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+  background: var(--surface);
+  color: var(--orange);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+pre {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+  color: var(--text);
+  margin: 10px 0;
+}
+
+/* Tables (shell from base.css; workflow adds page-specific spacing) */
+table { margin: 10px 0; }
+th { text-align: left; padding: 8px 12px; background: var(--surface); color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border); }
+td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+
+/* Section headings match docs.css's .section-title (and test-page's
+   details.test > summary): plain text, font-weight 500, 1.05rem. Scoped
+   to direct .container children so they can't leak into .toc h2. */
+.container > h2 {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+  margin: 2.5rem 0 1.2rem;
+}
+
+.container > h3,
+.step-body h3 {
+  font-size: 1rem;
+  color: var(--text);
+  margin: 1.2rem 0 0.5rem;
+}
+
+p { margin-bottom: 10px; color: var(--text); }
+
+pre .dir  { color: var(--muted); }
+pre .file { color: var(--text); }
+pre .note { color: var(--muted); font-style: italic; }
+pre .gitignored { color: var(--gitignored); }
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.tag-blue  { background: var(--tag-blue);  color: var(--tag-blue-text); }
+.tag-green { background: var(--tag-green); color: var(--tag-green-text); }
+.tag-red   { background: var(--tag-red);   color: var(--tag-red-text); }
+
+.step {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 18px;
+  align-items: flex-start;
+}
+
+.step-num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  background: var(--tag-blue);
+  color: var(--accent-h);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.step-body { flex: 1; }
+.step-body h3 { margin-top: 0; }
+.step-body p { margin-bottom: 6px; }
+
+.tip {
+  background: var(--surface);
+  border-left: 3px solid var(--border);
+  padding: 8px 14px;
+  border-radius: 0 6px 6px 0;
+  color: var(--muted);
+  margin: 6px 0;
+}
+
+.url-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 20px;
+  margin: 10px 0;
+}
+.url-label { color: var(--muted); white-space: nowrap; }
+
+hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+/* All workflow's collapsible-section rules scoped to .container so they
+   can't leak into .toc details/.toc summary. */
+.container > details { margin: 8px 0; }
+.container > details > summary {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-h);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 36px;
+}
+.container > details > summary::-webkit-details-marker { display: none; }
+.container > details > summary::before {
+  content: '\25B8';
+  color: var(--muted);
+  font-size: 0.8rem;
+  transition: transform 0.15s;
+  display: inline-block;
+}
+.container > details[open] > summary::before { transform: rotate(90deg); }
+
+.container > details details.sub { margin: 0; }
+.container > details details.sub > summary {
+  font-weight: 400;
+  color: var(--muted);
+  border-bottom: none;
+  padding: 6px 0 2px;
+  margin: 0;
+  gap: 6px;
+}
+
+kbd {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+}

@@ -1,5 +1,5 @@
 // Page-local config for the Great Circle Mapper — belongs to THIS page (maps-projections),
-// not to the shared projection engine in 样式 Styles/projection/. The engine knows how to
+// not to the shared projection engine in 引擎 Engines/map-projection/. The engine knows how to
 // compute and draw any flight path; this file only says which PRESET routes this page offers
 // in its dropdown, plus the page's initial control state. Other consumers of the engine
 // (e.g. travel-calendar) bring their own routes. Deployed as a page sibling via build.py
@@ -10,7 +10,7 @@
 // (first-seen order). Add/edit groups freely — the dropdown is built from this list.
 (function (r) {
   r.GREAT_CIRCLE = {
-    defaults: { boundaries: false, flight_paths: 'selected' },   // initial control state: borders off; preset-routes mode
+    defaults: { boundaries: false, bathymetry: false, topography: false, flight_paths: 'selected' },   // initial control state: borders/terrain off; preset-routes mode
     routes: {
       default_group: '',                                         // '' → dropdown starts on "Preset routes…" (none)
       groups: [

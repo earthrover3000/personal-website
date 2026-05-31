@@ -5,14 +5,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cities & Transport · City Map Explorer</title>
-  <link rel="stylesheet" href="../../../../../样式 Styles/base.css">
+  <link rel="stylesheet" href="../../../../../界面 UI/styles/base.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <!-- Shared map widget (markup + Leaflet wiring) and the lossless-PNG
-       exporter it depends on. Single source of truth in 样式 Styles/;
+       exporter it depends on. Single source of truth in 界面 UI/leaflet/;
        the maps-projections page uses the same two files. -->
-  <script src="../../../../../样式 Styles/map-export.js"></script>
-  <script src="../../../../../样式 Styles/map-explorer.js"></script>
+  <script src="../../../../../界面 UI/leaflet/map-export.js"></script>
+  <script src="../../../../../界面 UI/leaflet/map-explorer.js"></script>
   <!-- Page-local data — sibling file in this folder, deployed by
        build.py via the project config's extra_files: ['cities.js'].
        Exposes window.URBANISM_DATA = { gawcList, livedList }. -->
@@ -20,7 +20,7 @@
   <!-- auto-toc.js auto-injects a search bar + Contents nav whenever the
        page has 2+ <h2> direct children. Currently a no-op (one section
        only) but ready for when more sections get added. -->
-  <script src="../../../../../样式 Styles/auto-toc.js" defer></script>
+  <script src="../../../../../界面 UI/auto-toc.js" defer></script>
   <style>
     /* Page-specific element rules — scoped to .container > * per the
        css-leak-defense rule so they don't leak into shared components.

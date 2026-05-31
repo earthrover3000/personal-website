@@ -5,14 +5,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maps &amp; Projections · Great Circle Mapper</title>
-  <link rel="stylesheet" href="../../../../../样式 Styles/base.css">
+  <link rel="stylesheet" href="../../../../../界面 UI/styles/base.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <!-- Shared map widget (markup + Leaflet wiring) and the lossless-PNG
-       exporter it depends on. Single source of truth in 样式 Styles/;
+       exporter it depends on. Single source of truth in 界面 UI/leaflet/;
        the cities-transport page uses the same two files. -->
-  <script src="../../../../../样式 Styles/map-export.js"></script>
-  <script src="../../../../../样式 Styles/map-explorer.js"></script>
+  <script src="../../../../../界面 UI/leaflet/map-export.js"></script>
+  <script src="../../../../../界面 UI/leaflet/map-explorer.js"></script>
   <!-- Page-local data — sibling file in this folder, deployed by
        build.py via the project config's extra_files: ['regions.js'].
        Exposes window.GEOGRAPHY_DATA = { regions }. -->
@@ -20,7 +20,7 @@
   <!-- auto-toc.js auto-injects a search bar + Contents nav whenever the
        page has 2+ <h2> direct children. Currently a no-op (one section
        only) but ready for when more sections get added. -->
-  <script src="../../../../../样式 Styles/auto-toc.js" defer></script>
+  <script src="../../../../../界面 UI/auto-toc.js" defer></script>
   <style>
     /* Page-specific element rules — scoped to .container > * per the
        css-leak-defense rule so they don't leak into shared components.
@@ -59,10 +59,12 @@
     (Eastern / Western / Northern / Southern) and a projection (<strong>Winkel Tripel</strong>
     or Hǎo's <strong>等差分多圆锥</strong> vertical map), toggle country borders, and draw
     great-circle flight paths — the preset routes, or your own: type 3-letter IATA codes such as
-    <code>PEK-JFK, LHR-HND-SIN</code>. It runs on the same projection maths as my printed-map
-    reconstruction. Coastlines &amp; borders:
-    <a href="https://www.naturalearthdata.com/">Natural Earth</a> (public domain); airports:
-    <a href="https://ourairports.com/data/">OurAirports</a> (public domain).
+    <code>PEK-JFK, LHR-HND-SIN</code>. Add terrain with <strong>Ocean depth</strong> (graded bathymetry
+    bands) and <strong>Land elevation</strong> (hypsometric shaded relief). It runs on the same projection maths as
+    my printed-map reconstruction. Coastlines, borders &amp; bathymetry:
+    <a href="https://www.naturalearthdata.com/">Natural Earth</a> (public domain); land elevation:
+    <a href="https://www.ncei.noaa.gov/products/etopo-global-relief-model">ETOPO 2022</a> (NOAA, public
+    domain); airports: <a href="https://ourairports.com/data/">OurAirports</a> (public domain).
   </p>
   <div id="great-circle-mapper"></div>
 
@@ -83,25 +85,30 @@
      The heavy geo-data globals (~3 MB) are `defer` so they parse AFTER first paint; each map's first
      projection+draw waits until then (createWorldMap renders on DOMContentLoaded). Order matters:
      config (window.PROJECTION_CONFIG) → kernels → geometry → widget. -->
-<script src="../../../../../样式 Styles/projection/projection-config.js"></script>
-<script src="../../../../../样式 Styles/projection/projection.js"></script>
-<script src="../../../../../样式 Styles/projection/map-geometry.js"></script>
-<script src="../../../../../样式 Styles/projection/world-map.js"></script>
+<script src="../../../../../引擎 Engines/map-projection/projection-config.js"></script>
+<script src="../../../../../引擎 Engines/map-projection/projection.js"></script>
+<script src="../../../../../引擎 Engines/map-projection/map-geometry.js"></script>
+<script src="../../../../../引擎 Engines/map-projection/world-map.js"></script>
 <!-- Page-local config (preset route groups + initial control state) — needed by the init below, so
      synchronous too. The engine above is projection-agnostic; great-circle.js is what this page feeds it. -->
 <script src="great-circle.js"></script>
 <!-- Heavy basemap data — deferred so the big parse happens after the UI paints. Read only at render
      time (DOMContentLoaded), never when the boxes are built. -->
-<script defer src="../../../../../样式 Styles/projection/coastline.js"></script>
-<script defer src="../../../../../样式 Styles/projection/boundaries.js"></script>
-<script defer src="../../../../../样式 Styles/projection/lakes.js"></script>
-<script defer src="../../../../../样式 Styles/projection/airports.js"></script>
+<script defer src="../../../../../引擎 Engines/map-projection/coastline.js"></script>
+<script defer src="../../../../../引擎 Engines/map-projection/boundaries.js"></script>
+<script defer src="../../../../../引擎 Engines/map-projection/lakes.js"></script>
+<script defer src="../../../../../引擎 Engines/map-projection/airports.js"></script>
+<!-- Terrain layers (bathymetry + topography) are OFF by default and ~1.8 MB combined, so they are NOT
+     loaded here — createWorldMap lazy-fetches them via opts.lazyLayers on the first Ocean-depth / Land-
+     elevation toggle, keeping the UI + basemap fast to interactive. -->
 <script>
   // Built synchronously (during parse) so the canvas boxes + controls are in the DOM at first paint
   // and the heavy render (deferred to DOMContentLoaded inside createWorldMap) fills them without
   // shifting layout. The Great Circle Mapper's square box is reserved by its stage's aspect-ratio
   // CSS; the region overview's box is pre-sized in createWorldMap's embed branch.
-  createWorldMap({ mount: '#great-circle-mapper', controls: true, presets: GREAT_CIRCLE.routes, uiDefaults: GREAT_CIRCLE.defaults });
+  createWorldMap({ mount: '#great-circle-mapper', controls: true, presets: GREAT_CIRCLE.routes, uiDefaults: GREAT_CIRCLE.defaults,
+                   lazyLayers: { bathymetry: '../../../../../引擎 Engines/map-projection/bathymetry.js',
+                                 topography: '../../../../../引擎 Engines/map-projection/topography.js' } });
 
   // Region Map Explorer — its empty state mounts a static Northern-Hǎo map. The dropdown rests on a
   // re-selectable "Select location…" option; while it's chosen the display shows that overview, with

@@ -464,7 +464,12 @@ a.app-card {
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  padding: 0.7rem 0.9rem;
+  /* Vertical padding tightened from 0.7rem to 0.4rem so the card can hold
+     one line of name (line-height 1.4) + two lines of description
+     (line-height 1.4) inside the 4.68rem baseline without compressing
+     either's line-height. Math: 4.68 − 0.8 padding = 3.88 text area;
+     1.54 name + 2 × 1.19 desc = 3.92, effectively fits via line-clamp. */
+  padding: 0.4rem 0.9rem;
   /* Outer height 4.68rem = exact span of two side-list rows top-to-bottom:
      row 1 visual height (2.24rem = 1.54 line + 0.7 padding) + inter-row gap
      (0.2rem collapsed margin) + row 2 visual height (2.24rem) = 4.68rem.
@@ -511,9 +516,14 @@ a.app-card:hover {
   font-size: 0.85rem;
   color: var(--muted);
   line-height: 1.4;
-  white-space: nowrap;
+  /* Up to two lines, then ellipsis. Tightened card padding frees enough
+     vertical space to fit two desc lines (at the original 1.4 line-height)
+     beneath the name without growing the 4.68rem baseline. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 .app-card__open {
   font-size: 0.8rem;
@@ -850,7 +860,8 @@ a.app-card:hover {
     <p><span class="bio-content">👀 ·&nbsp; <a href="contents/pages/public/life/personal-info/">More info...</a> ✦ Dating profile <span style="color:var(--muted);font-size:0.85em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">(coming soon...)</span></span><span class="bio-hint"></span></p>
   </div>
   <div class="entry-links">
-    <a class="primary" href="contents/pages/public/">Enter ➡️<span class="entry-hint">(best on a laptop)</span></a>
+    <a class="primary" href="highlights/">Highlights ✨</a>
+    <a href="contents/pages/public/">All pages ➡️<span class="entry-hint">(best on a laptop)</span></a>
     <a href="https://www.instagram.com/earthrover3000/" rel="me noopener">Instagram</a>
   </div>
   <p style="text-align:center;color:var(--muted);font-style:italic;font-size:0.85rem;margin-top:1rem;">Site preview — under construction; please excuse the visual quirks.</p>
