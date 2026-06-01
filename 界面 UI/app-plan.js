@@ -69,25 +69,16 @@
     }
   }
 
-  // Project-specific stats line — lines/words/chars for this app only.
+  // Project-specific stats line — lines/words/字 for this app only. Formatting
+  // and the site-stats link live in the shared StatusLine helper (status-line.js).
   function renderStatsLine() {
     const el = document.getElementById('project-stats');
     if (!el || !manifestMeta) return;
     const lines = (manifestMeta.project_lines || {})[APP_PLAN_ID];
     const words = (manifestMeta.project_words || {})[APP_PLAN_ID];
     const chars = (manifestMeta.project_chars || {})[APP_PLAN_ID];
-    const parts = [];
-    if (lines) parts.push(lines.toLocaleString() + ' lines');
-    if (words) parts.push(words.toLocaleString() + ' words');
-    if (chars) parts.push(chars.toLocaleString() + ' chars');
-    if (!parts.length) return;
-    const path = window.location.pathname;
-    const m = path.match(/^(.*)\/contents\//);
-    const projectBase = m ? m[1] : '';
-    const a = document.createElement('a');
-    a.href = projectBase + '/contents/pages/private/site-stats/';
-    a.title = 'View site-stats';
-    a.textContent = parts.join(' · ') + ' 📊';
+    const a = StatusLine.link([StatusLine.head(lines, words, chars)]);
+    if (!a) return;
     el.innerHTML = '';
     el.appendChild(a);
   }
