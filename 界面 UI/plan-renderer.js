@@ -1,6 +1,7 @@
-// Shared app-plan page renderer. Used by every contents/docs/<app>.html page
-// that loads three YAML files (structure/entries/dev) and presents them as a
-// numbered, editable plan.
+// Shared plan-page renderer (was app-plan.js). Used by every
+// contents/docs/<app>.html page that loads three YAML files
+// (structure/entries/dev) and presents them as a numbered, editable plan —
+// the same plan model as site-map.html.
 //
 // Per-page wiring: each plan HTML sets `window.APP_PLAN_ID = "<app-id>"`
 // before this script runs. APP_PLAN_ID drives:
@@ -13,7 +14,7 @@
 (function () {
   const APP_PLAN_ID = window.APP_PLAN_ID;
   if (!APP_PLAN_ID) {
-    console.error('app-plan.js: window.APP_PLAN_ID must be set before loading this script');
+    console.error('plan-renderer.js: window.APP_PLAN_ID must be set before loading this script');
     return;
   }
 

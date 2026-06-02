@@ -1,4 +1,4 @@
-// Shared status-line builder for the docs pages (app-plan.js + site-map.html).
+// Shared status-line builder for the docs pages (plan-renderer.js + site-map.html).
 // Single source of truth for the "N lines · M words · K 字 📊" head and the
 // link that wraps the whole row and points at site-stats. The Python index
 // pages build the same string at build time in site_shell/indexes.py — keep

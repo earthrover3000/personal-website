@@ -1,4 +1,4 @@
-// auto-toc.js — shared search bar + table-of-contents wiring.
+// page-nav.js — shared in-page search + navigation wiring (was auto-toc.js).
 //
 // Two responsibilities, dispatched from DOM structure (no per-page opt-in):
 //
