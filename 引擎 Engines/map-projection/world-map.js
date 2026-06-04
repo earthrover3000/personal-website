@@ -92,10 +92,13 @@
       '.gcm-panelhead{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:0.6rem;}' +
       '.gcm-paneltitle{font-size:0.74rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);font-weight:600;}' +
       '.gcm-panelclose{padding:0.15rem 0.5rem;line-height:1;}' +
-      '.gcm-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:0.4rem 0.6rem;width:100%;}' +   // horizontal control strip ABOVE the map
+      '.gcm-toolbar{display:flex;flex-direction:column;gap:0.4rem;width:100%;}' +   // two stacked rows ABOVE the map: selectors, then view controls
+      '.gcm-toolrow{display:flex;align-items:center;flex-wrap:wrap;gap:0.4rem 0.9rem;width:100%;}' +
+      '.gcm-toolfield{display:inline-flex;align-items:center;gap:0.3rem;font-size:0.85rem;color:var(--muted);}' +   // "Projection:" / "Hemisphere:" labelled select
       '.gcm-toolgroup{display:flex;align-items:center;gap:0.35rem;}' +
       '.gcm-toolright{margin-left:auto;}' +   // actions pinned right; the flex gap between the groups absorbs the live-checkbox show/hide so nothing else shifts
       '.gcm-compass svg{display:block;}' +
+      '.gcm-toolbar select{font:inherit;padding:0.3rem 0.45rem;max-width:11rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;}' +
       '.gcm-zbtns{display:flex;align-items:center;gap:0.3rem;}' +
       '.gcm-zbtns .gcm-zoombtn{width:2.4rem;}' +
       '.gcm-railbtn{white-space:nowrap;}' +
@@ -173,9 +176,8 @@
 
     if (showControls) {
       var controls = el('div', 'gcm-controls');
-      // PROJECTION — what to draw and from where
-      controls.appendChild(radioGroup('Focused hemisphere', 'coordinate', cfg.coordinates.map(idLabel), state.coordinate, function (v) { state.coordinate = v; state.centreOverride = null; state.centreArc = null; updateCentreBoxes(); syncOrientPresets(); resetView(); render(); }));
-      controls.appendChild(radioGroup('Projection', 'projection', cfg.projections.map(idLabel), state.projection, function (v) { state.projection = v; resetView(); render(); }));
+      // PROJECTION + HEMISPHERE are promoted to the TOOLBAR (built below as compact dropdowns) — they're
+      // the headline "what map am I looking at" controls, so they're not buried in this panel.
       // LAYERS — detail + the overlays toggled on the basemap (Size px control is gone; the map is full-bleed)
       controls.appendChild(layersGroup());
       // ROUTES — a preset group AND your own additive paths
@@ -253,6 +255,12 @@
       centreGroup.appendChild(centreOpts); controls.appendChild(centreGroup);
       updateCentreBoxes();                                               // show the starting framing's centre immediately
 
+      // EXPORT — Save PNG lives here (a panel action), not in the toolbar: it's an occasional export, not
+      // a primary view control. The serious export path is the offline Node port → Personal Works/maps/.
+      var exportGroup = el('fieldset', 'gcm-group'); exportGroup.appendChild(el('span', 'gcm-legend', 'Export'));
+      var save = el('button', 'gcm-btn', 'Save PNG'); save.title = 'Download the current map as a lossless 2× PNG'; save.addEventListener('click', savePng);
+      exportGroup.appendChild(save); controls.appendChild(exportGroup);
+
     }
 
     var stage = el('div', 'gcm-stage' + (showControls ? ' gcm-interactive' : ''));
@@ -313,11 +321,26 @@
         if (orientSel) orientSel.value = '';
         updateCentreBoxes(); syncOrientPresets(); syncOrientUI(); resetView(); render();
       });
-      var save = el('button', 'gcm-btn gcm-railbtn', 'Save PNG'); save.addEventListener('click', savePng);
-      // LEFT group = view tools (zoom, compass, then live at the inner edge); RIGHT group = actions, pinned right.
+      // Headline "what map" controls, promoted from the panel to the toolbar as compact dropdowns.
+      function toolSelect(items, sel, title, onchange) {
+        var s = el('select'); s.title = title;
+        items.forEach(function (it) { var o = document.createElement('option'); o.value = it.id; o.textContent = it.label; if (it.id === sel) o.selected = true; s.appendChild(o); });
+        s.addEventListener('change', function () { onchange(s.value); });
+        return s;
+      }
+      var projSel = toolSelect(cfg.projections.map(idLabel), state.projection, 'Projection', function (v) { state.projection = v; resetView(); render(); });
+      var hemiSel = toolSelect(cfg.coordinates.map(idLabel), state.coordinate, 'Which hemisphere the map is framed on', function (v) { state.coordinate = v; state.centreOverride = null; state.centreArc = null; updateCentreBoxes(); syncOrientPresets(); resetView(); render(); });
+      function toolField(text, sel) { var f = el('label', 'gcm-toolfield'); f.appendChild(document.createTextNode(text)); f.appendChild(sel); return f; }
+      // ROW 1 — "what map am I looking at": labelled Projection + Hemisphere selectors.
+      var selRow = el('div', 'gcm-toolrow');
+      selRow.appendChild(toolField('Projection:', projSel)); selRow.appendChild(toolField('Hemisphere:', hemiSel));
+      // ROW 2 — "adjust the view": zoom + compass on the LEFT (live LAST = inner edge, so toggling it shifts
+      // nothing), Reset pinned RIGHT. Save PNG lives in the panel.
+      var ctrlRow = el('div', 'gcm-toolrow');
       var toolLeft = el('div', 'gcm-toolgroup'); toolLeft.appendChild(zbtns); toolLeft.appendChild(compassEl); toolLeft.appendChild(liveLab);
-      var toolRight = el('div', 'gcm-toolgroup gcm-toolright'); toolRight.appendChild(reset); toolRight.appendChild(save);
-      toolbar.appendChild(toolLeft); toolbar.appendChild(toolRight);
+      var toolRight = el('div', 'gcm-toolgroup gcm-toolright'); toolRight.appendChild(reset);
+      ctrlRow.appendChild(toolLeft); ctrlRow.appendChild(toolRight);
+      toolbar.appendChild(selRow); toolbar.appendChild(ctrlRow);
       syncOrientUI();                                                     // set the "live" checkbox's initial visibility now that it exists
     }
     if (showControls) {                                                  // vertical stack: toolbar, the square map, then the ⚙ settings block — all the map's width, nothing overlaps
@@ -337,16 +360,6 @@
     function idLabel(o) { return { id: o.id, label: o.label }; }
     function syncFlightUI() { }   // preset dropdown and custom box are both always visible now (custom is additive)
 
-    function radioGroup(legend, name, items, sel, onchange) {
-      var g = el('fieldset', 'gcm-group'); g.appendChild(el('span', 'gcm-legend', legend));
-      var opts = el('div', 'gcm-opts');
-      items.forEach(function (it) {
-        var lab = el('label'); var r = el('input'); r.type = 'radio'; r.name = name + '-' + instanceId; r.value = it.id; r.checked = (it.id === sel);
-        r.addEventListener('change', function () { if (r.checked) onchange(it.id); });
-        lab.appendChild(r); lab.appendChild(document.createTextNode(it.label)); opts.appendChild(lab);
-      });
-      g.appendChild(opts); return g;
-    }
     function checkboxGroup(legend, label, checked, onchange) {
       var g = el('fieldset', 'gcm-group'); g.appendChild(el('span', 'gcm-legend', legend));
       var lab = el('label'); var c = el('input'); c.type = 'checkbox'; c.checked = checked;
