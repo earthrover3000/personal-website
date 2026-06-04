@@ -77,30 +77,34 @@
       'border:1px solid var(--border);border-radius:4px;cursor:pointer;}' +
       '.gcm-btn:hover{border-color:var(--accent);}' +
       // full-bleed map stage (interactive only); embeds keep a plain block canvas sized by state.size
-      '.gcm-wrap{display:flex;align-items:flex-start;gap:0.6rem;width:100%;}' +   // square map + the rail beside it (rail is NOT part of the square)
+      '.gcm-wrap{display:flex;flex-direction:column;gap:0.5rem;width:100%;max-width:min(100%,82vh);}' +   // vertical stack: toolbar, the square map, then the ⚙ settings block — all the SAME (map) width
       '.gcm-stage{position:relative;}' +
-      '.gcm-stage.gcm-interactive{flex:1 1 auto;min-width:0;max-width:min(100%,82vh);aspect-ratio:1/1;}' +   // always a square map area, as large as fits the viewport
+      '.gcm-stage.gcm-interactive{width:100%;aspect-ratio:1/1;}' +   // full-width square (the wrap caps the width); the toolbar sits above it
       '.gcm-canvas{display:block;background:transparent;border:1px solid var(--border);border-radius:6px;touch-action:none;cursor:grab;}' +
       '.gcm-canvas:active{cursor:grabbing;}' +
       '.gcm-interactive .gcm-canvas{position:absolute;inset:0;width:100%;height:100%;}' +
-      '.gcm-gear{position:absolute;top:10px;left:10px;z-index:3;font-size:1.15rem;line-height:1;padding:0.3rem 0.55rem;box-shadow:0 2px 8px rgba(0,0,0,0.28);}' +
-      '.gcm-panel{position:absolute;top:10px;left:10px;z-index:4;width:min(330px,calc(100% - 20px));max-height:calc(100% - 20px);overflow:auto;' +
-      'background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0.7rem 0.85rem;box-shadow:0 8px 28px rgba(0,0,0,0.32);}' +
-      '.gcm-panel.gcm-hidden,.gcm-gear.gcm-hidden{display:none;}' +
+      // ⚙ settings live BELOW the map as a collapsible block (the toggle bar + the panel), NOT as an
+      // overlay — so opening them never covers the canvas you're adjusting, and never blanks a phone-sized map.
+      '.gcm-gear{display:inline-flex;align-items:center;gap:0.4rem;margin-top:0.6rem;font-size:0.95rem;}' +
+      '.gcm-panel{width:100%;margin-top:0.5rem;' +
+      'background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0.8rem 0.95rem;}' +
+      '.gcm-panel.gcm-hidden{display:none;}' +
       '.gcm-panelhead{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:0.6rem;}' +
       '.gcm-paneltitle{font-size:0.74rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);font-weight:600;}' +
       '.gcm-panelclose{padding:0.15rem 0.5rem;line-height:1;}' +
-      '.gcm-rail{flex:0 0 auto;display:flex;flex-direction:column;gap:0.4rem;width:5.2rem;align-items:center;}' +
-      '.gcm-zbtns{display:flex;flex-direction:column;gap:0.3rem;align-items:center;}' +
+      '.gcm-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:0.4rem 0.6rem;width:100%;}' +   // horizontal control strip ABOVE the map
+      '.gcm-toolgroup{display:flex;align-items:center;gap:0.35rem;}' +
+      '.gcm-toolright{margin-left:auto;}' +   // actions pinned right; the flex gap between the groups absorbs the live-checkbox show/hide so nothing else shifts
+      '.gcm-compass svg{display:block;}' +
+      '.gcm-zbtns{display:flex;align-items:center;gap:0.3rem;}' +
       '.gcm-zbtns .gcm-zoombtn{width:2.4rem;}' +
-      '.gcm-railbtn{width:100%;white-space:nowrap;}' +
+      '.gcm-railbtn{white-space:nowrap;}' +
       '.gcm-compass{display:flex;cursor:pointer;}' +
       '.gcm-compass:hover{opacity:0.82;}' +
       '.gcm-zoombtn{height:2.2rem;text-align:center;padding:0;font-size:1.2rem;line-height:1;}' +
       '.gcm-zoom-readout{text-align:center;font-size:0.8rem;color:var(--muted);font-variant-numeric:tabular-nums;background:var(--surface);border-radius:4px;padding:0 0.3rem;}' +
       '.gcm-dial .gcm-zoombtn{min-width:2.2rem;padding:0 0.35rem;}' +
       '.gcm-orient-readout{min-width:7rem;white-space:nowrap;text-align:center;font-size:0.85rem;color:var(--muted);font-variant-numeric:tabular-nums;}' +
-      '.gcm-compassrow{display:flex;align-items:center;justify-content:center;gap:0.2rem;margin-bottom:0.2rem;}' +
       '.gcm-northup,.gcm-northlive{display:inline-flex;align-items:center;gap:0.15rem;font-size:0.78rem;color:var(--muted);}' +
       '.gcm-northlive{background:var(--surface);border-radius:4px;padding:0 0.25rem;}' +
       '.gcm-zoombtn:disabled{opacity:0.4;cursor:default;}' +
@@ -254,30 +258,26 @@
     var stage = el('div', 'gcm-stage' + (showControls ? ' gcm-interactive' : ''));
     stage.appendChild(canvas);
     if (showControls) {
-      // floating ⚙ settings panel (holds the regrouped controls) over a full-bleed map; open on
-      // first visit, then the open/closed choice is remembered so the map can stay unobstructed.
-      var gearBtn = el('button', 'gcm-btn gcm-gear', '⚙'); gearBtn.title = 'Map settings';
+      // ⚙ settings: a collapsible block stacked BELOW the map (appended to the mount after the wrap,
+      // not inside the stage), so opening it never covers the canvas. The toggle bar stays visible and
+      // its caret reflects open/closed; the choice is remembered across visits.
+      var gearBtn = el('button', 'gcm-btn gcm-gear'); gearBtn.title = 'Show/hide map settings';
       var panel = el('div', 'gcm-panel');
       var phead = el('div', 'gcm-panelhead');
       phead.appendChild(el('span', 'gcm-paneltitle', 'Map settings'));
       var pclose = el('button', 'gcm-btn gcm-panelclose', '✕'); pclose.title = 'Close settings';
       phead.appendChild(pclose); panel.appendChild(phead); panel.appendChild(controls);
-      function setPanel(open) { panel.classList.toggle('gcm-hidden', !open); gearBtn.classList.toggle('gcm-hidden', open); try { localStorage.setItem('gcmPanelOpen', open ? '1' : '0'); } catch (e) {} }
-      gearBtn.addEventListener('click', function () { setPanel(true); });
+      function setPanel(open) { panel.classList.toggle('gcm-hidden', !open); gearBtn.innerHTML = '⚙ Map settings ' + (open ? '▾' : '▸'); try { localStorage.setItem('gcmPanelOpen', open ? '1' : '0'); } catch (e) {} }
+      gearBtn.addEventListener('click', function () { setPanel(panel.classList.contains('gcm-hidden')); });   // toggle open ↔ closed
       pclose.addEventListener('click', function () { setPanel(false); });
-      // Click anywhere outside the open panel (including the map itself) closes it. pointerdown so it
-      // fires before a map drag begins; the gear's own click (panel still hidden at that point) is unaffected.
-      document.addEventListener('pointerdown', function (e) {
-        if (panel.classList.contains('gcm-hidden')) return;
-        if (panel.contains(e.target) || gearBtn.contains(e.target)) return;
-        setPanel(false);
-      });
-      stage.appendChild(gearBtn); stage.appendChild(panel);
       var open0 = true; try { if (localStorage.getItem('gcmPanelOpen') === '0') open0 = false; } catch (e) {}
       setPanel(open0);
 
-      // always-visible rail beside the map: compass (north-up toggle), zoom (+/−/readout), Reset / Save PNG
-      var zoom = el('div', 'gcm-rail');
+      // always-visible toolbar ABOVE the map: zoom (− / readout / +) + compass (north-up) + live on the
+      // LEFT (the "view tools"), Reset / Save PNG pinned RIGHT (the "actions"). `live` is the LAST item of
+      // the left group — at the inner edge by the flex gap — so toggling it only resizes the gap; the
+      // compass and zoom never move.
+      var toolbar = el('div', 'gcm-toolbar');
       compassEl = el('div', 'gcm-compass');
       compassEl.innerHTML = '<svg width="48" height="48" viewBox="-28 -28 56 56" aria-label="compass: needle points to north">'
         + '<circle r="18" fill="#fff" stroke="#bbb" stroke-width="1"/>'
@@ -299,14 +299,13 @@
       liveChk.addEventListener('change', function () { state.northLive = liveChk.checked; render(); });
       liveLab.appendChild(liveChk); liveLab.appendChild(document.createTextNode('live'));
       liveLab.title = 'Re-orient north live while dragging (off = settle on release)';
-      var compassRow = el('div', 'gcm-compassrow'); compassRow.appendChild(compassEl); compassRow.appendChild(liveLab);
       var zbtns = el('div', 'gcm-zbtns');
       var zin = el('button', 'gcm-btn gcm-zoombtn', '+'); zin.title = 'Zoom in';
       var zout = el('button', 'gcm-btn gcm-zoombtn', '−'); zout.title = 'Zoom out';
       zoomReadout = el('span', 'gcm-zoom-readout', '100%');
       zin.addEventListener('click', function () { stepZoom(1); });
       zout.addEventListener('click', function () { stepZoom(-1); });
-      zbtns.appendChild(zin); zbtns.appendChild(zout); zbtns.appendChild(zoomReadout);
+      zbtns.appendChild(zout); zbtns.appendChild(zoomReadout); zbtns.appendChild(zin);   // − 100% + (readout flanked by the buttons)
       var reset = el('button', 'gcm-btn gcm-railbtn', 'Reset'); reset.title = 'Back to 100%, preset centre & original orientation';
       reset.addEventListener('click', function () {
         state.centreOverride = null; state.centreArc = null;
@@ -315,11 +314,16 @@
         updateCentreBoxes(); syncOrientPresets(); syncOrientUI(); resetView(); render();
       });
       var save = el('button', 'gcm-btn gcm-railbtn', 'Save PNG'); save.addEventListener('click', savePng);
-      zoom.appendChild(compassRow); zoom.appendChild(zbtns); zoom.appendChild(reset); zoom.appendChild(save);
+      // LEFT group = view tools (zoom, compass, then live at the inner edge); RIGHT group = actions, pinned right.
+      var toolLeft = el('div', 'gcm-toolgroup'); toolLeft.appendChild(zbtns); toolLeft.appendChild(compassEl); toolLeft.appendChild(liveLab);
+      var toolRight = el('div', 'gcm-toolgroup gcm-toolright'); toolRight.appendChild(reset); toolRight.appendChild(save);
+      toolbar.appendChild(toolLeft); toolbar.appendChild(toolRight);
       syncOrientUI();                                                     // set the "live" checkbox's initial visibility now that it exists
     }
-    if (showControls) {                                                  // square map + rail beside it; the ⚙ panel still floats OVER the square map
-      var wrap = el('div', 'gcm-wrap'); wrap.appendChild(stage); wrap.appendChild(zoom); mount.appendChild(wrap);
+    if (showControls) {                                                  // vertical stack: toolbar, the square map, then the ⚙ settings block — all the map's width, nothing overlaps
+      var wrap = el('div', 'gcm-wrap');
+      wrap.appendChild(toolbar); wrap.appendChild(stage); wrap.appendChild(gearBtn); wrap.appendChild(panel);
+      mount.appendChild(wrap);
     } else {
       mount.appendChild(stage);                                          // embed: just the square canvas, no rail
       // Reserve the box at the default size NOW (before the deferred first render) so the page
@@ -412,7 +416,7 @@
       syncOrientUI = function () {
         var on = state.orientMode === 'north';
         dec.disabled = on; inc.disabled = on; flip.disabled = on;
-        if (liveLab) { liveLab.style.visibility = on ? 'visible' : 'hidden'; if (liveChk) liveChk.checked = state.northLive; }   // keep its space reserved when hidden (no layout shift)
+        if (liveLab) { liveLab.style.display = on ? '' : 'none'; if (liveChk) liveChk.checked = state.northLive; }   // display:none (not visibility) — live is at the left group's inner edge, so hiding it just shrinks the gap; nothing else shifts
         updateOrientReadout(); updateCompass();
       };
       g.appendChild(opts); syncOrientUI(); return g;
