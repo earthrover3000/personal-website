@@ -1,0 +1,67 @@
+# Authoritative single source of truth for the projection ENGINE's shared parameters.
+#
+# Consumed by TWO places — keep this the only place these choices live:
+#   1. the website build (build.py) → emits projection-config.js (window.PROJECTION_CONFIG)
+#   2. the website JS toolkit (projection.js / world-map.js) reads PROJECTION_CONFIG at runtime
+# (The Python kernel ./scripts/base_projection.py keeps its constants INLINE, not here — it does
+#  not read this YAML; a new formula must be added to it AND projection.js by hand, kept in sync.)
+#
+# Scope: this file holds only what is SHARED across every consumer — the projection catalogue
+# and the coordinate framings (with their centres). A new *parameterisation* (a centre, meridian,
+# or rotation angle) is a YAML edit only; a genuinely new *formula* (a new `kind`) needs a one-time
+# kernel in projection.js AND in Python. Anything PAGE-specific — which preset flight paths to
+# offer, a page's default control state — is NOT here; it lives with that consumer (e.g. the
+# maps-projections page's great-circle.js), because the engine is a shared dependency and those
+# are one page's policy.
+
+# ----------------------------------------------------------------------------
+# Base map projections. `kind` selects the kernel. The kernels' fixed formula
+# constants (e.g. Hǎo's Eq 1-6 coefficients) live in the code (base_projection.py /
+# projection.js), not here — they define the projection, they're not knobs to tune.
+# ----------------------------------------------------------------------------
+projections:
+  - id: hao
+    label: "郝晓光 等差分多圆锥"
+    kind: polyconic         # Hǎo's equal-difference parallel polyconic, 《经纬跨越四百年》附录1 Eq (1)-(6)
+  - id: winkel
+    label: "Winkel Tripel"
+    kind: winkel            # mean of Aitoff + equirectangular; std parallel = acos(2/pi)
+  - id: mercator
+    label: "Web Mercator"
+    kind: mercator          # spherical Mercator (web-map standard); latitude clamped to ±85.0511°
+default_projection: hao
+
+# ----------------------------------------------------------------------------
+# Coordinate framings, defined by geography (hand-editable):
+#   vertical   (portrait, oblique) — `centre: {lat, lon}` = the geographic point at
+#              the map centre. The generalized pole (正极) is placed at (0°, lon−90°),
+#              which is orthogonal to the centre, so the rotation matrix is built
+#              directly from the centre (Eq 7-8); no Euler angles to hand-tune.
+#   horizontal (landscape) — `seam: <lon>` = the longitude of the antimeridian seam
+#              (the map edge). The central meridian is the antipode, seam + 180°.
+# ----------------------------------------------------------------------------
+coordinates:
+  - id: north
+    label: "Northern"
+    kind: vertical
+    centre: {lat: 54, lon: -22.5}          # map centre 54°N, 22.5°W — flat for transatlantic routes AND axis bisects the 15°W/30°W graticule gap (centrally symmetric)
+  - id: south
+    label: "Southern"
+    kind: vertical
+    centre: {lat: -18, lon: 67.5}          # 南半球版 — map centre 18°S, 67.5°E
+  - id: east
+    label: "Eastern"
+    kind: horizontal
+    seam: -25                              # Atlantic seam at 25°W  (central meridian 155°E, Pacific-centred)
+  - id: west
+    label: "Western"
+    kind: horizontal
+    seam: -169                             # Pacific seam at the Bering Strait 169°W  (central meridian 11°E, Europe-centred)
+default_coordinate: north
+
+# ----------------------------------------------------------------------------
+# NOTE: the interactive control defaults and the preset great-circle route groups used to live
+# here. They are PAGE policy (only the maps-projections "Great Circle Mapper" uses them), so they
+# moved to that page's src: 个人网站 Personal Website/contents/src/maps-projections/
+# great-circle.js → window.GREAT_CIRCLE = { defaults, routes }, passed into createWorldMap.
+# ----------------------------------------------------------------------------
