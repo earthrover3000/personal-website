@@ -2,7 +2,7 @@
 // not to the shared projection engine in 引擎 Engines/map-projection/. The engine knows how to
 // compute and draw any flight path; this file only says which PRESET routes this page offers
 // in its dropdown, plus the page's initial control state. Other consumers of the engine
-// (e.g. travel-calendar) bring their own routes. Deployed as a page sibling via build.py
+// (e.g. itinerary-calendar) bring their own routes. Deployed as a page sibling via build.py
 // extra_files; index.html passes it into createWorldMap({ presets, uiDefaults }).
 //
 // Route grammar (same as the Custom box): comma-separated; "A-B-C" = connected arcs; a lone

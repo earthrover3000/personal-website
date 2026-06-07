@@ -1,0 +1,200 @@
+/* Stats-page skin, shared by the website's /site-stats (网站统计) and the
+   Personal Apps app-stats page (应用统计). Layered on top of base.css +
+   docs.css; pairs with page-widgets/stats-table.js (sorting + live time
+   refresh). Markup vocabulary it styles: .stats-table (+ .section-bar /
+   .others / .agg / .group-divider / .totals rows, .num cells, th .th-label /
+   .th-qual), .view-toggle radios, .group-toggle, .section-heading,
+   .touched-date/-block/-ago triplets, .line-history-svg. */
+
+/* nowrap keeps the Size cell's "12.4 KiB" (number + space + unit) on one
+   line — without it the space between value and unit becomes a wrap point
+   when the column is narrow, breaking the entry across two lines. The
+   other numeric columns have no internal spaces so this is a no-op there. */
+.stats-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Keep the Project name column (the first cell of every row) on one line
+   too, so multi-word names like "Itinerary Calendar" or "Site Facade" don't
+   wrap. The column absorbs the width and the date columns give it up. */
+.stats-table td:first-child { white-space: nowrap; }
+.stats-table tbody tr:hover { background: var(--surface); }
+.stats-table tfoot .totals td {
+  font-weight: 600;
+  color: var(--text);
+  border-top: 1px solid var(--border);
+  border-bottom: none;
+  padding-top: 0.7rem;
+}
+/* Sortable column headers — JS attaches click handlers and toggles
+   .sort-asc / .sort-desc to draw the active indicator. Each header
+   has a neutral ↕ glyph at rest; active sort swaps it for ↑ or ↓ in
+   the accent colour. Same character width on every state, so
+   column widths don't shift when sort criteria change. */
+.stats-table th[data-sort] {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s;
+}
+.stats-table th[data-sort]:hover { color: var(--text); }
+/* Sort glyph hangs off .th-label, not th, so it sits on the first line
+   beside the label; the .th-qual parenthetical sits on its own line below
+   and never inherits the arrow. The label + its trailing arrow are kept on
+   one line (nowrap) so the glyph's width is always reserved and never
+   forces "Words"/"Characters"/"Last touched" to break mid-label. */
+/* Top-align every header cell so all the bold .th-label titles sit on the
+   first line and align across the row — without this, headers that have no
+   .th-qual parenthetical (Project, Size, Created, …) get vertically
+   centred and float halfway down, out of line with the two-line headers
+   (Lines / Words / Characters). Top-align pins every title to line 1 and
+   drops every "(code)"/"(English)"/"(Chinese)" bracket to line 2. */
+.stats-table th { vertical-align: top; }
+.stats-table th .th-label { white-space: nowrap; }
+.stats-table th[data-sort] .th-label::after { content: ' ↕'; opacity: 0.3; }
+.stats-table th[data-sort].sort-asc .th-label::after { content: ' ↑'; color: var(--accent); opacity: 1; }
+.stats-table th[data-sort].sort-desc .th-label::after { content: ' ↓'; color: var(--accent); opacity: 1; }
+/* Column-meaning qualifier — "(code)" / "(English)" / "(Chinese)" — on its
+   own line, lighter and smaller than the label it annotates. */
+.stats-table th .th-qual { display: block; font-weight: normal; font-size: 0.82em; color: var(--muted); text-align: left; }
+
+/* Category grouping toggle. When unchecked, the project outline flattens:
+   its grey section bars hide and every entry sorts together (see the sort
+   JS). Default is checked (grouped). */
+.group-toggle {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0 0 0.8rem;
+}
+.group-toggle label { cursor: pointer; }
+body:has(#group-categories:not(:checked)) #project-outline .section-bar { display: none; }
+/* Aggregate row for projects hidden at this tier — sits last in tbody,
+   not part of the sort, visually softened so it reads as "rest". */
+.stats-table tbody .others td { color: var(--muted); font-style: italic; }
+.stats-table tbody .others:hover { background: transparent; }
+/* Divider row separating the table's groups: content projects from the
+   infrastructure block (site_facade, test-page), and that block from the
+   Total row. Pure visual seam, no data of its own. A tight tram-line —
+   two hairlines ~0.35rem apart that read as one deliberate band. The top
+   line is shared (border-collapse) with the row above; for the divider in
+   <tfoot> the bottom line is shared with the Total row's border-top.
+   Un-scoped from tbody so it works in both tbody and tfoot. */
+.stats-table .group-divider td {
+  padding: 0;
+  height: 0.35rem;
+  background: var(--border);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.stats-table .group-divider:hover { background: transparent; }
+/* Section label bars (Apps / Pages / Infrastructure / Libraries). The
+   label sits ON the grey band so it contrasts with the white entry rows,
+   and the bar doubles as the divider between sections. Clicking a bar
+   folds/unfolds its section (see stats-table.js); the chevron telegraphs
+   the state. */
+.stats-table .section-bar td {
+  background: var(--border);
+  color: var(--text);
+  padding: 0.3rem 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  user-select: none;
+}
+.stats-table .section-bar:hover td { background: var(--border); }
+.stats-table .section-bar td::before { content: '▾ '; opacity: 0.55; }
+.stats-table .section-bar.collapsed td::before { content: '▸ '; }
+/* Rows hidden by a folded section (class managed by stats-table.js; folds
+   suspend while the table is flattened via the group toggle). */
+.stats-table tr.fold-hidden { display: none; }
+/* Expand-all / collapse-all button — injected by stats-table.js into the
+   .group-toggle row (or its own row above the table when no group toggle
+   exists). Styled like the view-toggle pills; margin-left:auto pushes it to
+   the row's right edge (the containers are flex). */
+.fold-all {
+  margin-left: auto;
+  cursor: pointer;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+.fold-all:hover { color: var(--text); }
+
+/* View toggle: pure-CSS swap between "date" and "block" columns.
+   Both spans render server-side; the radio state hides one or the other
+   via a body-level :has() rule. No JS required, crawler-visible. */
+.view-toggle {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0.5rem 0 0.8rem;
+}
+.view-toggle input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.view-toggle label {
+  cursor: pointer;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.8rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+.view-toggle label:hover { color: var(--text); }
+.view-toggle input[type="radio"]:focus-visible + label {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.view-toggle input[type="radio"]:checked + label {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Lock all three spans to the same minimum width so column sizing
+   stays stable when the toggle swaps which one is visible. The widest
+   possible content across views is the date "2026-05-04" (10 chars);
+   6em fits all three formats at the table's font size. */
+/* Section headings above each table ("Project history", "Site history").
+   The first heading sits closer to the view-toggle (which it follows
+   directly) — `:first-of-type` tightens its top margin. The second
+   heading gets a bigger gap above so the two tables read as separate
+   sections rather than one block. */
+.section-heading {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 2.5rem 0 0.5rem;
+}
+.section-heading:first-of-type { margin-top: 1rem; }
+.site-milestones { margin-top: 0; }
+/* Line-history chart sits beneath the heading like a table would —
+   same top spacing, full width, modest max-height to keep proportions
+   readable on narrow viewports. */
+.line-history-svg {
+  margin-top: 0.5rem;
+  max-height: 280px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.touched-date, .touched-block, .touched-ago { min-width: 6em; }
+.touched-date { display: inline-block; }
+.touched-block, .touched-ago { display: none; }
+body:has(#view-block:checked) .touched-date { display: none; }
+body:has(#view-block:checked) .touched-block { display: inline-block; }
+body:has(#view-ago:checked) .touched-date { display: none; }
+body:has(#view-ago:checked) .touched-ago { display: inline-block; }
