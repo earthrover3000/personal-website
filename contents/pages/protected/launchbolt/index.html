@@ -1,32 +1,19 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Launchbolt</title>
-  <!-- The shared 界面 UI stylesheet <link>s are injected at build time by the
-       inject-shared-styles plugin in vite.config.ts (they point outside the
-       project, so Vite must not resolve them). -->
-  <style>
-    /* Coming-soon placeholder — replace with the real app. */
-    .coming-soon {
-      text-align: center;
-      font-style: italic;
-      color: var(--muted);
-      margin: 4rem auto;
-      font-size: 1.1rem;
-    }
-  </style>
-  <link rel="stylesheet" href="../../../../界面 UI/styles/base.css">
-  <link rel="stylesheet" href="../../../../界面 UI/styles/docs.css">
-<link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script></head>
-<body>
-<div class="container">
-  <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../">Home</a> <span class="sep">›</span> <a href="../">Protected Index</a> <span class="sep">›</span> <span aria-current="page">Launchbolt</span></nav>
-  <h1>Launchbolt</h1>
-  <p class="head-meta">A pocket launcher for curated webpages.</p>
-  <p class="coming-soon">Coming soon…</p>
-</div>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Launchbolt</title>
+    <style>
+      html, body { margin: 0; padding: 0; min-height: 100vh; background: #000000; }
+    </style>
+    <script type="module" crossorigin src="./assets/index-qsiLZxbs.js"></script>
+  <link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script></head>
+  <body>
+    <div id="root"></div>
+  </body>
 </html>
