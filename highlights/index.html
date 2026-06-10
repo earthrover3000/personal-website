@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Charlie 丁志成's Galaxy</title>
+<title>Charlie 丁志成 ✦ Highlights</title>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
 <style>/* Shared base styles for index pages (root, protected, private) and docs
    pages (site-map, site-stats, lifespan-atlas plan). Loaded BEFORE the
    page-specific stylesheet so page rules can override.
@@ -530,262 +530,22 @@ a.app-card:hover {
   letter-spacing: 0.02em;
 }
 </style>
-<script>// page-nav.js — shared in-page search + navigation wiring (was auto-toc.js).
-//
-// Two responsibilities, dispatched from DOM structure (no per-page opt-in):
-//
-//  1. Content pages with ≥2 <h2> direct children of .container:
-//     - Auto-injects <input class="filter"> + <nav class="toc"> right
-//       after .head-meta (or h1 if no head-meta).
-//     - Builds the TOC as a numbered list of h2 anchors.
-//     - Wires the filter to hide TOC items whose text doesn't match.
-//     If the page already includes the markup (e.g. chinese-languages
-//     used to inline it), it is reused rather than re-injected.
-//
-//  2. Index pages (.container > .row > .main, with the build's existing
-//     <input class="filter"> above the row):
-//     - Wires that input to filter the index entries (.app-card cards
-//       AND .main > ul > li bare-link rows).
-//
-// Activate by linking this file from a page's <head>; the script
-// auto-runs on DOMContentLoaded. No globals leaked beyond what was
-// already there.
-
-(function () {
-  function slugify(s) {
-    return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  }
-
-  function buildToc(container) {
-    // Direct h2 children only — nested h2s (e.g. inside <details>) don't
-    // earn TOC entries; they belong to whatever section wraps them.
-    var h2s = container.querySelectorAll(':scope > h2');
-    // 2+ h2s warrants a TOC. A single-section page is its own TOC.
-    if (h2s.length < 2) return;
-
-    // Reuse existing markup if present (chinese-languages legacy pattern),
-    // otherwise inject. Pre-placed markup may be hidden via inline style;
-    // we clear it after populating.
-    var search = container.querySelector(':scope > input.filter');
-    var injectedSearch = false;
-    if (!search) {
-      search = document.createElement('input');
-      search.type = 'search';
-      search.className = 'filter';
-      search.placeholder = 'Search…';
-      search.setAttribute('aria-label', 'Filter sections');
-      injectedSearch = true;
-    }
-    var toc = container.querySelector(':scope > nav.toc');
-    var injectedToc = false;
-    if (!toc) {
-      toc = document.createElement('nav');
-      toc.className = 'toc';
-      var header = document.createElement('div');
-      header.className = 'toc-header';
-      var h2c = document.createElement('h2');
-      h2c.textContent = 'Contents';
-      header.appendChild(h2c);
-      toc.appendChild(header);
-      var ol = document.createElement('ol');
-      toc.appendChild(ol);
-      injectedToc = true;
-    }
-    var list = toc.querySelector('ol') || toc.querySelector('ul');
-    if (!list) return;
-
-    // Populate. textContent excludes ::before-rendered counters (e.g. the
-    // page-side .container > h2::before "1. " prefix) so we get just the
-    // heading words and prepend our own monotonic index.
-    list.innerHTML = '';
-    var idx = 0;
-    h2s.forEach(function (h) {
-      idx++;
-      var orig = h.textContent.trim();
-      if (!h.id) h.id = slugify(orig);
-      var li = document.createElement('li');
-      var a = document.createElement('a');
-      a.href = '#' + h.id;
-      a.textContent = idx + '. ' + orig;
-      li.appendChild(a);
-      list.appendChild(li);
-    });
-
-    // Place injected nodes: head-meta → search → toc → first h2.
-    if (injectedSearch || injectedToc) {
-      var anchor = container.querySelector(':scope > p.head-meta')
-        || container.querySelector(':scope > h1');
-      if (anchor) {
-        if (injectedSearch) anchor.insertAdjacentElement('afterend', search);
-        var searchEnd = injectedSearch ? search : anchor;
-        if (injectedToc) searchEnd.insertAdjacentElement('afterend', toc);
-      }
-    }
-    // Reveal anything that was pre-rendered hidden.
-    if (search.style.display === 'none') search.style.display = '';
-    if (toc.style.display === 'none') toc.style.display = '';
-
-    search.addEventListener('input', function () {
-      var q = this.value.trim().toLowerCase();
-      list.querySelectorAll('li').forEach(function (li) {
-        if (!q) { li.classList.remove('search-hidden'); return; }
-        li.classList.toggle('search-hidden', li.textContent.toLowerCase().indexOf(q) === -1);
-      });
-    });
-  }
-
-  function wireIndexSearch(container) {
-    // Build.py emits: <input class="filter" ...> above <div class="row">
-    // <div class="main"> with .app-card / <ul><li> entries.
-    var filter = container.querySelector(':scope > input.filter');
-    if (!filter) return;
-    var main = container.querySelector('.row > .main');
-    if (!main) return;
-    var targets = main.querySelectorAll('.app-card, ul > li');
-    if (!targets.length) return;
-    filter.addEventListener('input', function () {
-      var q = this.value.trim().toLowerCase();
-      targets.forEach(function (t) {
-        if (!q) { t.classList.remove('search-hidden'); return; }
-        t.classList.toggle('search-hidden', t.textContent.toLowerCase().indexOf(q) === -1);
-      });
-    });
-  }
-
-  function init() {
-    var container = document.querySelector('.container');
-    if (!container) return;
-    // Index pages have the row-and-main layout; content pages don't.
-    if (container.querySelector(':scope > .row > .main')) {
-      wireIndexSearch(container);
-    } else {
-      buildToc(container);
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
-</script>
 </head>
 <body>
 <div class="container">
-<nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Home</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav>
-<h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">40,487 lines · 16,801 words · 904 字 📊 ✦ Last updated <time datetime="2026-06-10" class="relative-time relative-time-coarse">2026-06-10</time></a></p>
-<input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
-<div class="row">
-<div class="main">
-<div class="apps">
-  <a class="app-card" href="life/chromatic-camelot/">
-    <img class="app-card__icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlApw1AAAAQlBMVEX7uKtAOjlnVVHYppgB0mo/X//vrqYvLy/3C42OZcWHamTCkoimf3dTR0X5ZZ23jsLWn7aRw49Iy32Kgt5abPOedZx5ETv/AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAFOElEQVR42u2ci5biIAyGA2gcabFV5/2fdXV2dsdpaQmQtHhO8gLN11y4/3B6cwMFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFaADAPO0NAYz1feccwj/Druu9DW8BEHz34/jE0PU+tAxgVpx/iYY3TQI8vAequT60BmDp3n8z8MahEsA6KLDONwLgi9z/qge2MMDWf/8/Qm/2BTA91BoLQimAR6g3jkQqAzAd8Bj6XQBs6vePw8NGWlcN2wP4xF8dzt82oHwpFAAkqnc8vxgpCs5uCZBK/1/+Ewmg3w7AuCz/qQTllQC8/sN5ZsR2ZLcBSLXPcQ4wUoe1LQCS7X/u/3kgT/GMOEBy9oARgDN9om2EAXzShTEGQJ90lJRyBoCFMoAxY2YRBAGMA+kIlBAAXwEv1UDWvDWbABgTKN6Fzpnz0yADYGj/cahoo2W9CLg66GIOZa988giIAIH69aGiB/0f0QQA6CuwoS6BsmcVUFHBiLi2nCn2H8BzA0QCcPn4a5e1wWCEwqVy4AWwi+4/DSNL4q+/X+r+s5B5Abo1/2NBqLeeE8Cs+y9DYBkB+oT/sSyqNscIMHVv5v+eSQT5JTwPgEgIIHAB9ASA/UIAHBkkA0ALAeQPApsBdDwAngLwIQFAaqWQP4rxRuBxgmyt9dGTzo4FAEGwiF9OXU3kxM0wAAQAsTbahUS2egaAyGYQVwDmfTJg9nAMBWtJpqlErM9PCWw9QKy4WCZzHaVp9/UA0e0sBv/RUCLu6gHin79UF4Cn7d8YIQDAS10DRUMrOl8LYFZ8uFwuyD9NCHlFAFwbQnz7DphVBMCyJco60/zV97BVAEMdeUyjAOShM7w7gG20iM27A1CLuFkAahutBjBCANSBrLqITygDQJ1KVLfR09rhKgrs+kwmcyiyHnja9XZ42s0xh6DPXNdD2eme++t+DQJpQVM/mYtfkLgeXu3Kl0TTJWV6TQklx2O//T8cHBfB7Dok1i9oIisad5haYTUnt1U41sSRKr7NAK4gs7HFsSsxr+J5AIpDkNhaZNkXmhfBNQJwhb12dyH/iO+2GQDP5u6sCCL+H24i043AA+D3AvBMR0yGkEK3vQ5oSMes3S414PjOiX26Czl+/w3jVYPJDHeLDCJf24KC+2ZX+QDQryGTAFJlzF0ByH7haRICvIkmUNYNZCi68/eLgPn/O3/a4tLf9Va5IFtKfitzczeyPYTXp+HCI6yS62ZFD46ZL74+vLh/Hr/snmLAn/fervzhOvPVYxiOP3Zfeoxrg9n+Oa4n+X8/vtonCr0ALbp+7zL/fzQGaE+nvQAI27zjcWpD4V1EkScoPjOBIknUnXZVNUglER6PiRD4fQEC5lXAvArszroSPjeDHjnUUgRSw1kM4Mj1anWLt5RpADS7S5O4qhQSyCHO98TpIk4fuMi/6F5rRck2KhCC/Df1weUMZLOxogF5nuUsws9UAPhDUCLLsEwwpiZzOa9jBIUxlgmGlP/so3GhtsriiDb+ZNHnwC3BwCoOs9xM79/uL7QrbESiak1fBcex+mmJvEBS6IQfWMlLVBVqDLUDUCgzFFqSaSsJgmlKZy5fasu1pvSXW8y+Pa3FLAQ0LYpFZugV+kblOqkIrmG90V5GPGVDxVeT1F7k959bc9euCqcK+M8vGrwi/tqbd1E9tr1jOP3aV3fa2If8sbDc7gbC2SY8rpOJqjar8rcCKIACKIACKIACKIACKIACKIACKIACKIACKIACKIACKEA+wB8bUQlg1rEn3gAAAABJRU5ErkJggg==" alt="" />
-    <div class="app-card__body">
-      <div class="app-card__name">Chromatic Camelot</div>
-      <div class="app-card__desc">Click a key, hear some songs, see the colour I see</div>
-    </div>
-    <div class="app-card__open">Open</div>
-  </a>
-  <a class="app-card" href="life/life-clock/">
-    <img class="app-card__icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlApw1AAAAKlBMVEVjY2ObXeXm5uabmpsAAACOXshrZ3B5a4q9vLzJE07Y19eCYKs9FSLYf5wFR6ucAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAEXElEQVR42u2dbXfzIAiGWazgYvv//+7TdXu2NcmsvBhjDnzeOeMK3GgMUngb3MABHMABHMABHMABHMABHMABHMABHMABHMABHMABHMABHOBUAPHbRgOImQjhyZAoxxEA7r4vXH/GMKcwBYgl538g4jEBIkGtWTJYAWQElmE+EkDMIDCbMMCuudMAAfq5/0DoDpBBabkrQERQG8Z+AAQmRp0ALB6/PgjQL/ttlADN0gcpfNvrLQbtDFBOHwopzdOTzSkFapFGMoBYcCQsff9NEdCaAGz9D2l6YQWGuBfAX/Kll95/xYEMpQxm/le6/xkGMiMAI/857hcQcnuAzfxHpvsPBDTRAVj4H+ZJYHOwIAC9/8XHn9LMCwK3mjIBNv4jFTy8vd/tVgjChhKwJcDG/wvTC//vVviToN1VgLIAldJn/vK/FIMpKUsRqARQrj63GoAtIcRGAMisnt8A7+VqhBoZgEIA+KJ6VgJsEFALgMj1vxpggyA2AECOfnkAayWjPUBm+88AWBNkcwBO/f8BuF4u1xqA9XoQjQGWCqapBuDysGsFwERCHYNMwVizfbtdvqwGYCXkaApAbAF8PNT/ANeq7bUsBCAKQKjaLwMLYCWDaAhAggRiAyyTiAwBJAnEBlglkR1A5lcgCcCyEmUzABQFgA+QBMsx8CVcGwA+wDIE0QiAZAEQACS+jIEt4eoACACWIbABiMIASAASO4eAnUFTS4CZnUPArUGhKcBiOUYLAHEGiQDYOQTMVQyntgATMtcyYEogtAYITBEAUwKpNUBiigCYq8DcGmBmrgTA0zBNrQEWa1lUA2SxBIQAgadi4Gk4tQdIPBU3BbjCx2d6vHYFQLGG559Wg1msYlQDiJexX/6HkMRLmS0ACf1nxYBMAaK0CKVngCAtQ7ETwCIAnCQ6BsAyAIwQHANg5X+9ChzAAU4BMLyIhy+jUzjIQma1lUi9thLjb+ZMttOp43Za8UJzb9diu3+oN7LH82S301kDKF7qZWb9Uq84VpEZGh+rKA62RGZ+sKU4WhSZ/dEi7SsC+8Nd+fG6gQRy1w8c+gwy+cAh/8SkzyDs+5FPX4Oo72fWPTKo6kM37reWEbtZomWrgToA1LnZQxsAs2YPabuNNgDYu+FJG4Dcu+VMGQDo3vTHXQMaNv3J2i5Vi7Bt26Ws8VWXQNS/9ViVQMatx6Lmb00Fsm7+FrXfawQAR7gAoRBAgwsQgisoCv9xl0tAqZmAm1wC4l/DkvtPx7gIJ/YfD3IVUXwxOh7kMqhMvw0vg7Kv40rqf9PruOwL0S/Tf+8L0ZsjSeRC6HAlffihAH+NZQjDjGUYfzDG+KNJxh8OM/54nuKApyEGJI0/omr8IWEnGNM2/qC88UcVnmBYpGBU7cHGdarziHxkrQ8NPsXY5vqx38cdnH2C0eVnGB5/hvH95/gBhTf/DQ4HcAAHcAAHcAAHcAAHcAAHcAAHcAAHcAAHcAAHcAAHODXAPwWXsZAh72HWAAAAAElFTkSuQmCC" alt="" />
-    <div class="app-card__body">
-      <div class="app-card__name">Life Clock</div>
-      <div class="app-card__desc">My life in a clock</div>
-    </div>
-    <div class="app-card__open">Open</div>
-  </a>
+  <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a> <span class="sep">›</span> <span aria-current="page">Highlights</span></nav>
+  <h1>Highlights</h1>
+  <p class="head-meta">A guided tour of the site’s most prominent features.</p>
+  <p style="text-align:center;color:var(--muted);font-style:italic;margin:2rem 0 1rem;">✨ Under construction — big visuals coming soon. ✨</p>
+  <p style="color:var(--muted);">In the meantime, here’s what this page will showcase:</p>
+  <ul>
+    <li><strong>Chromatic Camelot</strong> — <span class="muted">the chromatic Camelot wheel — a circle of fifths you can play</span></li>
+    <li><strong>Lifespan Atlas</strong> — <span class="muted">autobiographical software charting a life across time</span></li>
+    <li><strong>Maps &amp; Projections</strong> — <span class="muted">a world map you can re-centre and re-project, with rendered terrain</span></li>
+  </ul>
+  <div class="entry-links">
+    <a href="../contents/pages/public/">Explore all pages ➡️</a>
+  </div>
 </div>
-<ul>
-  <li><a href="guides/chinese-languages/">Chinese Language(s)</a></li>
-  <li><a href="hobbies/maps-projections/">Maps & Projections</a></li>
-  <li><a href="hobbies/linguistics-dissertation/">Linguistics Dissertation</a></li>
-  <li><a href="hobbies/cities-transport/">Cities & Transport</a></li>
-  <li><a href="life/personal-info/">Personal Info</a></li>
-</ul>
-</div>
-<div class="side">
-<ul>
-  <li class="tier-nav-row">
-    <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
-      <option value="../../../">Home</option>
-      <option value="../../../highlights/">Highlights</option>
-      <option value="" selected>Index</option>
-    </select>
-  </li>
-</ul>
-</div>
-</div>
-</div>
-<script>
-(function() {
-  // Convert <time class="relative-time" datetime="..."> to "X ago" form.
-  // Fallback (no JS) is the absolute YYYY-MM-DD already in the element body.
-  const ago = (n, unit) => `${n} ${unit}${n === 1 ? '' : 's'} ago`;
-  const fmt = (s) => {
-    if (s < 5) return 'just now';
-    if (s < 60) return `${s} seconds ago`;
-    if (s < 3600) return ago(Math.floor(s / 60), 'minute');
-    if (s < 86400) return ago(Math.floor(s / 3600), 'hour');
-    if (s < 1209600) return ago(Math.floor(s / 86400), 'day');
-    if (s < 5443200) return ago(Math.floor(s / 604800), 'week');
-    if (s < 31557600) return ago(Math.floor(s / 2629800), 'month');
-    return ago(Math.floor(s / 31557600), 'year');
-  };
-  const fmtCoarse = (dt) => {
-    const now = new Date();
-    const e = Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
-    const r = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    const diffDays = Math.round((e - r) / 86400000);
-    if (diffDays === 0) return 'today';
-    if (diffDays === -1) return 'yesterday';
-    const future = diffDays > 0;
-    const absDays = Math.abs(diffDays);
-    if (absDays < 60) {
-      const body = `${absDays} day${absDays === 1 ? '' : 's'}`;
-      return future ? `in ${body}` : `${body} ago`;
-    }
-    const earlier = future ? new Date(r) : dt;
-    const later = future ? dt : new Date(r);
-    let years = later.getUTCFullYear() - earlier.getUTCFullYear();
-    let months = later.getUTCMonth() - earlier.getUTCMonth();
-    if (later.getUTCDate() < earlier.getUTCDate()) months -= 1;
-    if (months < 0) { years -= 1; months += 12; }
-    const body = years === 0 ? `${months}mo` : `${years}yr ${months}mo`;
-    return future ? `in ${body}` : `${body} ago`;
-  };
-  document.querySelectorAll('time.relative-time').forEach(t => {
-    const dt = new Date(t.getAttribute('datetime'));
-    if (isNaN(dt.getTime())) return;
-    if (t.classList.contains('relative-time-coarse')) {
-      t.textContent = fmtCoarse(dt);
-    } else {
-      const seconds = Math.max(0, Math.floor((Date.now() - dt.getTime()) / 1000));
-      t.textContent = fmt(seconds);
-    }
-  });
-})();
-(function() {
-  const f = document.querySelector('.filter');
-  if (!f) return;
-  const items = document.querySelectorAll('.main .app-card, .main > ul > li');
-  f.addEventListener('input', (e) => {
-    const q = e.target.value.toLowerCase().trim();
-    items.forEach(item => {
-      const name = (item.querySelector('.app-card__name') || item).textContent.toLowerCase();
-      item.classList.toggle('search-hidden', q.length > 0 && !name.includes(q));
-    });
-  });
-  f.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
-    const q = f.value.toLowerCase().trim();
-    if (!q) return;
-    const opt = Array.from(document.querySelectorAll('.tier-nav option'))
-      .find(o => o.value && o.textContent.toLowerCase().split(/\s+/).includes(q));
-    if (opt) { e.preventDefault(); location.href = opt.value; }
-  });
-})();
-</script>
 </body>
 </html>
