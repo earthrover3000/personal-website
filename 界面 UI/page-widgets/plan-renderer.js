@@ -17,6 +17,25 @@
     console.error('plan-renderer.js: window.APP_PLAN_ID must be set before loading this script');
     return;
   }
+  // Ordering + numbering come from the shared plan-order engine (loaded as a
+  // <script> just before this one), so the page and the launchpad plan manager
+  // stay in lockstep. Hard dependency, like js-yaml.
+  const PlanOrder = window.PlanOrder;
+  if (!PlanOrder) {
+    console.error('plan-renderer.js: window.PlanOrder must be loaded first (引擎 Engines/plan-order/plan-order.js)');
+    return;
+  }
+
+  // Mnemonic section letters keyed by section id, in the SAME order as the
+  // launchpad (dev section first, then structure) so the two index identically.
+  function secLetterMap() {
+    const taken = [];
+    const m = { dev: PlanOrder.sectionLetter('App Development', taken) };
+    ((structureData && structureData.sections) || []).forEach(sec => {
+      m[sec.id] = PlanOrder.sectionLetter(sec.title || sec.id, taken);
+    });
+    return m;
+  }
 
   // ---- Global state ----
   // Three sources, mirroring site-map.html's split:
@@ -30,15 +49,56 @@
   let devData = null;
   let manifestMeta = { project_lines: null, project_words: null, project_chars: null };
 
-  const STATUS_ORDER = { next: 0, plan: 1, idea: 2, unset: 3 };
+  // Roadmap version axis. The canonical order + the legend (token→title) come
+  // from plans/plan-versions.json (build-emitted from site-roadmap.yaml — the
+  // single source); `_versionOrder` drives tag colours, the filter bar and the
+  // edit-cycle. If that JSON is absent (e.g. a console page), fall back to the
+  // versions present in the data. Sorting always uses PlanOrder.compareVersion.
+  let _versionOrder = [];
+  let _legend = null;   // [{token, title}] from plan-versions.json, or null
+
+  function _collectStatuses(set) {
+    ((devData && devData.sections) || []).forEach(s =>
+      (s.entries || []).forEach(it => { if (it && it.status) set.add(it.status); }));
+    Object.keys(entriesData || {}).forEach(k => {
+      const items = entriesData[k];
+      if (!Array.isArray(items)) return;
+      items.forEach(it => {
+        if (it && it.entries && it.title) {
+          (it.entries || []).forEach(sub => { if (sub && sub.status) set.add(sub.status); });
+        } else if (it && it.status) {
+          set.add(it.status);
+        }
+      });
+    });
+  }
+
+  function computeVersionOrder() {
+    const set = new Set();
+    _collectStatuses(set);
+    return Array.from(set).filter(s => PlanOrder.parseVersion(s)).sort(PlanOrder.compareVersion);
+  }
+
+  // token → 'hsl(…)' from the shared two-series palette (PlanOrder.versionColors:
+  // grouped by major, hue-stepped within each series), recomputed each render.
+  let _versionColors = {};
+
+  // Apply a version's hue as an inline background to a tag / legend chip / filter
+  // button. A non-version status (or unset) gets the neutral 'unset' chrome.
+  function styleVersionEl(el, baseClass, token) {
+    const c = _versionColors[token];
+    if (c) { el.className = baseClass + ' planv'; el.style.background = c; }
+    else { el.className = baseClass + ' unset'; el.style.background = ''; }
+  }
 
   // ---- Loading ----
   async function fetchYamlFiles() {
-    const [structRes, entriesRes, devRes, builtRes] = await Promise.all([
+    const [structRes, entriesRes, devRes, builtRes, pvRes] = await Promise.all([
       fetch(`plans/${APP_PLAN_ID}-structure.yaml`),
       fetch(`plans/${APP_PLAN_ID}-entries.yaml`),
       fetch(`plans/${APP_PLAN_ID}-dev.yaml`),
       fetch('plans/built-pages.json').catch(() => null),
+      fetch('plans/plan-versions.json').catch(() => null),
     ]);
     if (!structRes.ok || !entriesRes.ok || !devRes.ok) {
       throw new Error(`Failed to load ${APP_PLAN_ID} YAML files from plans/`);
@@ -47,11 +107,16 @@
     if (builtRes && builtRes.ok) {
       try { manifest = await builtRes.json(); } catch (_) { /* keep null */ }
     }
+    let versions = null;
+    if (pvRes && pvRes.ok) {
+      try { versions = (await pvRes.json()).versions || null; } catch (_) { /* keep null */ }
+    }
     return {
       structure: jsyaml.load(await structRes.text()),
       entries: jsyaml.load(await entriesRes.text()) || {},
       dev: jsyaml.load(await devRes.text()) || { sections: [] },
       manifest: manifest,
+      versions: versions,
     };
   }
 
@@ -62,6 +127,7 @@
       entriesData = data.entries;
       devData = data.dev;
       manifestMeta = data.manifest || manifestMeta;
+      _legend = data.versions || null;
       render();
     } catch (e) {
       document.getElementById('loading-msg').textContent =
@@ -89,7 +155,11 @@
     document.getElementById('loading-msg').style.display = 'none';
     document.getElementById('toc-search').style.display = '';
     document.getElementById('toc-container').style.display = '';
+    _versionOrder = _legend ? _legend.map(v => v.token) : computeVersionOrder();
+    _versionColors = PlanOrder.versionColors(_versionOrder);
+    buildLegend();
     document.getElementById('filter-bar').style.display = '';
+    buildFilterBar();
     renderToc();
     renderStatsLine();
     renderDevSection();
@@ -107,17 +177,16 @@
   function renderToc() {
     const ol = document.getElementById('toc-list');
     ol.innerHTML = '';
-    let sIdx = 0;
+    const SL = secLetterMap();
 
     // Dev sections — h2 always renders (even when empty), so this gets the
-    // leading section number regardless of whether the user has filled in any
+    // leading section letter regardless of whether the user has filled in any
     // dev sub-sections yet.
-    sIdx++;
     {
       const li = document.createElement('li');
       const a = document.createElement('a');
       a.href = '#dev';
-      a.textContent = sIdx + '. 🔧 App Development';
+      a.textContent = SL.dev + '. 🔧 App Development';
       const subs = (devData && devData.sections) || [];
       if (subs.length) {
         const details = document.createElement('details');
@@ -132,7 +201,7 @@
           const subLi = document.createElement('li');
           const subA = document.createElement('a');
           subA.href = '#' + sub.id;
-          subA.textContent = sIdx + '.' + subIdx + '. ' + sub.title;
+          subA.textContent = SL.dev + '.' + subIdx + '. ' + sub.title;
           subLi.appendChild(subA);
           subOl.appendChild(subLi);
         });
@@ -147,12 +216,11 @@
     // Structure sections from the app's manifest (or hand-edited stub).
     if (structureData && structureData.sections) {
       structureData.sections.forEach(sec => {
-        sIdx++;
         const li = document.createElement('li');
         const a = document.createElement('a');
         a.href = '#' + sec.id;
-        a.textContent = sIdx + '. ' + sec.title;
-        const subOl = buildTocOl(sec.pages, sIdx + '.', sec.id);
+        a.textContent = SL[sec.id] + '. ' + sec.title;
+        const subOl = buildTocOl(sec.pages, SL[sec.id] + '.', sec.id);
         if (subOl) {
           const details = document.createElement('details');
           const summary = document.createElement('summary');
@@ -229,6 +297,7 @@
 
     const section = document.createElement('section');
     section.id = 'dev';
+    section.style.setProperty('--sl', '"' + secLetterMap().dev + '"');
 
     const h2 = document.createElement('h2');
     h2.className = 'section-title';
@@ -279,9 +348,11 @@
     container.innerHTML = '';
     if (!structureData || !structureData.sections) return;
 
+    const SL = secLetterMap();
     structureData.sections.forEach(sec => {
       const section = document.createElement('section');
       section.id = sec.id;
+      section.style.setProperty('--sl', '"' + (SL[sec.id] || '') + '"');
 
       const h2 = document.createElement('h2');
       h2.className = 'section-title';
@@ -311,7 +382,7 @@
     heading.className = 'page-h' + lvl;
     heading.style.marginTop = '1.5rem';
     heading.style.marginBottom = '0.8rem';
-    heading.textContent = page.title;
+    heading.textContent = PlanOrder.displayName(page);
     parent.appendChild(heading);
 
     if (page.description) {
@@ -400,9 +471,9 @@
 
     if (item.status) {
       const tag = document.createElement('span');
-      tag.className = 'tag ' + item.status;
+      styleVersionEl(tag, 'tag', item.status);
       tag.setAttribute('contenteditable', 'false');
-      tag.textContent = item.status === 'plan' ? 'Plan' : item.status === 'idea' ? 'Idea' : item.status === 'next' ? 'Next' : 'Unset';
+      tag.textContent = item.status;
       tag.addEventListener('click', (e) => toggleStatus(tag, e));
       li.appendChild(tag);
     }
@@ -460,37 +531,39 @@
   }
 
   // ---- Numbering (computed against the rendered DOM so dnd reorders work) ----
+  // The counter scheme lives in the shared engine (PlanOrder.numberSection); here
+  // we only walk the DOM into the {h}/{u} step sequence it expects, then stamp the
+  // numbers it returns back onto the <li>s — so the page and the launchpad number
+  // identically.
   function renumberLis() {
+    const SL = secLetterMap();
     const sectionEls = [
       ...document.querySelectorAll('#dev-container > section'),
       ...document.querySelectorAll('#sections-container > section'),
     ];
     sectionEls.forEach((sec, sIdx) => {
-      const counters = [sIdx + 1, 0, 0, 0, 0];
-      let activeDepth = 0;
-      function walk(el) {
+      const seq = [];
+      const uls = [];
+      (function walk(el) {
         for (const c of el.children) {
-          const tag = c.tagName;
-          const m = /^H([3-6])$/.exec(tag);
+          const m = /^H([3-6])$/.exec(c.tagName);
           if (m) {
-            const idx = parseInt(m[1]) - 2;
-            counters[idx]++;
-            for (let i = idx + 1; i < 5; i++) counters[i] = 0;
-            activeDepth = idx;
-          } else if (tag === 'UL') {
-            let liIdx = 0;
-            for (const li of c.children) {
-              if (li.tagName !== 'LI') continue;
-              liIdx++;
-              const parts = counters.slice(0, activeDepth + 1).concat([liIdx]);
-              setLiNum(li, parts.join('.') + '.');
-            }
+            seq.push({ h: parseInt(m[1]) });
+          } else if (c.tagName === 'UL') {
+            const lis = [...c.children].filter(x => x.tagName === 'LI');
+            seq.push({ u: lis.length });
+            uls.push(lis);
           } else if (c.children.length) {
             walk(c);
           }
         }
-      }
-      walk(sec);
+      })(sec);
+      let ui = 0;
+      PlanOrder.numberSection(SL[sec.id] || (sIdx + 1), seq).forEach(step => {
+        if (step.u == null) return;
+        const lis = uls[ui++];
+        step.numbers.forEach((num, j) => setLiNum(lis[j], num));
+      });
     });
   }
 
@@ -513,22 +586,89 @@
   function sortList(ul) {
     if (!ul) return;
     const items = Array.from(ul.children).filter(el => el.tagName === 'LI');
-    items.sort((a, b) => (STATUS_ORDER[a.dataset.status] ?? 3) - (STATUS_ORDER[b.dataset.status] ?? 3));
+    items.sort((a, b) => PlanOrder.compareVersion(a.dataset.status, b.dataset.status));
     items.forEach(li => ul.appendChild(li));
   }
 
+  // Click-cycle through [unset, …versions present]. Editing is view-only here
+  // (Save downloads YAML); the terminal manager is the real editor, so the cycle
+  // only needs to reach versions already in the data.
   function toggleStatus(tag, e) {
     if (!isEditing()) return;
     const li = tag.closest('li');
     if (!li) return;
-    const cur = li.dataset.status || 'unset';
-    const forward = { 'unset': 'idea', 'idea': 'plan', 'plan': 'next', 'next': 'unset' };
-    const reverse = { 'unset': 'next', 'next': 'plan', 'plan': 'idea', 'idea': 'unset' };
-    const cycle = (e && e.shiftKey) ? reverse : forward;
-    const next = cycle[cur] || 'idea';
+    const ring = ['unset'].concat(_versionOrder);
+    let i = ring.indexOf(li.dataset.status || 'unset');
+    if (i < 0) i = 0;
+    const step = (e && e.shiftKey) ? -1 : 1;
+    const next = ring[(i + step + ring.length) % ring.length];
     li.dataset.status = next;
-    tag.className = 'tag ' + next;
-    tag.textContent = next === 'plan' ? 'Plan' : next === 'idea' ? 'Idea' : next === 'next' ? 'Next' : 'Unset';
+    styleVersionEl(tag, 'tag', next);
+    tag.textContent = next === 'unset' ? 'Unset' : next;
+  }
+
+  // Roadmap legend (token → meaning) so a compact tag like "p0.3" is decodable.
+  // Inserted above the filter bar; styled by .plan-legend in the shared docs.css.
+  // Only shown when the build supplied plan-versions.json (the legend source);
+  // a page without it (e.g. a console plan) simply has no legend.
+  function buildLegend() {
+    const bar = document.getElementById('filter-bar');
+    let el = document.getElementById('plan-legend');
+    if (!_legend || !_legend.length || !bar) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'plan-legend';
+      el.className = 'plan-legend';
+      bar.parentNode.insertBefore(el, bar);
+    }
+    el.innerHTML = '';
+    const label = document.createElement('span');
+    label.className = 'plan-legend-label';
+    label.textContent = 'Roadmap:';
+    el.appendChild(label);
+    _legend.forEach((v) => {
+      const item = document.createElement('span');
+      item.className = 'plan-legend-item';
+      const chip = document.createElement('span');
+      styleVersionEl(chip, 'tag', v.token);
+      chip.textContent = v.token;
+      const title = document.createElement('span');
+      title.className = 'plan-legend-title';
+      title.textContent = v.title || '';
+      item.appendChild(chip);
+      item.appendChild(title);
+      el.appendChild(item);
+    });
+  }
+
+  // Filter bar built from the canonical version order: All, one button per
+  // version (positional colour class), Unset. Replaces any static buttons in the
+  // page shell so the controls always match the roadmap.
+  function buildFilterBar() {
+    const bar = document.getElementById('filter-bar');
+    if (!bar) return;
+    bar.innerHTML = '';
+    const label = document.createElement('span');
+    label.textContent = 'Filter:';
+    bar.appendChild(label);
+    const mk = (filter, text, cls) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'filter-btn' + (cls ? ' ' + cls : '');
+      b.dataset.filter = filter;
+      b.textContent = text;
+      b.addEventListener('click', () => filterItems(filter));
+      bar.appendChild(b);
+      return b;
+    };
+    mk('all', 'All', '').classList.toggle('active', _activeFilter === 'all');
+    _versionOrder.forEach(token => {
+      const b = mk(token, token, '');
+      styleVersionEl(b, 'filter-btn', token);   // overwrites className → set state after
+      b.dataset.filter = token;
+      if (token === _activeFilter) b.classList.add('active');
+    });
+    mk('unset', 'Unset', 'unset').classList.toggle('active', _activeFilter === 'unset');
   }
 
   let _activeFilter = 'all';

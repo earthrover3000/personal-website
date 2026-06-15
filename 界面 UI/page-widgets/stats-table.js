@@ -32,7 +32,7 @@
     COL_KIND[col] = h.classList.contains('num') ? 'num' : 'text';
   });
   for (const r of tbody.children) {
-    if (r.classList.contains('section-bar')) continue;
+    if (r.classList.contains('section-bar') || r.classList.contains('nofold')) continue;
     for (const col of Object.keys(COL_IDX)) {
       const td = r.children[COL_IDX[col]];
       if (!td) continue;
@@ -57,9 +57,12 @@
   // Initial sort state: the server-rendered order, declared on the table
   // (data-default-sort / data-default-dir); falls back to the first
   // sortable numeric column descending.
+  // A table with no sortable headers (e.g. the roadmap's Site History, which
+  // only wants the collapsible sections) has no default column — sorting then
+  // no-ops while folding + time-refresh still run.
+  const _firstSortable = Array.from(headers).find(h => h.classList.contains('num')) || headers[0];
   let current = {
-    col: table.dataset.defaultSort
-      || (Array.from(headers).find(h => h.classList.contains('num')) || headers[0]).dataset.sort,
+    col: table.dataset.defaultSort || (_firstSortable ? _firstSortable.dataset.sort : null),
     dir: table.dataset.defaultDir || 'desc',
   };
 
@@ -72,6 +75,7 @@
     let cur = null;
     for (const r of Array.from(tbody.children)) {
       if (r.classList.contains('section-bar')) { cur = { bar: r, rows: [], collapsed: false }; sections.push(cur); }
+      else if (r.classList.contains('nofold')) { /* global marker (e.g. Today line) — never folds */ }
       else if (cur) cur.rows.push(r);
     }
   }
@@ -219,7 +223,7 @@
   }
 
   // Initial state: render the indicator on the default sort column.
-  sortRows(current.col, current.dir);
+  if (current.col) sortRows(current.col, current.dir);
   applyFolds();
 
   // Freeze column widths at their first-load values so nothing reflows the

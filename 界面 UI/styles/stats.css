@@ -15,6 +15,13 @@
    too, so multi-word names like "Itinerary Calendar" or "Site Facade" don't
    wrap. The column absorbs the width and the date columns give it up. */
 .stats-table td:first-child { white-space: nowrap; }
+/* Entries sit indented under their section-bar header — shared by the stats
+   project-outline and the site roadmap. When a table is flattened (group
+   toggle off) there are no headers, so drop the indent back to the base cell
+   padding (0.8rem, from docs.css). The roadmap has no #group-categories
+   toggle, so it always stays indented. */
+.stats-table tbody tr:not(.section-bar) td:first-child { padding-left: 1.75rem; }
+body:has(#group-categories:not(:checked)) .stats-table tbody tr:not(.section-bar) td:first-child { padding-left: 0.8rem; }
 .stats-table tbody tr:hover { background: var(--surface); }
 .stats-table tfoot .totals td {
   font-weight: 600;
