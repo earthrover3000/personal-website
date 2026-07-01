@@ -13,10 +13,10 @@
        the maps-projections page uses the same two files. -->
   <script src="../../../../../界面 UI/map-widgets/map-export.js"></script>
   <script src="../../../../../界面 UI/map-widgets/map-explorer.js"></script>
-  <!-- Page-local data — sibling file in this folder, deployed by
-       build.py via the project config's extra_files: ['cities.js'].
-       Exposes window.URBANISM_DATA = { gawcList, livedList }. -->
-  <script src="cities.js"></script>
+  <!-- Shared city reference data — single source of truth in
+       引擎 Engines/map-projection/cities.js (the maps-projections Great Circle
+       Mapper loads the same file). Exposes window.URBANISM_DATA = { gawcList, livedList }. -->
+  <script src="../../../../../引擎 Engines/map-projection/cities.js"></script>
   <!-- page-nav.js auto-injects a search bar + Contents nav whenever the
        page has 2+ <h2> direct children. Currently a no-op (one section
        only) but ready for when more sections get added. -->

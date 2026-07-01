@@ -21,15 +21,22 @@
   // each toward a dark anchor (geo.cpt assumes a paper background, so dark mode needs a parallel ramp).
   var LIGHT_PAL = {
     ocean: '#b7d2ea', land: '#cde0a8', coast: '#5f7d43',
-    graticule: '#9bb6d0', edge: '#4f7193', border: '#9a7b5a', marker: '#15202b', mercVoid: '#707a85',
+    graticule: '#9bb6d0', edge: '#4f7193', border: '#9a7b5a', marker: '#15202b', mercVoid: '#707a85', city: '#0e7490',
     bathyColors: { 0: '#f5ffff', 200: '#e4f8fc', 1000: '#a2dbf2', 2000: '#6ec3eb', 3000: '#53abe0', 4000: '#448dc9', 5000: '#3563a0', 6000: '#2f548a', 7000: '#294475', 8000: '#1f3055' },
-    landColors: { 0: '#33893c', 500: '#a8bc66', 1000: '#d0a553', 2000: '#9e4201', 3000: '#64331a', 4000: '#694d3f', 5000: '#7f7e7d' }
+    landColors: { 0: '#33893c', 500: '#a8bc66', 1000: '#d0a553', 2000: '#9e4201', 3000: '#64331a', 4000: '#694d3f', 5000: '#7f7e7d' },
+    // UN-subregion shading: four distinct hues (coral / green / blue / sand), indexed by the colour
+    // baked into WORLD_UN_REGIONS so no two land-adjacent subregions share one. Pastel so coastlines,
+    // borders and route arcs stay legible on top; LIGHT set tuned for the paper background.
+    regionColors: ['#e79a8e', '#9ecb92', '#9bb6e2', '#e7cd8a']
   };
   var DARK_PAL = {
     ocean: '#172430', land: '#36422f', coast: '#76926a',
-    graticule: '#314a5e', edge: '#5e83a3', border: '#8f7458', marker: '#e9eef2', mercVoid: '#525c67',
+    graticule: '#314a5e', edge: '#5e83a3', border: '#8f7458', marker: '#e9eef2', mercVoid: '#525c67', city: '#22d3ee',
     bathyColors: { 0: '#4f5966', 200: '#4b5765', 1000: '#384f62', 2000: '#2a4960', 3000: '#22425d', 4000: '#1e3957', 5000: '#1a2e4b', 6000: '#182a45', 7000: '#16253f', 8000: '#131f36' },
-    landColors: { 0: '#234925', 500: '#525d36', 1000: '#62542e', 2000: '#4e2c0e', 3000: '#362618', 4000: '#383126', 5000: '#41443f' }
+    landColors: { 0: '#234925', 500: '#525d36', 1000: '#62542e', 2000: '#4e2c0e', 3000: '#362618', 4000: '#383126', 5000: '#41443f' },
+    // Parallel four-colour subregion ramp for the dark theme: same hue order (coral/green/blue/sand),
+    // darkened toward the dark ocean so the tint reads without glowing.
+    regionColors: ['#7d4a42', '#42603c', '#3c4d70', '#6a5a33']
   };
   function darkMode() { return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches; }
   function palette() { return darkMode() ? DARK_PAL : LIGHT_PAL; }
@@ -137,6 +144,8 @@
     var onRegionClick = typeof opts.onRegionClick === 'function' ? opts.onRegionClick : null;   // click a disc's area → callback(region)
     var disablePan = !!opts.disablePan;                                                          // skip drag-to-pan (used by the static Region overview)
     var lastRegionPolys = [];                                                                    // each region's px-space outline from the last draw(), for click hit-testing
+    var cities = opts.cities && opts.cities.world ? opts.cities : null;                            // world/lived city-dot lists (Great Circle Mapper only)
+    var lastCityDots = [];                                                                         // each drawn city dot's px {x,y,label}, for hover hit-testing
     var mount = typeof opts.mount === 'string' ? document.querySelector(opts.mount) : opts.mount;
     if (!mount) throw new Error('createWorldMap: mount not found');
     injectStyles();
@@ -147,6 +156,7 @@
       boundaries: opts.boundaries != null ? opts.boundaries : !!uiDefaults.boundaries,
       bathymetry: opts.bathymetry != null ? opts.bathymetry : !!uiDefaults.bathymetry,   // ocean-depth tint bands (WORLD_BATHYMETRY)
       topography: opts.topography != null ? opts.topography : !!uiDefaults.topography,    // land elevation shade bands (WORLD_TOPOGRAPHY)
+      regions: opts.regions != null ? opts.regions : !!uiDefaults.regions,                // UN-subregion 4-colour shading (WORLD_UN_REGIONS); mutually exclusive with topography (both shade land)
       mercatorEdge: opts.mercatorEdge != null ? opts.mercatorEdge : !!uiDefaults.mercator_edge,   // STANDARD Web Mercator's ±85.05° limit: cut the GEOGRAPHIC polar caps out of Hǎo/Winkel; band the equatorial-Mercator clamp
       mercatorEdgeGen: opts.mercatorEdgeGen != null ? opts.mercatorEdgeGen : !!uiDefaults.mercator_edge_gen,   // the OBLIQUE Mercator's own ±85.05° limit (GENERALIZED poles) — separate toggle; band on the Mercator projection's clamp, cut out on Hǎo/Winkel
       edges: !!opts.edges,                                // overlay the Hǎo Northern & Southern map edges (seam half-meridians) as geographic curves
@@ -164,6 +174,8 @@
       centreOverride: null,          // {lat,lon}: a custom vertical-framing centre (from "Centre on arc"); overrides the preset hemisphere
       centreArc: null                // [codeA, codeB]: the arc we re-centred on, drawn straight down the middle
     };
+    state.cityLayer = cities ? (opts.cityLayer || uiDefaults.city_layer || 'none') : 'none';   // 'none' | 'world' | 'lived' (mutually-exclusive city-dot layers)
+    state.hoverCity = null;                                                                    // label of the hovered city dot (shown as a tooltip)
     var DEFAULT_ORIENT = state.orientation, DEFAULT_MODE = state.orientMode;   // page-load orientation, restored by Reset
     if (opts.centreArc && opts.centreArc.length === 2) {                 // embed/init: centre on an arc so it runs straight down the middle
       var _a = root.WORLD_AIRPORTS[opts.centreArc[0].toUpperCase()], _b = root.WORLD_AIRPORTS[opts.centreArc[1].toUpperCase()];
@@ -377,15 +389,33 @@
       function check(text, on, fn) {
         var lab = el('label'); var c = el('input'); c.type = 'checkbox'; c.checked = on;
         c.addEventListener('change', function () { fn(c.checked); }); lab.appendChild(c); lab.appendChild(document.createTextNode(text)); opts.appendChild(lab);
+        return c;
       }
+      var topoChk, regionChk;
       radio('coarse', 'Coarse'); radio('fine', 'Fine'); opts.appendChild(el('span', null, '·'));
       check('Countries', state.boundaries, function (v) { state.boundaries = v; render(); });
       check('Ocean depth', state.bathymetry, function (v) { state.bathymetry = v; if (v) ensureLayer('WORLD_BATHYMETRY', lazyLayers.bathymetry, function (fresh) { if (fresh) geomKey = ''; render(); }); else render(); });
-      check('Land elevation', state.topography, function (v) { state.topography = v; if (v) ensureLayer('WORLD_TOPOGRAPHY', lazyLayers.topography, function (fresh) { if (fresh) geomKey = ''; render(); }); else render(); });
+      // Land elevation and UN regions both shade the land, so they're MUTUALLY EXCLUSIVE: turning one on
+      // turns the other off (and unticks its box).
+      topoChk = check('Land elevation', state.topography, function (v) {
+        state.topography = v;
+        if (v) { state.regions = false; if (regionChk) regionChk.checked = false; ensureLayer('WORLD_TOPOGRAPHY', lazyLayers.topography, function (fresh) { if (fresh) geomKey = ''; render(); }); }
+        else render();
+      });
+      regionChk = check('World regions', state.regions, function (v) {
+        state.regions = v;
+        if (v) { state.topography = false; if (topoChk) topoChk.checked = false; ensureLayer('WORLD_UN_REGIONS', lazyLayers.regions, function (fresh) { if (fresh) geomKey = ''; render(); }); }
+        else render();
+      });
       check('N/S seam belts', state.edges, function (v) { state.edges = v; render(); });
       check('Mercator limit (poles)', state.mercatorEdge, function (v) { state.mercatorEdge = v; render(); });
       check('Mercator limit (gen. poles)', state.mercatorEdgeGen, function (v) { state.mercatorEdgeGen = v; render(); });
       check('Central axis', state.middleLine, function (v) { state.middleLine = v; render(); });
+      if (cities) {                                                   // city-dot layers: World cities (49 GaWC) + Lived-in (4), MUTUALLY EXCLUSIVE; name on hover
+        var worldChk, livedChk;
+        worldChk = check('World cities', state.cityLayer === 'world', function (v) { state.cityLayer = v ? 'world' : 'none'; if (v && livedChk) livedChk.checked = false; render(); });
+        livedChk = check('Lived-in cities', state.cityLayer === 'lived', function (v) { state.cityLayer = v ? 'lived' : 'none'; if (v && worldChk) worldChk.checked = false; render(); });
+      }
       g.appendChild(opts); return g;
     }
     function normalizeOrient(o) {                                     // -> degrees, multiple of 15, in [0,360)
@@ -752,6 +782,18 @@
         }
         topoFill.push({ e: band.e, polys: pieces });
       });
+      // UN-subregion shading — each subregion = many country rings (outer + holes); collect all their
+      // seam-cut pieces for one even-odd fill (enclaves punch out, then re-fill if same subregion).
+      // `color` is the baked 4-colour index → PAL.regionColors[color] at draw time.
+      var regionFill = [], UR = layer(root.WORLD_UN_REGIONS);
+      if (UR) UR.forEach(function (grp) {
+        var pieces = [], r, k, ln, lt, ri;
+        for (ri = 0; ri < grp.rings.length; ri++) {
+          r = grp.rings[ri]; ln = []; lt = []; for (k = 0; k < r.length; k++) { ln.push(r[k][0]); lt.push(r[k][1]); }
+          push(pieces, MAPGEO.ringFillPolys(coord, proj, ln, lt));
+        }
+        regionFill.push({ color: grp.color, polys: pieces });
+      });
       var sm = seams(), bd = bands();                                      // Hǎo N/S seam belts, projected through the current framing
       // The belt is always drawn; the centre LINE is skipped on its own framing (it would just retrace
       // the lens boundary). Sides and caps fill separately so the pole-end caps can render darker.
@@ -785,7 +827,7 @@
       var mercGeoSet = mercSet(mercatorGeo()), mercGenSet = mercSet(mercatorClampGeo(coord));
       geomCache = { b: b, px0: (uMinX + uMaxX) / 2, py0: (uMinY + uMaxY) / 2, spanX: uMaxX - uMinX, spanY: uMaxY - uMinY,
                     spike: spike, grat: grat, coastFill: coastFill, coastLine: coastLine, lakesFill: lakesFill, lakesLine: lakesLine, bndLine: bndLine,
-                    bathyFill: bathyFill, topoFill: topoFill,
+                    bathyFill: bathyFill, topoFill: topoFill, regionFill: regionFill,
                     bandN: bandN, bandS: bandS, edgeN: edgeN, edgeS: edgeS, midLine: midLine,
                     mercGeoSet: mercGeoSet, mercGenSet: mercGenSet };
       geomKey = key; return geomCache;
@@ -817,6 +859,11 @@
         ctx2.fillStyle = color; ctx2.fill('evenodd');
       }
       function stroke(segs, color, w) { ctx2.strokeStyle = color; ctx2.lineWidth = w; for (var s = 0; s < segs.length; s++) { if (segs[s].X.length < 2) continue; poly(segs[s]); ctx2.stroke(); } }
+      function clipToLand() {                                               // clip subsequent fills to the LAND mask (all coast rings, even-odd → holes/ocean punched) so a land tint never spills past the NE coastline
+        ctx2.beginPath();
+        for (var tc = 0; tc < G.coastFill.length; tc++) { var cps = G.coastFill[tc].polys; for (var cp = 0; cp < cps.length; cp++) { var cs = cps[cp]; for (var ck = 0; ck < cs.X.length; ck++) { var cq = px(cs.X[ck], cs.Y[ck]); if (ck === 0) ctx2.moveTo(cq[0], cq[1]); else ctx2.lineTo(cq[0], cq[1]); } ctx2.closePath(); } }
+        ctx2.clip('evenodd');
+      }
 
       fill(G.b, PAL.ocean);                                                 // ocean lens base
       if (state.bathymetry && G.bathyFill.length) {                        // graded depth bands over the ocean, clipped to the lens so no fill (or its anti-aliased edge) escapes
@@ -828,11 +875,12 @@
       stroke(G.grat, PAL.graticule, 0.6);                                   // graticule
       for (var ci = 0; ci < G.coastFill.length; ci++) fillRing(G.coastFill[ci].polys, G.coastFill[ci].hole ? PAL.ocean : PAL.land);  // land + holes
       if (state.topography && G.topoFill.length) {                         // land elevation shade bands (hypsometric), low→high
-        ctx2.save();                                                       // clip to LAND (all coast rings, even-odd → holes/ocean punched) so DEM-derived bands never spill past the NE coastline
-        ctx2.beginPath();
-        for (var tc = 0; tc < G.coastFill.length; tc++) { var cps = G.coastFill[tc].polys; for (var cp = 0; cp < cps.length; cp++) { var cs = cps[cp]; for (var ck = 0; ck < cs.X.length; ck++) { var cq = px(cs.X[ck], cs.Y[ck]); if (ck === 0) ctx2.moveTo(cq[0], cq[1]); else ctx2.lineTo(cq[0], cq[1]); } ctx2.closePath(); } }
-        ctx2.clip('evenodd');
+        ctx2.save(); clipToLand();                                          // clip to land so DEM-derived bands never spill past the NE coastline
         for (var ti = 0; ti < G.topoFill.length; ti++) fillRing(G.topoFill[ti].polys, PAL.landColors[G.topoFill[ti].e] || PAL.land);
+        ctx2.restore();
+      } else if (state.regions && G.regionFill.length) {                   // UN-subregion 4-colour shading (mutually exclusive with topography above)
+        ctx2.save(); clipToLand();                                          // clip to land so a subregion's admin-0 fill never spills past the coastline
+        for (var rgi = 0; rgi < G.regionFill.length; rgi++) fillRing(G.regionFill[rgi].polys, PAL.regionColors[G.regionFill[rgi].color] || PAL.land);
         ctx2.restore();
       }
       for (var li = 0; li < G.lakesFill.length; li++) fillRing(G.lakesFill[li], PAL.ocean);   // inland water painted over land (and over the shade bands)
@@ -919,6 +967,26 @@
       var _isMerc = proj === 'mercator', _vert = coord.kind === 'vertical';
       if (state.mercatorEdge && !(_isMerc && !_vert) && G.mercGeoSet) maskMercLimit(G.mercGeoSet);   // geographic caps are interior everywhere except equatorial Mercator (there they're the clamp → band only)
       if (state.mercatorEdgeGen && !(_isMerc && _vert) && G.mercGenSet) maskMercLimit(G.mercGenSet);   // generalized caps are off-map only on the VERTICAL Mercator (its own clamp → band only); on equatorial Mercator + non-Mercator they're interior → cut as holes
+      // City dots - the active layer (World cities / Lived-in). Dots only; the name shows on hover.
+      // Drawn last so they sit on top of every layer; cached to lastCityDots for hover hit-testing.
+      lastCityDots = [];
+      if (cities && state.cityLayer !== 'none') {
+        var clist = state.cityLayer === 'lived' ? cities.lived : cities.world;
+        var cStroke = darkMode() ? '#0b1620' : '#ffffff';
+        for (var cyi = 0; cyi < clist.length; cyi++) {
+          var cyc = clist[cyi], cyp = PROJ.project(coord, proj, cyc.lat, cyc.lon), cypx = px(cyp.x, cyp.y);
+          ctx2.beginPath(); ctx2.arc(cypx[0], cypx[1], 2.7, 0, 2 * Math.PI); ctx2.fillStyle = PAL.city; ctx2.fill();
+          ctx2.lineWidth = 0.9; ctx2.strokeStyle = cStroke; ctx2.stroke();
+          lastCityDots.push({ x: cypx[0], y: cypx[1], label: cyc.label });
+        }
+        for (var hci = 0; state.hoverCity && hci < lastCityDots.length; hci++) {
+          var hcd = lastCityDots[hci]; if (hcd.label !== state.hoverCity) continue;
+          ctx2.font = '11px -apple-system,Segoe UI,sans-serif';
+          var ctw = ctx2.measureText(hcd.label).width, clx = hcd.x + 7, cly = hcd.y - 7;
+          ctx2.fillStyle = darkMode() ? 'rgba(15,23,32,0.9)' : 'rgba(255,255,255,0.92)'; ctx2.fillRect(clx - 3, cly - 11, ctw + 6, 15);
+          ctx2.fillStyle = PAL.marker; ctx2.fillText(hcd.label, clx, cly); break;
+        }
+      }
     }
 
     function lin(a, b, n) { var o = []; for (var i = 0; i < n; i++) o.push(a + (b - a) * i / (n - 1)); return o; }
@@ -989,6 +1057,17 @@
       function endDrag() { dragging = false; if (state.orientMode === 'north') { if (state.northLive) render(); else animateNorthTo(); } else render(); }   // re-render to drop the centre dot; north mode: live already oriented, else ease to north
       canvas.addEventListener('pointerup', endDrag);
       canvas.addEventListener('pointercancel', endDrag);
+    }
+
+    // ---- hover a city dot to show its name (World cities / Lived-in layer) ----
+    if (cities) {
+      canvas.addEventListener('mousemove', function (e) {
+        if (state.cityLayer === 'none' || dragging) return;
+        var mx = e.offsetX, my = e.offsetY, hit = null, bestD = 64;       // 8px pick radius (squared)
+        for (var i = 0; i < lastCityDots.length; i++) { var d = lastCityDots[i], dx = d.x - mx, dy = d.y - my, dd = dx * dx + dy * dy; if (dd < bestD) { bestD = dd; hit = d.label; } }
+        if (hit !== state.hoverCity) { state.hoverCity = hit; canvas.style.cursor = hit ? 'pointer' : ''; scheduleRender(); }
+      });
+      canvas.addEventListener('mouseleave', function () { if (state.hoverCity) { state.hoverCity = null; scheduleRender(); } });
     }
 
     // ---- click a region's area to select it (overview only) ----
