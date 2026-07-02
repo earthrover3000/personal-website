@@ -313,29 +313,199 @@
       const xMax = last > now ? last : now;
       const xSecs = Math.max(1, (xMax - xMin) / 1000);
       const xs = d => padL + chartW * ((d - xMin) / 1000) / xSecs;
-      const ysL = v => padT + chartH * (1 - v / yMaxLines);
-      const ysW = v => yMaxWords <= 0 ? padT + chartH : padT + chartH * (1 - v / yMaxWords);
+
+      // Two y-scale modes, selected by the Linear/Logarithmic toggle:
+      //   • linear — raw counts against the server-rendered nice-max axis
+      //     (yMaxLines / yMaxWords); labels are the counts themselves.
+      //   • log    — natural log (base e): each value maps to ln(count). The
+      //     lower end is floor(ln min); the tick STEP snaps to a 1-2-5 ladder
+      //     value (…, 0.1, 0.2, 0.5, 1, 2, 5, 10, …) — the smallest whose 4 steps
+      //     still cover the data — so every label is a 1/2/5 × power-of-ten
+      //     multiple (e.g. 9, 9.5, 10; never 7.8 or 9.2). The 5 gridlines never
+      //     move; only label text + path geometry do. (A nice step means the top
+      //     isn't a tight ceil(ln max) — a little head-room buys clean numbers.)
+      const ln = v => Math.log(Math.max(v, 1));
+      const totals = points.map(p => p.total);
+      const wordVals = points.map(p => p.words).filter(v => v != null);
+      // Smallest 1-2-5 ladder value ≥ raw (…, 0.1, 0.2, 0.5, 1, 2, 5, 10, …).
+      const niceStep = raw => {
+        const p = Math.pow(10, Math.floor(Math.log10(raw)));
+        return [1, 2, 5, 10].map(m => m * p).find(v => v >= raw - 1e-9) || 10 * p;
+      };
+      const lnBounds = vals => {
+        if (!vals.length) return { lo: 0, hi: 2, step: 0.5 };
+        const lo = Math.floor(ln(Math.min(...vals)));
+        const raw = Math.max(ln(Math.max(...vals)) - lo, 1e-6) / 4; // per-step to cover data
+        const step = niceStep(raw);
+        return { lo, hi: lo + step * 4, step };
+      };
+      const lnLines = lnBounds(totals);
+      const lnWords = wordVals.length ? lnBounds(wordVals) : { lo: 0, hi: 2, step: 0.5 };
+      // Label a tick with just enough decimals for its step (0.5→"9.5", 1→"9").
+      const fmtStep = (v, step) => {
+        const d = Math.max(0, -Math.floor(Math.log10(step) + 1e-9));
+        return Number(v.toFixed(d)).toString();
+      };
+      const lnPos = (v, b) => (ln(v) - b.lo) / (b.hi - b.lo);
+
+      const SCALES = {
+        linear: {
+          yl: v => padT + chartH * (1 - v / yMaxLines),
+          yw: v => yMaxWords <= 0 ? padT + chartH : padT + chartH * (1 - v / yMaxWords),
+          labL: i => Math.round(yMaxLines * i / 4).toLocaleString(),
+          labR: i => Math.round(yMaxWords * i / 4).toLocaleString(),
+        },
+        log: {
+          yl: v => padT + chartH * (1 - lnPos(v, lnLines)),
+          yw: v => padT + chartH * (1 - lnPos(v, lnWords)),
+          labL: i => fmtStep(lnLines.lo + lnLines.step * i, lnLines.step),
+          labR: i => fmtStep(lnWords.lo + lnWords.step * i, lnWords.step),
+        },
+      };
+
       const linesPath = svg.querySelector('path.lines-series');
-      if (linesPath) {
-        linesPath.setAttribute('d', 'M ' + points.map((p, i) =>
-          `${xs(dates[i]).toFixed(1)},${ysL(p.total).toFixed(1)}`
-        ).join(' L '));
-      }
-      const wordsIdx = points.map((p, i) => p.words != null ? i : -1).filter(i => i >= 0);
       const wordsPath = svg.querySelector('path.words-series');
-      if (wordsPath && wordsIdx.length >= 2) {
-        wordsPath.setAttribute('d', 'M ' + wordsIdx.map(i =>
-          `${xs(dates[i]).toFixed(1)},${ysW(points[i].words).toFixed(1)}`
-        ).join(' L '));
+      const wordsIdx = points.map((p, i) => p.words != null ? i : -1).filter(i => i >= 0);
+      const leftLabels = svg.querySelectorAll('.y-label-left');
+      const rightLabels = svg.querySelectorAll('.y-label-right');
+      const legendLines = svg.querySelector('.legend-lines');
+      const legendWords = svg.querySelector('.legend-words');
+
+      function redraw(mode) {
+        const s = SCALES[mode] || SCALES.linear;
+        if (linesPath) {
+          linesPath.setAttribute('d', 'M ' + points.map((p, i) =>
+            `${xs(dates[i]).toFixed(1)},${s.yl(p.total).toFixed(1)}`
+          ).join(' L '));
+        }
+        if (wordsPath && wordsIdx.length >= 2) {
+          wordsPath.setAttribute('d', 'M ' + wordsIdx.map(i =>
+            `${xs(dates[i]).toFixed(1)},${s.yw(points[i].words).toFixed(1)}`
+          ).join(' L '));
+        }
+        leftLabels.forEach((el, i) => { el.textContent = s.labL(i); });
+        rightLabels.forEach((el, i) => { el.textContent = s.labR(i); });
       }
-      // Right-edge x-axis label tracks the new now.
-      const lbl = svg.querySelector('text.x-label-right');
-      if (lbl) {
-        const yyyy = now.getUTCFullYear();
-        const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
-        const dd = String(now.getUTCDate()).padStart(2, '0');
-        lbl.textContent = `${yyyy}-${mm}-${dd}`;
+
+      // Series visibility — two orthogonal checkboxes. Each hides its path, that
+      // axis's labels, and its legend swatch; unchecking both leaves a bare
+      // gridded frame.
+      const showLines = document.querySelector('#series-lines');
+      const showWords = document.querySelector('#series-words');
+      const setVis = (els, on) => els.forEach(el => { if (el) el.style.display = on ? '' : 'none'; });
+      function applyVisibility() {
+        setVis([linesPath, legendLines, ...leftLabels], !showLines || showLines.checked);
+        setVis([wordsPath, legendWords, ...rightLabels], !showWords || showWords.checked);
       }
+      // No words series on this page → the Words checkbox controls nothing.
+      if (!wordsPath && showWords) { showWords.checked = false; showWords.disabled = true; }
+
+      // Initial y-scale draw + series visibility (Linear default), then wire the
+      // scale + series controls to re-scale / re-filter in place.
+      const currentMode = () => document.querySelector('#scale-log:checked') ? 'log' : 'linear';
+      redraw(currentMode());
+      applyVisibility();
+      document.querySelectorAll('input[name="chart-scale"]').forEach(radio => {
+        radio.addEventListener('change', () => redraw(currentMode()));
+      });
+      [showLines, showWords].forEach(cb => cb && cb.addEventListener('change', applyVisibility));
+
+      // ── X-axis: block / month / week boundary labels ─────────────────────
+      // Mirrors the lifespan-atlas clock view: a faint boundary gridline at each
+      // period START + the unit label (block no. / month / ISO week no.) centred
+      // at the period MIDPOINT. Blocks is the default. The math comes from the
+      // shared event-marks engine (引擎 Engines/event-marks) — the SAME module the
+      // Atlas uses — so the numbers agree. Loaded via dynamic import so an
+      // engine-load failure disables only the x-axis, not the table sorting.
+      const SVGNS = 'http://www.w3.org/2000/svg';
+      const EN_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const domainMinMs = +xMin, domainMaxMs = +xMax;
+      const xForMs = ms => padL + chartW * (ms - domainMinMs) / Math.max(1, domainMaxMs - domainMinMs);
+      const clampX = x => Math.max(padL, Math.min(W - padR, x));
+      let boundaries = [];
+      try { boundaries = JSON.parse(svg.dataset.chartBlockBoundaries || '[]'); } catch (e) { boundaries = []; }
+      let phaseBnd = [];
+      try { phaseBnd = JSON.parse(svg.dataset.chartPhaseBoundaries || '[]'); } catch (e) { phaseBnd = []; }
+
+      import('../../引擎 Engines/event-marks/marks.js').then(marks => {
+        // Engine loaded → the server date fallbacks give way to unit labels.
+        svg.querySelectorAll('.x-date-fallback').forEach(el => el.remove());
+        const blockCtx = marks.computeBlockContext(boundaries, domainMaxMs);
+        // Website version phases: [iso, label] pairs → { startMs, label }.
+        const phases = phaseBnd.map(([iso, label]) => ({ startMs: marks.isoToDayMs(iso), label }));
+        const labelY = H - padB + 16;
+        const ticksFor = mode => {
+          if (mode === 'months') {
+            return marks.getMonthMarksInRange(domainMinMs, domainMaxMs)
+              .map(m => ({ startMs: m.startMs, endMs: m.endMs, midMs: m.midMs, text: EN_MONTHS[m.monthIndex] }));
+          }
+          if (mode === 'weeks') {
+            return marks.getWeekMarksInRange(domainMinMs, domainMaxMs)
+              .map(w => ({ startMs: w.startMs, endMs: w.endMs, midMs: w.midMs, text: String(w.isoWeek) }));
+          }
+          if (mode === 'phases') {
+            return marks.getPhaseMarksInRange(domainMinMs, domainMaxMs, phases)
+              .map(p => ({ startMs: p.startMs, endMs: p.endMs, midMs: p.midMs, text: p.label }));
+          }
+          return marks.getBlockMarksInRange(domainMinMs, domainMaxMs, blockCtx)
+            .map(b => ({ startMs: b.startMs, endMs: b.endMs, midMs: b.midMs, text: b.label }));
+        };
+        function drawXAxis(mode) {
+          const existing = svg.querySelector('.x-axis-layer');
+          if (existing) existing.remove();
+          const layer = document.createElementNS(SVGNS, 'g');
+          layer.setAttribute('class', 'x-axis-layer');
+          // Only periods whose window actually overlaps the data range. The
+          // engine emits one period early (for the Atlas ring's midpoint labels),
+          // which on a linear axis would otherwise clamp a non-overlapping label
+          // (e.g. a month before the first snapshot) onto the left edge.
+          const visible = ticksFor(mode).filter(t => t.endMs > domainMinMs && t.startMs < domainMaxMs);
+          for (const t of visible) {
+            const bx = xForMs(t.startMs);
+            // Boundary gridline — only when it lands strictly inside the plot.
+            if (bx > padL + 0.5 && bx < W - padR - 0.5) {
+              const line = document.createElementNS(SVGNS, 'line');
+              line.setAttribute('x1', bx.toFixed(1)); line.setAttribute('x2', bx.toFixed(1));
+              line.setAttribute('y1', padT); line.setAttribute('y2', H - padB);
+              line.setAttribute('stroke', 'currentColor'); line.setAttribute('stroke-opacity', '0.08');
+              layer.appendChild(line);
+            }
+            // Label centred at the period midpoint, clamped into the plot so an
+            // edge period whose midpoint is off-range still shows its number.
+            if (t.text) {
+              const txt = document.createElementNS(SVGNS, 'text');
+              txt.setAttribute('x', clampX(xForMs(t.midMs)).toFixed(1));
+              txt.setAttribute('y', labelY);
+              txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '10');
+              txt.setAttribute('fill', 'currentColor'); txt.setAttribute('fill-opacity', '0.55');
+              txt.textContent = t.text;
+              layer.appendChild(txt);
+            }
+          }
+          // Behind the series paths (first child) so gridlines don't cross them.
+          svg.insertBefore(layer, svg.firstChild);
+        }
+        const xMode = () =>
+          document.querySelector('#xaxis-months:checked') ? 'months' :
+          document.querySelector('#xaxis-weeks:checked') ? 'weeks' :
+          document.querySelector('#xaxis-phases:checked') ? 'phases' :
+          document.querySelector('#xaxis-blocks:checked') ? 'blocks' :
+          'months';  // no toggle present (e.g. app-stats) → sensible month labels
+        drawXAxis(xMode());
+        document.querySelectorAll('input[name="chart-xaxis"]').forEach(radio => {
+          radio.addEventListener('change', () => drawXAxis(xMode()));
+        });
+      }).catch(() => {
+        // Engine unavailable → keep the server date fallbacks; refresh the
+        // right-edge label to the live "now" (its old build-time behaviour).
+        const lbl = svg.querySelector('text.x-label-right');
+        if (lbl) {
+          const yyyy = now.getUTCFullYear();
+          const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+          const dd = String(now.getUTCDate()).padStart(2, '0');
+          lbl.textContent = `${yyyy}-${mm}-${dd}`;
+        }
+      });
     }
   }
 })();

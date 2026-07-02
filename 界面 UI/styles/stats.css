@@ -169,6 +169,58 @@ body:has(#group-categories:not(:checked)) #project-outline .section-bar { displa
   color: var(--accent);
   border-color: var(--accent);
 }
+/* Chart controls row: the Linear/Logarithmic scale toggle + the Lines/Words
+   series checkboxes, sitting on one line directly above the chart (which
+   supplies its own top margin). Wraps on narrow viewports. */
+.chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1.2rem;
+  margin: 0.5rem 0 0;
+}
+.chart-controls .view-toggle { margin: 0; }
+/* Series checkboxes reuse the view-toggle pill look; each lights up in its
+   own series colour when checked (Lines = accent, Words = the warm word hue),
+   mirroring the chart legend. */
+.series-toggle {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: 0.8rem;
+}
+.series-toggle input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.series-toggle label {
+  cursor: pointer;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.8rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+.series-toggle label:hover { color: var(--text); }
+.series-toggle input[type="checkbox"]:focus-visible + label {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.series-toggle #series-lines:checked + label {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.series-toggle #series-words:checked + label {
+  color: #d4a574;
+  border-color: #d4a574;
+}
+.series-toggle input[type="checkbox"]:disabled + label {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* Lock all three spans to the same minimum width so column sizing
    stays stable when the toggle swaps which one is visible. The widest
