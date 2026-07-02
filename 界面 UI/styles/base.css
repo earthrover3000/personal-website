@@ -2,28 +2,32 @@
    pages (site-map, site-stats, lifespan-atlas plan). Loaded BEFORE the
    page-specific stylesheet so page rules can override.
 
-   Workflow.css is intentionally NOT layered on top of this — it ships its
-   own GitHub-style palette and doesn't share these tokens. */
+   Workflow.css layers on top of this (workflow.html loads both): it keeps its
+   own GitHub-style palette but now expresses light/dark via the same
+   light-dark() + color-scheme mechanism, so the manual theme toggle reaches it
+   too. */
 
-/* ---- Theme tokens ---- */
+/* ---- Theme tokens ----
+   Each colour is declared exactly once via light-dark(light, dark); the value
+   that wins follows the `color-scheme` property (single source of truth — no
+   duplicated palette across a media query).
+
+   Default `dark light` = AUTO: follow the OS, falling back to dark when the OS
+   states no preference (preserves the site's long-standing dark default). The
+   Settings toggle overrides this by setting a data-theme attribute on <html>,
+   which narrows color-scheme to one keyword — applied before first paint by
+   page-widgets/theme-init.js, so navigation never flashes the wrong theme. */
 :root {
-  --bg: #0f0f0f;
-  --surface: #1a1a1a;
-  --border: #2e2e2e;
-  --accent: #7c9ef5;
-  --text: #e0e0e0;
-  --muted: #888;
+  color-scheme: dark light;                    /* auto (OS-driven, dark default) */
+  --bg:      light-dark(#f5f5f5, #0f0f0f);
+  --surface: light-dark(#ffffff, #1a1a1a);
+  --border:  light-dark(#d0d0d0, #2e2e2e);
+  --accent:  light-dark(#3a5fd9, #7c9ef5);
+  --text:    light-dark(#1a1a1a, #e0e0e0);
+  --muted:   light-dark(#666,    #888);
 }
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f5f5f5;
-    --surface: #ffffff;
-    --border: #d0d0d0;
-    --accent: #3a5fd9;
-    --text: #1a1a1a;
-    --muted: #666;
-  }
-}
+:root[data-theme="light"] { color-scheme: light; }  /* forced light */
+:root[data-theme="dark"]  { color-scheme: dark;  }   /* forced dark  */
 
 /* ---- Reset + base ---- */
 * { box-sizing: border-box; margin: 0; padding: 0; }

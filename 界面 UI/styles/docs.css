@@ -3,32 +3,20 @@
    .container, .back-link live there. This file owns the docs-specific
    surfaces: TOC, content sections, tables, edit-mode controls. */
 
-/* ---- Doc-specific theme tokens (tag colors used by status pills) ---- */
+/* ---- Doc-specific theme tokens (status-pill tag colours) ----
+   Each pair via light-dark(light, dark); follows `color-scheme` (set on :root
+   by base.css), so the manual theme toggle flips the pills too. */
 :root {
-  --tag-green: #2a4a2a;
-  --tag-green-text: #7ecb7e;
-  --tag-blue: #1e2e4a;
-  --tag-blue-text: #7eb8f5;
-  --tag-red: #4a1e1e;
-  --tag-red-text: #f5857e;
-  --tag-yellow: #4a3e1a;
-  --tag-yellow-text: #f5d07e;
-  --tag-teal: #1a3e3e;
-  --tag-teal-text: #7ecfc4;
-}
-@media (prefers-color-scheme: light) {
-  :root {
-    --tag-green: #d4edda;
-    --tag-green-text: #1e6b32;
-    --tag-blue: #d0e4f7;
-    --tag-blue-text: #1a4a7a;
-    --tag-red: #fde0de;
-    --tag-red-text: #8b1a14;
-    --tag-yellow: #fff3cd;
-    --tag-yellow-text: #7a5200;
-    --tag-teal: #d0f0ee;
-    --tag-teal-text: #1a5a54;
-  }
+  --tag-green:       light-dark(#d4edda, #2a4a2a);
+  --tag-green-text:  light-dark(#1e6b32, #7ecb7e);
+  --tag-blue:        light-dark(#d0e4f7, #1e2e4a);
+  --tag-blue-text:   light-dark(#1a4a7a, #7eb8f5);
+  --tag-red:         light-dark(#fde0de, #4a1e1e);
+  --tag-red-text:    light-dark(#8b1a14, #f5857e);
+  --tag-yellow:      light-dark(#fff3cd, #4a3e1a);
+  --tag-yellow-text: light-dark(#7a5200, #f5d07e);
+  --tag-teal:        light-dark(#d0f0ee, #1a3e3e);
+  --tag-teal-text:   light-dark(#1a5a54, #7ecfc4);
 }
 
 /* ---- Page-level extras ---- */

@@ -1,10 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Charlie 丁志成 ✦ Highlights</title>
-<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
+<title>Charlie 丁志成 ✦ Settings</title>
+<script>/* Site-wide theme control — the single source of truth for manual dark/light.
+
+   Loaded as a BLOCKING <script> (no defer/async) early in every page's and
+   every app's <head>, so it runs before first paint: reading the stored
+   choice and stamping <html data-theme> synchronously means navigating
+   between pages never flashes the wrong theme.
+
+   Modes (localStorage['site-theme']):
+     'auto'  (default) — no attribute; CSS `color-scheme: dark light` follows
+                         the OS (see 界面 UI/styles/base.css).
+     'dark' / 'light'  — sets <html data-theme>, forcing color-scheme.
+
+   Public API (used by the Settings page toggle):
+     window.setSiteTheme(mode)  — persist + apply immediately.
+     window.getSiteTheme()      — current stored mode ('auto' if unset).
+     window.onSiteThemeChange(cb)— subscribe (fires cross-tab too). */
+(function () {
+  var KEY = 'site-theme';
+  var listeners = [];
+
+  function normalize(mode) {
+    return (mode === 'dark' || mode === 'light') ? mode : 'auto';
+  }
+
+  function apply(mode) {
+    var el = document.documentElement;
+    if (mode === 'auto') el.removeAttribute('data-theme');
+    else el.setAttribute('data-theme', mode);
+  }
+
+  function read() {
+    try { return normalize(localStorage.getItem(KEY)); } catch (e) { return 'auto'; }
+  }
+
+  // Apply immediately (this is the pre-paint work).
+  apply(read());
+
+  window.setSiteTheme = function (mode) {
+    mode = normalize(mode);
+    try {
+      if (mode === 'auto') localStorage.removeItem(KEY);
+      else localStorage.setItem(KEY, mode);
+    } catch (e) {}
+    apply(mode);
+    for (var i = 0; i < listeners.length; i++) { try { listeners[i](mode); } catch (e) {} }
+  };
+
+  window.getSiteTheme = function () { return read(); };
+
+  window.onSiteThemeChange = function (cb) {
+    if (typeof cb === 'function') listeners.push(cb);
+  };
+
+  // Keep other open tabs/pages in sync when the choice changes elsewhere.
+  window.addEventListener('storage', function (e) {
+    if (e.key !== KEY) return;
+    var mode = read();
+    apply(mode);
+    for (var i = 0; i < listeners.length; i++) { try { listeners[i](mode); } catch (err) {} }
+  });
+})();
+</script>
 <style>/* Shared base styles for index pages (root, protected, private) and docs
    pages (site-map, site-stats, lifespan-atlas plan). Loaded BEFORE the
    page-specific stylesheet so page rules can override.
@@ -530,22 +592,69 @@ a.app-card:hover {
   letter-spacing: 0.02em;
 }
 </style>
+<style>
+    /* Preferences list: one labelled setting per row. */
+    .setting { margin-top: 1.5rem; }
+    .setting > h2 {
+      font-size: 1rem; margin-bottom: 0.2rem; color: var(--text);
+    }
+    .setting-desc { color: var(--muted); font-size: 0.9rem; margin-bottom: 0.8rem; }
+
+    /* Three-way segmented control. Buttons share one bordered surface; the
+       active option fills with the accent. */
+    .theme-toggle {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+      max-width: 520px;
+    }
+    .theme-opt {
+      display: flex; flex-direction: column; align-items: flex-start;
+      gap: 0.15rem; padding: 0.7rem 0.9rem; background: var(--surface);
+      border: 0; border-left: 1px solid var(--border);
+      color: var(--text); font: inherit; text-align: left; cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .theme-opt:first-child { border-left: 0; }
+    .theme-opt:hover { background: var(--border); }
+    .theme-opt.is-active { background: var(--accent); color: var(--bg); }
+    .theme-opt.is-active .theme-opt-desc { color: var(--bg); opacity: 0.8; }
+    .theme-opt-label { font-weight: 500; }
+    .theme-opt-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.35; }
+</style>
 </head>
 <body>
 <div class="container">
-  <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a> <span class="sep">›</span> <span aria-current="page">Highlights</span></nav>
-  <h1>Highlights</h1>
-  <p class="head-meta">A guided tour of the site’s most prominent features.</p>
-  <p style="text-align:center;color:var(--muted);font-style:italic;margin:2rem 0 1rem;">✨ Under construction — big visuals coming soon. ✨</p>
-  <p style="color:var(--muted);">In the meantime, here’s what this page will showcase:</p>
-  <ul>
-    <li><strong>Chromatic Camelot</strong> — <span class="muted">the chromatic Camelot wheel — a circle of fifths you can play</span></li>
-    <li><strong>Lifespan Atlas</strong> — <span class="muted">autobiographical software charting a life across time</span></li>
-    <li><strong>Maps &amp; Projections</strong> — <span class="muted">a world map you can re-centre and re-project, with rendered terrain</span></li>
-  </ul>
-  <div class="entry-links">
-    <a href="../contents/pages/public/">Explore all pages ➡️</a>
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../">Home</a> <span class="sep">›</span> <a href="../">Index</a> <span class="sep">›</span> <span aria-current="page">Settings</span></nav>
+<h1>Settings ⚙️</h1>
+<p class="head-meta">Phase 0.3 (2026-03-23) 🛣️</p>
+<section class="setting">
+  <h2>Theme</h2>
+  <p class="setting-desc">Choose how this site appears on this device. Your choice is remembered in this browser and applies across every page.</p>
+  <div class="theme-toggle" role="radiogroup" aria-label="Theme">
+    <button type="button" class="theme-opt" data-mode="auto" role="radio" aria-checked="false"><span class="theme-opt-label">Auto</span><span class="theme-opt-desc">Follow this device’s system setting</span></button>
+    <button type="button" class="theme-opt" data-mode="light" role="radio" aria-checked="false"><span class="theme-opt-label">Light</span><span class="theme-opt-desc">Always light, regardless of the system</span></button>
+    <button type="button" class="theme-opt" data-mode="dark" role="radio" aria-checked="false"><span class="theme-opt-label">Dark</span><span class="theme-opt-desc">Always dark, regardless of the system</span></button>
   </div>
+</section>
+<script>
+(function () {
+  var group = document.querySelector('.theme-toggle');
+  if (!group) return;
+  var opts = group.querySelectorAll('.theme-opt');
+  function reflect(mode) {
+    opts.forEach(function (b) {
+      var on = b.dataset.mode === mode;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  }
+  opts.forEach(function (b) {
+    b.addEventListener('click', function () { window.setSiteTheme(b.dataset.mode); });
+  });
+  reflect(window.getSiteTheme ? window.getSiteTheme() : 'auto');
+  if (window.onSiteThemeChange) window.onSiteThemeChange(reflect);
+})();
+</script>
 </div>
 </body>
 </html>

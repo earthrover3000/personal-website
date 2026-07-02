@@ -62,7 +62,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237c9ef5' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+  /* light-dark() flips the caret fill with the theme (blue #3a5fd9 light /
+     #7c9ef5 dark) — follows color-scheme, so it obeys the manual toggle. */
+  background-image: light-dark(url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%233a5fd9' d='M6 8 0 0h12z'/%3E%3C/svg%3E"), url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237c9ef5' d='M6 8 0 0h12z'/%3E%3C/svg%3E"));
   background-repeat: no-repeat;
   background-position: right 0.7rem center;
   transition: border-color 0.15s, background-color 0.15s;
@@ -75,10 +77,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
    Safari/system pickers minimally. */
 .tier-nav option { color: var(--accent); background-color: var(--bg); }
 .tier-nav option:checked { color: var(--text); }
-@media (prefers-color-scheme: light) {
-  .tier-nav { background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%233a5fd9' d='M6 8 0 0h12z'/%3E%3C/svg%3E"); }
-}
-
 /* .filter rule is in base.css; only the row layout below stays index-specific. */
 
 .row { display: flex; gap: 2rem; align-items: flex-start; }
@@ -129,12 +127,10 @@ a.app-card {
 }
 a.app-card:hover {
   background: var(--surface);
-  border-color: #5fa8a8;
+  /* light-dark() so the hover border flips with the manual theme toggle. */
+  border-color: light-dark(#1a5757, #5fa8a8);
   text-decoration: none;
   transform: translateY(-1px);
-}
-@media (prefers-color-scheme: light) {
-  a.app-card:hover { border-color: #1a5757; }
 }
 .app-card__icon { width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0; display: block; }
 .app-card__body { flex: 1; min-width: 0; }

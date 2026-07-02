@@ -38,7 +38,16 @@
     // darkened toward the dark ocean so the tint reads without glowing.
     regionColors: ['#7d4a42', '#42603c', '#3c4d70', '#6a5a33']
   };
-  function darkMode() { return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches; }
+  // Effective theme: the manual site toggle (<html data-theme>, set by
+  // 界面 UI/page-widgets/theme-init.js) wins; in 'auto' (no attribute) fall
+  // back to the OS via prefers-color-scheme.
+  function darkMode() {
+    var t = (typeof document !== 'undefined' && document.documentElement)
+      ? document.documentElement.getAttribute('data-theme') : null;
+    if (t === 'dark') return true;
+    if (t === 'light') return false;
+    return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
+  }
   function palette() { return darkMode() ? DARK_PAL : LIGHT_PAL; }
   var ROUTE_COLORS = ['#c0392b', '#1f6f3d', '#6c3483', '#b9770e', '#1a5276', '#7b241c'];
   var REGION_COLOR = '#e91e63';   // region-disc outline — vivid pink, distinct from the route palette + seam belts, legible on land/ocean in both themes
@@ -51,6 +60,13 @@
   var MERC_EDGE = '#c0392b';                  // crimson ring on ±MERCATOR_MAXLAT — the cut-out cap boundary on Hǎo/Winkel
   var GRAT = 15;            // graticule spacing, degrees
   var NSAMP = 500;          // samples per graticule line / arc
+  // Terrain-grid bin lower bounds — MUST match scripts/make_terrain_grid.py.
+  // Ocean codes 0..11 map to DEPTH_BOUNDS (the historical NE bathymetry band
+  // set, so PAL.bathyColors lookups keep identical visuals); land codes
+  // TERRAIN_LAND_BASE.. map to LAND_BOUNDS (make_topography.py's LEVELS).
+  var DEPTH_BOUNDS = [0, 200, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000];
+  var LAND_BOUNDS = [0, 500, 1000, 2000, 3000, 4000, 5000];
+  var TERRAIN_LAND_BASE = 16;
   var DEFAULT_SIZE = 360;   // box px — matches the Region Map Explorer default
   var ZOOM_LEVELS = [1, 2, 4, 8, 16, 32];   // each step doubles: 100, 200, 400, 800, 1600, 3200 %
   // Quick-orient presets: which region sits at the top, as a fixed-dial angle (°, multiple of 15),
@@ -137,9 +153,11 @@
     // on THIS framing, of the exact Web-Mercator crop the Region Map Explorer shows (PROJ.mercatorDisc).
     // Outline only. The {defaultRadiusKm} alias lets the Region Explorer's region list pass straight through.
     var regions = opts.regions || [];
-    // Optional lazy data sources: {bathymetry:url, topography:url}. When given, the heavy terrain globals
+    // Optional lazy data sources: {terrain:url, regions:url}. When given, the heavy data globals
     // are NOT shipped up-front — they're fetched on first toggle-on so the UI/basemap load fast. Absent →
     // the layer just no-ops until its global is present (e.g. eager <script>, or never).
+    // `terrain` serves BOTH the Ocean-depth and Land-elevation toggles (one combined
+    // WORLD_TERRAIN_GRID file — see scripts/make_terrain_grid.py).
     var lazyLayers = opts.lazyLayers || {};
     var onRegionClick = typeof opts.onRegionClick === 'function' ? opts.onRegionClick : null;   // click a disc's area → callback(region)
     var disablePan = !!opts.disablePan;                                                          // skip drag-to-pan (used by the static Region overview)
@@ -154,8 +172,8 @@
       coordinate: opts.coordinate || cfg.default_coordinate,
       projection: opts.projection || cfg.default_projection,
       boundaries: opts.boundaries != null ? opts.boundaries : !!uiDefaults.boundaries,
-      bathymetry: opts.bathymetry != null ? opts.bathymetry : !!uiDefaults.bathymetry,   // ocean-depth tint bands (WORLD_BATHYMETRY)
-      topography: opts.topography != null ? opts.topography : !!uiDefaults.topography,    // land elevation shade bands (WORLD_TOPOGRAPHY)
+      bathymetry: opts.bathymetry != null ? opts.bathymetry : !!uiDefaults.bathymetry,   // ocean-depth tint bands (WORLD_TERRAIN_GRID codes 0..11)
+      topography: opts.topography != null ? opts.topography : !!uiDefaults.topography,    // land elevation shade bands (WORLD_TERRAIN_GRID codes 16..)
       regions: opts.regions != null ? opts.regions : !!uiDefaults.regions,                // UN-subregion 4-colour shading (WORLD_UN_REGIONS); mutually exclusive with topography (both shade land)
       mercatorEdge: opts.mercatorEdge != null ? opts.mercatorEdge : !!uiDefaults.mercator_edge,   // STANDARD Web Mercator's ±85.05° limit: cut the GEOGRAPHIC polar caps out of Hǎo/Winkel; band the equatorial-Mercator clamp
       mercatorEdgeGen: opts.mercatorEdgeGen != null ? opts.mercatorEdgeGen : !!uiDefaults.mercator_edge_gen,   // the OBLIQUE Mercator's own ±85.05° limit (GENERALIZED poles) — separate toggle; band on the Mercator projection's clamp, cut out on Hǎo/Winkel
@@ -394,12 +412,12 @@
       var topoChk, regionChk;
       radio('coarse', 'Coarse'); radio('fine', 'Fine'); opts.appendChild(el('span', null, '·'));
       check('Countries', state.boundaries, function (v) { state.boundaries = v; render(); });
-      check('Ocean depth', state.bathymetry, function (v) { state.bathymetry = v; if (v) ensureLayer('WORLD_BATHYMETRY', lazyLayers.bathymetry, function (fresh) { if (fresh) geomKey = ''; render(); }); else render(); });
+      check('Ocean depth', state.bathymetry, function (v) { state.bathymetry = v; render(); });   // texture bake is scheduled from the draw path (usually pre-warmed already)
       // Land elevation and UN regions both shade the land, so they're MUTUALLY EXCLUSIVE: turning one on
       // turns the other off (and unticks its box).
       topoChk = check('Land elevation', state.topography, function (v) {
         state.topography = v;
-        if (v) { state.regions = false; if (regionChk) regionChk.checked = false; ensureLayer('WORLD_TOPOGRAPHY', lazyLayers.topography, function (fresh) { if (fresh) geomKey = ''; render(); }); }
+        if (v) { state.regions = false; if (regionChk) regionChk.checked = false; render(); }
         else render();
       });
       regionChk = check('World regions', state.regions, function (v) {
@@ -738,10 +756,13 @@
       var coord = activeCoord(), proj = state.projection, b = MAPGEO.boundary(coord, proj), i, x, y, lon, lat;
       var uMinX = Infinity, uMaxX = -Infinity, uMinY = Infinity, uMaxY = -Infinity;
       for (i = 0; i < b.X.length; i++) { x = b.X[i]; y = b.Y[i]; if (x < uMinX) uMinX = x; if (x > uMaxX) uMaxX = x; if (y < uMinY) uMinY = y; if (y > uMaxY) uMaxY = y; }
-      var spike = 0.04 * Math.max(uMaxX - uMinX, uMaxY - uMinY);            // UNSCALED projected units (rotation-invariant)
       var grat = [];
-      for (lon = -180; lon <= 180; lon += GRAT) push(grat, MAPGEO.lineSegs(coord, proj, lin(-89.5, 89.5, NSAMP), fillArr(lon, NSAMP), spike));
-      for (lat = -75; lat <= 75; lat += GRAT) push(grat, MAPGEO.lineSegs(coord, proj, fillArr(lat, NSAMP), lin(-180, 180, NSAMP), spike));
+      // Meridians run the FULL ±90: with the domain-space pole cut they terminate
+      // exactly on the pole arcs (the old ±89.5 clamp only existed to keep lines
+      // out of spikeBreak's blast radius). Parallels: ±90 are degenerate points,
+      // so −75…75 at 15° spacing is simply every interior parallel.
+      for (lon = -180; lon <= 180; lon += GRAT) push(grat, MAPGEO.lineSegs(coord, proj, lin(-90, 90, NSAMP), fillArr(lon, NSAMP)));
+      for (lat = -75; lat <= 75; lat += GRAT) push(grat, MAPGEO.lineSegs(coord, proj, fillArr(lat, NSAMP), lin(-180, 180, NSAMP)));
       // Keep each ring's seam-cut fill pieces GROUPED so they can be filled as one even-odd path:
       // a ring that encircles a pole (Antarctica) cuts into nested pieces whose crude seam-edge
       // closures overlap, and even-odd makes the overlap cancel — re-opening bays at the seam that
@@ -751,37 +772,22 @@
       layer(root.WORLD_COASTLINE).forEach(function (rg) {
         var ln = [], lt = [], r = rg.ring, k; for (k = 0; k < r.length; k++) { ln.push(r[k][0]); lt.push(r[k][1]); }
         coastFill.push({ polys: MAPGEO.ringFillPolys(coord, proj, ln, lt), hole: rg.hole });
-        push(coastLine, MAPGEO.ringOutlineArcs(coord, proj, ln, lt, spike));
+        push(coastLine, MAPGEO.ringOutlineArcs(coord, proj, ln, lt));
       });
       var lakesFill = [], lakesLine = [], LK = layer(root.WORLD_LAKES);
       if (LK) LK.forEach(function (ring) {
         var ln = [], lt = [], k; for (k = 0; k < ring.length; k++) { ln.push(ring[k][0]); lt.push(ring[k][1]); }
         lakesFill.push(MAPGEO.ringFillPolys(coord, proj, ln, lt));
-        push(lakesLine, MAPGEO.ringOutlineArcs(coord, proj, ln, lt, spike));
+        push(lakesLine, MAPGEO.ringOutlineArcs(coord, proj, ln, lt));
       });
       var bndLine = [], BN = layer(root.WORLD_BOUNDARIES);
       if (BN) BN.forEach(function (ring) {
         var ln = [], lt = [], k; for (k = 0; k < ring.length; k++) { ln.push(ring[k][0]); lt.push(ring[k][1]); }
-        push(bndLine, MAPGEO.ringOutlineArcs(coord, proj, ln, lt, spike));
+        push(bndLine, MAPGEO.ringOutlineArcs(coord, proj, ln, lt));
       });
-      // Terrain SHADE bands — ocean depth (WORLD_BATHYMETRY, shallow→deep) and land elevation
-      // (WORLD_TOPOGRAPHY, low→high). Both are filled hypsometric bands: each band's rings are seam-cut
-      // and kept GROUPED so draw() can fill them even-odd (interior holes/basins punch out). Empty when
-      // the data global isn't loaded yet (lazy-loaded on first toggle, or absent on a bare embed).
-      var bathyFill = [], BA = layer(root.WORLD_BATHYMETRY);
-      if (BA) BA.forEach(function (band) {
-        var ln = [], lt = [], r = band.ring, k; for (k = 0; k < r.length; k++) { ln.push(r[k][0]); lt.push(r[k][1]); }
-        bathyFill.push({ d: band.d, polys: MAPGEO.ringFillPolys(coord, proj, ln, lt) });
-      });
-      var topoFill = [], TO = layer(root.WORLD_TOPOGRAPHY);
-      if (TO) TO.forEach(function (band) {                                 // each band = many rings (outer + holes); collect all their seam-cut pieces for one even-odd fill
-        var pieces = [], r, k, ln, lt, ri;
-        for (ri = 0; ri < band.rings.length; ri++) {
-          r = band.rings[ri]; ln = []; lt = []; for (k = 0; k < r.length; k++) { ln.push(r[k][0]); lt.push(r[k][1]); }
-          push(pieces, MAPGEO.ringFillPolys(coord, proj, ln, lt));
-        }
-        topoFill.push({ e: band.e, polys: pieces });
-      });
+      // Terrain (ocean depth + land elevation) is NOT built here: it lives in
+      // the async texture bake (bakeTerrainPair below), so framing switches and
+      // the initial basemap render never pay the grid-warp cost.
       // UN-subregion shading — each subregion = many country rings (outer + holes); collect all their
       // seam-cut pieces for one even-odd fill (enclaves punch out, then re-fill if same subregion).
       // `color` is the baked 4-colour index → PAL.regionColors[color] at draw time.
@@ -809,9 +815,9 @@
       }
       var bandN = fillBelt(bd.north), bandS = fillBelt(bd.south);
       var own = state.centreOverride ? '' : state.coordinate;             // on a custom centre, neither N nor S is the "own" framing → draw both seam lines
-      var edgeN = (own !== 'north' && sm.north) ? MAPGEO.lineSegs(coord, proj, sm.north.lat, sm.north.lon, spike) : [];
-      var edgeS = (own !== 'south' && sm.south) ? MAPGEO.lineSegs(coord, proj, sm.south.lat, sm.south.lon, spike) : [];
-      var mm = midMeridian(coord), midLine = MAPGEO.lineSegs(coord, proj, mm.lat, mm.lon, spike);   // central axis (always built; drawn only when toggled)
+      var edgeN = (own !== 'north' && sm.north) ? MAPGEO.lineSegs(coord, proj, sm.north.lat, sm.north.lon) : [];
+      var edgeS = (own !== 'south' && sm.south) ? MAPGEO.lineSegs(coord, proj, sm.south.lat, sm.south.lon) : [];
+      var mm = midMeridian(coord), midLine = MAPGEO.lineSegs(coord, proj, mm.lat, mm.lon);   // central axis (always built; drawn only when toggled)
       // Two Mercator coverage limits, each its own toggle. Each is built as {band, line, cap} from a pair
       // of ±MERCATOR_MAXLAT cutoff parallels (outer = cutoff, inner = MERC_BAND° toward the equator):
       //  · GEOGRAPHIC caps  = what STANDARD (equatorial) Web Mercator omits — the real ±85.05° poles.
@@ -819,27 +825,203 @@
       //    (for horizontal framings the two coincide). draw() cuts each cap OUT where it falls in the map
       //    interior (+ a crimson ring), and shades the band as an edge belt where the cap IS the map's clamp.
       function mercBand(h) { return MAPGEO.bandFillPolys(coord, proj, h.outerLon, h.outerLat, h.innerLon, h.innerLat, maxJump); }
-      function mercSet(g) {
+      function mercSet(g, domainCaps) {
+        // Caps that encircle a DOMAIN pole (generalized clamp always; geographic
+        // caps too on horizontal framings, where geo pole = domain pole) are
+        // built exactly in domain space — ringFillPolys' seam closure mis-fills
+        // pole-encircling rings. Other caps are ordinary rings and stay on
+        // ringFillPolys.
+        var cap = domainCaps
+          ? { north: MAPGEO.domainCapPolys(coord, proj, PROJ.MERCATOR_MAXLAT, 1),
+              south: MAPGEO.domainCapPolys(coord, proj, PROJ.MERCATOR_MAXLAT, -1) }
+          : { north: MAPGEO.ringFillPolys(coord, proj, g.north.outerLon, g.north.outerLat),
+              south: MAPGEO.ringFillPolys(coord, proj, g.south.outerLon, g.south.outerLat) };
         return { band: { north: mercBand(g.north), south: mercBand(g.south) },
-                 line: { north: MAPGEO.lineSegs(coord, proj, g.north.outerLat, g.north.outerLon, spike), south: MAPGEO.lineSegs(coord, proj, g.south.outerLat, g.south.outerLon, spike) },
-                 cap:  { north: MAPGEO.ringFillPolys(coord, proj, g.north.outerLon, g.north.outerLat), south: MAPGEO.ringFillPolys(coord, proj, g.south.outerLon, g.south.outerLat) } };
+                 line: { north: MAPGEO.lineSegs(coord, proj, g.north.outerLat, g.north.outerLon), south: MAPGEO.lineSegs(coord, proj, g.south.outerLat, g.south.outerLon) },
+                 cap: cap };
       }
-      var mercGeoSet = mercSet(mercatorGeo()), mercGenSet = mercSet(mercatorClampGeo(coord));
+      var mercGeoSet = mercSet(mercatorGeo(), coord.kind === 'horizontal'), mercGenSet = mercSet(mercatorClampGeo(coord), true);
       geomCache = { b: b, px0: (uMinX + uMaxX) / 2, py0: (uMinY + uMaxY) / 2, spanX: uMaxX - uMinX, spanY: uMaxY - uMinY,
-                    spike: spike, grat: grat, coastFill: coastFill, coastLine: coastLine, lakesFill: lakesFill, lakesLine: lakesLine, bndLine: bndLine,
-                    bathyFill: bathyFill, topoFill: topoFill, regionFill: regionFill,
+                    grat: grat, coastFill: coastFill, coastLine: coastLine, lakesFill: lakesFill, lakesLine: lakesLine, bndLine: bndLine,
+                    regionFill: regionFill,
                     bandN: bandN, bandS: bandS, edgeN: edgeN, edgeS: edgeS, midLine: midLine,
                     mercGeoSet: mercGeoSet, mercGenSet: mercGenSet };
       geomKey = key; return geomCache;
     }
     function computeFit() {                                               // cheap: cached geometry metrics + the current rotation
       var g = geom(), theta = orientationAngle();
-      return { b: g.b, px0: g.px0, py0: g.py0, c: Math.cos(theta), s: Math.sin(theta), spike: g.spike, spanX: g.spanX, spanY: g.spanY };
+      return { b: g.b, px0: g.px0, py0: g.py0, c: Math.cos(theta), s: Math.sin(theta), spanX: g.spanX, spanY: g.spanY };
+    }
+
+    // ---- terrain texture (async bake, per-frame blit) ------------------------
+    // The terrain bands are rasterized ONCE into offscreen bitmaps in PROJECTED
+    // space — bathy (lens clip baked in) and topo (land-mask clip baked in) —
+    // and every frame draws each enabled layer with a single GPU drawImage
+    // under the pan/zoom affine. Rasterizing the ~125k warped cells per frame
+    // cost ~1s per drag frame; a blit is instant.
+    // The bake itself is kept OFF the interaction path: scheduled as a
+    // macrotask, COARSE grid first (fast preview, ~quarter the work), then
+    // upgraded to FINE during browser idle time. Keyed by framing+projection+
+    // theme; quality tracked separately so the upgrade can be detected.
+    // Texture resolution: 2048px across the lens ≈ 2× supersampled at the
+    // default view — terrain softens slightly under deep zoom-in, while the
+    // vector coastline/graticule/routes on top stay crisp at every zoom.
+    var terrainTex = null;        // { key, quality, bathy: {canvas,bx0,by1,ts}, topo: {...} }
+    var terrainBakePending = '';  // "<key>|<quality>" scheduled or running
+    function texKey() { return coordKey() + '|' + state.projection + '|' + (darkMode() ? 'dark' : 'light'); }
+    function bakeTerrainPair(key, quality) {
+      var TGall = root.WORLD_TERRAIN_GRID;
+      if (!TGall || !TGall[quality]) return;
+      var G = geom(), PAL = palette();
+      var byCode = MAPGEO.gridFillPolys(activeCoord(), state.projection, TGall[quality]);
+      var codes = [], gc;
+      for (gc in byCode) codes.push(+gc);
+      codes.sort(function (x, y) { return x - y; });                        // ascending = shallow→deep, then low→high land
+      var K = 2048;
+      var m = 0.01 * Math.max(G.spanX, G.spanY);                            // margin so edge strokes aren't clipped
+      var bx0 = G.px0 - G.spanX / 2 - m, by1 = G.py0 + G.spanY / 2 + m;
+      var sx = G.spanX + 2 * m, sy = G.spanY + 2 * m;
+      var ts = K / Math.max(sx, sy);
+      function makeLayer(kind) {
+        var cnv = document.createElement('canvas');
+        cnv.width = Math.ceil(sx * ts); cnv.height = Math.ceil(sy * ts);
+        var tc = cnv.getContext('2d');
+        tc.setTransform(ts, 0, 0, -ts, -bx0 * ts, by1 * ts);                // projected coords → texture px (y up → v down)
+        function tracePolys(polys) { for (var si = 0; si < polys.length; si++) { var sg = polys[si]; tc.moveTo(sg.X[0], sg.Y[0]); for (var k = 1; k < sg.X.length; k++) tc.lineTo(sg.X[k], sg.Y[k]); tc.closePath(); } }
+        tc.save();
+        if (kind === 'bathy') {                                             // lens clip baked in: no band (or its AA edge) escapes the map
+          tc.beginPath();
+          for (var bk = 0; bk < G.b.X.length; bk++) { if (bk === 0) tc.moveTo(G.b.X[bk], G.b.Y[bk]); else tc.lineTo(G.b.X[bk], G.b.Y[bk]); }
+          tc.closePath(); tc.clip();
+        } else {                                                            // land-mask clip baked in: bands never spill past the NE coastline
+          tc.beginPath();
+          for (var ci = 0; ci < G.coastFill.length; ci++) tracePolys(G.coastFill[ci].polys);
+          tc.clip('evenodd');
+        }
+        tc.lineJoin = 'miter'; tc.miterLimit = 2; tc.lineWidth = 1 / ts;    // 1 texture px, same-color crack cover between adjacent cells
+        for (var i = 0; i < codes.length; i++) {
+          var code = codes[i], isLand = code >= TERRAIN_LAND_BASE;
+          if ((kind === 'bathy') === isLand) continue;
+          var col = isLand ? (PAL.landColors[LAND_BOUNDS[code - TERRAIN_LAND_BASE]] || PAL.land)
+                           : (PAL.bathyColors[DEPTH_BOUNDS[code]] || PAL.ocean);
+          tc.fillStyle = col; tc.strokeStyle = col;
+          tc.beginPath(); tracePolys(byCode[code]);
+          tc.fill(); tc.stroke();
+        }
+        tc.restore();
+        return { canvas: cnv, bx0: bx0, by1: by1, ts: ts };
+      }
+      terrainTex = { key: key, quality: quality, bathy: makeLayer('bathy'), topo: makeLayer('topo') };
+    }
+    // Worker-first: terrain-worker.js (sibling of the lazy terrain data file)
+    // does the warp + rasterization off the main thread and transfers back
+    // ImageBitmaps. The synchronous bakeTerrainPair above remains as the
+    // fallback when Workers are unavailable or the worker errors out.
+    var terrainWorker = null, terrainWorkerBroken = false;
+    function ensureTerrainWorker() {
+      if (terrainWorker || terrainWorkerBroken) return terrainWorker;
+      if (typeof Worker === 'undefined' || !lazyLayers.terrain) { terrainWorkerBroken = true; return null; }
+      try {
+        terrainWorker = new Worker(lazyLayers.terrain.replace(/terrain-grid\.js.*$/, 'terrain-worker.js'));
+      } catch (e) { terrainWorkerBroken = true; return null; }
+      terrainWorker.onerror = function () {                                 // e.g. file:// (workers blocked) or a missing sibling file
+        terrainWorkerBroken = true;
+        try { terrainWorker.terminate(); } catch (e) {}
+        terrainWorker = null; terrainBakePending = '';
+        if (state.bathymetry || state.topography) scheduleTerrainBake();    // retry on the sync path
+      };
+      terrainWorker.onmessage = function (ev) {
+        var d = ev.data;
+        if (d.slot === 'zoom') {                                            // crisp zoom-window overlay
+          terrainZoomPending = '';
+          if (d.key !== texKey()) return;                                   // framing/theme moved on — the next draw re-requests
+          terrainZoom = { key: d.key, bx0: d.bx0, by1: d.by1, sx: d.sx, sy: d.sy, ts: d.ts,
+                          bathy: { canvas: d.bathy, bx0: d.bx0, by1: d.by1, ts: d.ts },
+                          topo: { canvas: d.topo, bx0: d.bx0, by1: d.by1, ts: d.ts } };
+          if (state.bathymetry || state.topography) render();
+          return;
+        }
+        terrainBakePending = '';
+        if (d.key !== texKey()) { if (state.bathymetry || state.topography) scheduleTerrainBake(); return; }   // framing/theme moved on — bake again
+        terrainTex = { key: d.key, quality: d.quality,
+                       bathy: { canvas: d.bathy, bx0: d.bx0, by1: d.by1, ts: d.ts },
+                       topo: { canvas: d.topo, bx0: d.bx0, by1: d.by1, ts: d.ts } };
+        if (state.bathymetry || state.topography) render();
+        scheduleTerrainBake(true);                                          // no-op unless a fine upgrade is still due
+      };
+      return terrainWorker;
+    }
+    function scheduleTerrainBake(prewarm) {
+      var key = texKey();
+      var target = state.detail === 'coarse' ? 'coarse' : 'fine';
+      if (terrainTex && terrainTex.key === key && terrainTex.quality === target) return;
+      var quality = (terrainTex && terrainTex.key === key) ? target : 'coarse';   // fresh framing → coarse preview first
+      var tag = key + '|' + quality;
+      if (terrainBakePending === tag) return;
+      var w = ensureTerrainWorker();
+      if (w) {
+        terrainBakePending = tag;
+        var c = activeCoord();
+        w.postMessage({ key: key, quality: quality, projId: state.projection, detail: state.detail,
+                        coord: { kind: c.kind, centre: c.centre ? { lat: c.centre.lat, lon: c.centre.lon } : undefined, seam: c.seam, central: c.central },
+                        pal: { bathyColors: palette().bathyColors, landColors: palette().landColors, ocean: palette().ocean, land: palette().land } });
+        return;
+      }
+      if (prewarm) return;                                                  // sync fallback only bakes on real demand
+      if (!root.WORLD_TERRAIN_GRID) { ensureLayer('WORLD_TERRAIN_GRID', lazyLayers.terrain, function () { render(); }); return; }
+      terrainBakePending = tag;
+      var run = function () {
+        if (terrainBakePending !== tag) return;
+        terrainBakePending = '';
+        if (texKey() !== key || !(state.bathymetry || state.topography)) return;   // stale by the time we ran
+        bakeTerrainPair(key, quality);
+        render();
+        if (quality !== target) scheduleTerrainBake();                      // coarse preview shown — queue the fine upgrade
+      };
+      if (quality === 'coarse') setTimeout(run, 0);                         // preview ASAP (still off the click's own frame)
+      else if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 1500 });
+      else setTimeout(run, 150);
+    }
+    // Zoom-window overlay: when the view outresolves the 2048px base texture,
+    // the worker re-bakes JUST the visible projected window at screen
+    // resolution (fine grid, debounced so wheel-zoom doesn't spam). The base
+    // texture keeps covering the whole lens underneath, so panning past the
+    // window edge degrades to base resolution instead of blank.
+    var terrainZoom = null, terrainZoomPending = '', terrainZoomTimer = 0;
+    function scheduleZoomBake(win, key) {
+      var tag = key + '|' + Math.round(win.bx0 * 32) + ',' + Math.round(win.by1 * 32) + ',' + Math.round(win.ts);
+      if (terrainZoomPending === tag) return;
+      clearTimeout(terrainZoomTimer);
+      terrainZoomTimer = setTimeout(function () {
+        var w = ensureTerrainWorker();
+        if (!w || texKey() !== key) return;                                 // no worker → live with base resolution (sync zoom bakes would jank)
+        terrainZoomPending = tag;
+        var c = activeCoord();
+        w.postMessage({ key: key, quality: 'fine', slot: 'zoom', window: win, projId: state.projection, detail: state.detail,
+                        coord: { kind: c.kind, centre: c.centre ? { lat: c.centre.lat, lon: c.centre.lon } : undefined, seam: c.seam, central: c.central },
+                        pal: { bathyColors: palette().bathyColors, landColors: palette().landColors, ocean: palette().ocean, land: palette().land } });
+      }, 150);
+    }
+
+    // Pre-warm IMMEDIATELY at widget init (not on idle): the worker fetches and
+    // parses its ~2 MB of data and bakes the current framing's textures on its
+    // OWN thread, in parallel with the main thread's basemap render — so the
+    // page text/UI cost nothing, and by the time the user reaches the
+    // Ocean-depth / Land-elevation toggles the blit is usually already ready.
+    // (Instances without lazyLayers.terrain — e.g. the region-overview embed —
+    // never boot a worker: ensureTerrainWorker no-ops.)
+    var terrainPrewarmed = false;
+    function prewarmTerrain() {
+      if (terrainPrewarmed) return;
+      terrainPrewarmed = true;
+      setTimeout(function () { scheduleTerrainBake(true); }, 0);
     }
 
     function draw(ctx2, W, H, f) {
       var PAL = palette();                                                  // light or dark cartographic palette, per the OS theme
       var G = geom();                                                       // cached projected + seam-cut geometry
+      if (state.bathymetry || state.topography) scheduleTerrainBake();      // async: no-op once the texture for this framing+theme is ready
+      prewarmTerrain();                                                     // safety net — normally already kicked at init
       var scale = Math.min(W / f.spanX, H / f.spanY) * 0.98 * state.zoom;
       lastScale = scale;
       var cx = state.cx == null ? f.px0 : state.cx, cy = state.cy == null ? f.py0 : state.cy;   // projected point pinned to the canvas centre
@@ -858,6 +1040,45 @@
         for (var s = 0; s < polys.length; s++) { var sg = polys[s]; for (var k = 0; k < sg.X.length; k++) { var p = px(sg.X[k], sg.Y[k]); if (k === 0) ctx2.moveTo(p[0], p[1]); else ctx2.lineTo(p[0], p[1]); } ctx2.closePath(); }
         ctx2.fillStyle = color; ctx2.fill('evenodd');
       }
+      function blitOne(t) {                                                 // one drawImage of a baked texture under the composed pan/zoom affine
+        var A = f.c * scale, B = -f.s * scale, C = -f.s * scale, D = -f.c * scale;
+        var E = W / 2 - scale * (f.c * cx - f.s * cy), F = H / 2 + scale * (f.s * cx + f.c * cy);
+        ctx2.save();
+        ctx2.transform(A / t.ts, B / t.ts, -C / t.ts, -D / t.ts,
+                       A * t.bx0 + C * t.by1 + E, B * t.bx0 + D * t.by1 + F);
+        ctx2.drawImage(t.canvas, 0, 0);
+        ctx2.restore();
+      }
+      function viewWindow(margin) {                                         // visible projected rect (+margin fraction per side), from the inverse of px()
+        var xs = [], ys = [], corners = [[0, 0], [W, 0], [0, H], [W, H]], i;
+        for (i = 0; i < 4; i++) {
+          var rx = (corners[i][0] - W / 2) / scale, ry = -(corners[i][1] - H / 2) / scale;
+          xs.push(cx + rx * f.c + ry * f.s); ys.push(cy - rx * f.s + ry * f.c);
+        }
+        var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
+        var y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+        var mx = (x1 - x0) * margin, my = (y1 - y0) * margin;
+        return { bx0: x0 - mx, by1: y1 + my, sx: (x1 - x0) + 2 * mx, sy: (y1 - y0) + 2 * my };
+      }
+      function zoomOverlayFresh(need) {                                     // overlay usable: right framing, resolution ≥ need, view inside its window
+        if (!terrainZoom || terrainZoom.key !== texKey() || terrainZoom.ts < need * 0.8) return false;
+        var v = viewWindow(0);
+        return v.bx0 >= terrainZoom.bx0 && v.by1 <= terrainZoom.by1 &&
+               v.bx0 + v.sx <= terrainZoom.bx0 + terrainZoom.sx && v.by1 - v.sy >= terrainZoom.by1 - terrainZoom.sy;
+      }
+      var terrainNeedTs = scale * (root.devicePixelRatio || 1);             // texture px per projected unit needed for 1:1 screen sampling
+      function blitTerrain(kind) {
+        if (!terrainTex || terrainTex.key !== texKey() || !terrainTex[kind]) return;   // not baked yet — appears on the render the bake triggers
+        blitOne(terrainTex[kind]);
+        if (terrainNeedTs > terrainTex[kind].ts * 1.3) {                    // view outresolves the base texture
+          if (zoomOverlayFresh(terrainNeedTs)) blitOne(terrainZoom[kind]);  // crisp window on top
+          else {                                                            // request one (debounced); base keeps showing meanwhile
+            var win = viewWindow(0.3);
+            win.ts = terrainNeedTs * 1.25;                                  // headroom so slight further zoom stays crisp
+            scheduleZoomBake(win, texKey());
+          }
+        }
+      }
       function stroke(segs, color, w) { ctx2.strokeStyle = color; ctx2.lineWidth = w; for (var s = 0; s < segs.length; s++) { if (segs[s].X.length < 2) continue; poly(segs[s]); ctx2.stroke(); } }
       function clipToLand() {                                               // clip subsequent fills to the LAND mask (all coast rings, even-odd → holes/ocean punched) so a land tint never spills past the NE coastline
         ctx2.beginPath();
@@ -866,18 +1087,12 @@
       }
 
       fill(G.b, PAL.ocean);                                                 // ocean lens base
-      if (state.bathymetry && G.bathyFill.length) {                        // graded depth bands over the ocean, clipped to the lens so no fill (or its anti-aliased edge) escapes
-        ctx2.save(); poly(G.b); ctx2.clip();
-        for (var bi = 0; bi < G.bathyFill.length; bi++) fillRing(G.bathyFill[bi].polys, PAL.bathyColors[G.bathyFill[bi].d] || PAL.ocean);   // per-depth geo.cpt colour, shallow→deep
-        ctx2.restore();
-      }
+      if (state.bathymetry) blitTerrain('bathy');                          // graded depth bands (lens clip baked into the texture)
       poly(G.b); ctx2.strokeStyle = PAL.edge; ctx2.lineWidth = 1.1; ctx2.stroke();   // lens outline (drawn over the depth bands)
       stroke(G.grat, PAL.graticule, 0.6);                                   // graticule
       for (var ci = 0; ci < G.coastFill.length; ci++) fillRing(G.coastFill[ci].polys, G.coastFill[ci].hole ? PAL.ocean : PAL.land);  // land + holes
-      if (state.topography && G.topoFill.length) {                         // land elevation shade bands (hypsometric), low→high
-        ctx2.save(); clipToLand();                                          // clip to land so DEM-derived bands never spill past the NE coastline
-        for (var ti = 0; ti < G.topoFill.length; ti++) fillRing(G.topoFill[ti].polys, PAL.landColors[G.topoFill[ti].e] || PAL.land);
-        ctx2.restore();
+      if (state.topography) {                                              // land elevation shade bands (land-mask clip baked into the texture)
+        blitTerrain('topo');
       } else if (state.regions && G.regionFill.length) {                   // UN-subregion 4-colour shading (mutually exclusive with topography above)
         ctx2.save(); clipToLand();                                          // clip to land so a subregion's admin-0 fill never spills past the coastline
         for (var rgi = 0; rgi < G.regionFill.length; rgi++) fillRing(G.regionFill[rgi].polys, PAL.regionColors[G.regionFill[rgi].color] || PAL.land);
@@ -910,7 +1125,7 @@
       routes.forEach(function (rt, ri) {
         var A = endpoint(rt[0]), B = endpoint(rt[1]); if (!A || !B) return;
         var gc = PROJ.greatCircle(A, B, NSAMP);
-        stroke(MAPGEO.lineSegs(coord, proj, gc.lat, gc.lon, G.spike), ROUTE_COLORS[ri % ROUTE_COLORS.length], 1.6);
+        stroke(MAPGEO.lineSegs(coord, proj, gc.lat, gc.lon), ROUTE_COLORS[ri % ROUTE_COLORS.length], 1.6);
         mark(rt[0], A); mark(rt[1], B);
       });
       activePoints().forEach(function (code) { var A = endpoint(code); if (A) mark(code, A); });   // lone airports: label, no arc
@@ -918,7 +1133,7 @@
         var ca = endpoint(state.centreArc[0]), cb = endpoint(state.centreArc[1]);
         if (ca && cb) {
           var cgc = PROJ.greatCircle(ca, cb, NSAMP);
-          stroke(MAPGEO.lineSegs(coord, proj, cgc.lat, cgc.lon, G.spike), PAL.marker, 2.2);   // theme-aware (dark on light, light on dark)
+          stroke(MAPGEO.lineSegs(coord, proj, cgc.lat, cgc.lon), PAL.marker, 2.2);   // theme-aware (dark on light, light on dark)
           mark(state.centreArc[0], ca); mark(state.centreArc[1], cb);
         }
       }
@@ -931,7 +1146,7 @@
         var rk = rg && (rg.radiusKm != null ? rg.radiusKm : rg.defaultRadiusKm);   // accept the Region Explorer's {defaultRadiusKm} shape directly
         if (!(rg && isFinite(rg.lat) && isFinite(rg.lon) && rk > 0)) return;
         var loop = PROJ.mercatorDisc({ lat: rg.lat, lon: rg.lon }, rk, 256);
-        var outline = MAPGEO.lineSegs(coord, proj, loop.lat, loop.lon, G.spike);   // seam-safe outline arcs (no artificial seam closure)
+        var outline = MAPGEO.lineSegs(coord, proj, loop.lat, loop.lon);   // seam-safe outline arcs (no artificial seam closure)
         var fillPolys = MAPGEO.ringFillPolys(coord, proj, loop.lon, loop.lat);     // seam-safe interior, to clip the ring to the disc's exterior
         ctx2.save();
         ctx2.beginPath(); ctx2.rect(0, 0, W, H);                                   // whole canvas …
@@ -1091,10 +1306,12 @@
 
     var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(render, 150); });
     if (typeof matchMedia === 'function') { try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render); } catch (e) {} }   // repaint when the OS light/dark theme flips
+    if (typeof window !== 'undefined' && typeof window.onSiteThemeChange === 'function') window.onSiteThemeChange(render);   // repaint when the manual site theme toggle flips
     // Defer the heavy first projection+draw. The DOM/box above is built synchronously (so the page
     // reserves space and won't reflow), but the projection of the ~3 MB basemap is expensive: during
     // initial load the geo-data globals arrive `defer` (after first paint), so we render on
     // DOMContentLoaded (by which point those have run); a widget created later renders next frame.
+    prewarmTerrain();                                                        // start the terrain worker prefetch NOW — it loads + bakes on its own thread while the basemap renders
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { render(); }, { once: true });
     else if (typeof requestAnimationFrame === 'function') requestAnimationFrame(function () { render(); });
     else render();

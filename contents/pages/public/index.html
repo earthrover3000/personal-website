@@ -5,32 +5,98 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Charlie 丁志成's Galaxy</title>
+<script>/* Site-wide theme control — the single source of truth for manual dark/light.
+
+   Loaded as a BLOCKING <script> (no defer/async) early in every page's and
+   every app's <head>, so it runs before first paint: reading the stored
+   choice and stamping <html data-theme> synchronously means navigating
+   between pages never flashes the wrong theme.
+
+   Modes (localStorage['site-theme']):
+     'auto'  (default) — no attribute; CSS `color-scheme: dark light` follows
+                         the OS (see 界面 UI/styles/base.css).
+     'dark' / 'light'  — sets <html data-theme>, forcing color-scheme.
+
+   Public API (used by the Settings page toggle):
+     window.setSiteTheme(mode)  — persist + apply immediately.
+     window.getSiteTheme()      — current stored mode ('auto' if unset).
+     window.onSiteThemeChange(cb)— subscribe (fires cross-tab too). */
+(function () {
+  var KEY = 'site-theme';
+  var listeners = [];
+
+  function normalize(mode) {
+    return (mode === 'dark' || mode === 'light') ? mode : 'auto';
+  }
+
+  function apply(mode) {
+    var el = document.documentElement;
+    if (mode === 'auto') el.removeAttribute('data-theme');
+    else el.setAttribute('data-theme', mode);
+  }
+
+  function read() {
+    try { return normalize(localStorage.getItem(KEY)); } catch (e) { return 'auto'; }
+  }
+
+  // Apply immediately (this is the pre-paint work).
+  apply(read());
+
+  window.setSiteTheme = function (mode) {
+    mode = normalize(mode);
+    try {
+      if (mode === 'auto') localStorage.removeItem(KEY);
+      else localStorage.setItem(KEY, mode);
+    } catch (e) {}
+    apply(mode);
+    for (var i = 0; i < listeners.length; i++) { try { listeners[i](mode); } catch (e) {} }
+  };
+
+  window.getSiteTheme = function () { return read(); };
+
+  window.onSiteThemeChange = function (cb) {
+    if (typeof cb === 'function') listeners.push(cb);
+  };
+
+  // Keep other open tabs/pages in sync when the choice changes elsewhere.
+  window.addEventListener('storage', function (e) {
+    if (e.key !== KEY) return;
+    var mode = read();
+    apply(mode);
+    for (var i = 0; i < listeners.length; i++) { try { listeners[i](mode); } catch (err) {} }
+  });
+})();
+</script>
 <style>/* Shared base styles for index pages (root, protected, private) and docs
    pages (site-map, site-stats, lifespan-atlas plan). Loaded BEFORE the
    page-specific stylesheet so page rules can override.
 
-   Workflow.css is intentionally NOT layered on top of this — it ships its
-   own GitHub-style palette and doesn't share these tokens. */
+   Workflow.css layers on top of this (workflow.html loads both): it keeps its
+   own GitHub-style palette but now expresses light/dark via the same
+   light-dark() + color-scheme mechanism, so the manual theme toggle reaches it
+   too. */
 
-/* ---- Theme tokens ---- */
+/* ---- Theme tokens ----
+   Each colour is declared exactly once via light-dark(light, dark); the value
+   that wins follows the `color-scheme` property (single source of truth — no
+   duplicated palette across a media query).
+
+   Default `dark light` = AUTO: follow the OS, falling back to dark when the OS
+   states no preference (preserves the site's long-standing dark default). The
+   Settings toggle overrides this by setting a data-theme attribute on <html>,
+   which narrows color-scheme to one keyword — applied before first paint by
+   page-widgets/theme-init.js, so navigation never flashes the wrong theme. */
 :root {
-  --bg: #0f0f0f;
-  --surface: #1a1a1a;
-  --border: #2e2e2e;
-  --accent: #7c9ef5;
-  --text: #e0e0e0;
-  --muted: #888;
+  color-scheme: dark light;                    /* auto (OS-driven, dark default) */
+  --bg:      light-dark(#f5f5f5, #0f0f0f);
+  --surface: light-dark(#ffffff, #1a1a1a);
+  --border:  light-dark(#d0d0d0, #2e2e2e);
+  --accent:  light-dark(#3a5fd9, #7c9ef5);
+  --text:    light-dark(#1a1a1a, #e0e0e0);
+  --muted:   light-dark(#666,    #888);
 }
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f5f5f5;
-    --surface: #ffffff;
-    --border: #d0d0d0;
-    --accent: #3a5fd9;
-    --text: #1a1a1a;
-    --muted: #666;
-  }
-}
+:root[data-theme="light"] { color-scheme: light; }  /* forced light */
+:root[data-theme="dark"]  { color-scheme: dark;  }   /* forced dark  */
 
 /* ---- Reset + base ---- */
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -416,7 +482,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237c9ef5' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+  /* light-dark() flips the caret fill with the theme (blue #3a5fd9 light /
+     #7c9ef5 dark) — follows color-scheme, so it obeys the manual toggle. */
+  background-image: light-dark(url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%233a5fd9' d='M6 8 0 0h12z'/%3E%3C/svg%3E"), url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237c9ef5' d='M6 8 0 0h12z'/%3E%3C/svg%3E"));
   background-repeat: no-repeat;
   background-position: right 0.7rem center;
   transition: border-color 0.15s, background-color 0.15s;
@@ -429,10 +497,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
    Safari/system pickers minimally. */
 .tier-nav option { color: var(--accent); background-color: var(--bg); }
 .tier-nav option:checked { color: var(--text); }
-@media (prefers-color-scheme: light) {
-  .tier-nav { background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%233a5fd9' d='M6 8 0 0h12z'/%3E%3C/svg%3E"); }
-}
-
 /* .filter rule is in base.css; only the row layout below stays index-specific. */
 
 .row { display: flex; gap: 2rem; align-items: flex-start; }
@@ -483,12 +547,10 @@ a.app-card {
 }
 a.app-card:hover {
   background: var(--surface);
-  border-color: #5fa8a8;
+  /* light-dark() so the hover border flips with the manual theme toggle. */
+  border-color: light-dark(#1a5757, #5fa8a8);
   text-decoration: none;
   transform: translateY(-1px);
-}
-@media (prefers-color-scheme: light) {
-  a.app-card:hover { border-color: #1a5757; }
 }
 .app-card__icon { width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0; display: block; }
 .app-card__body { flex: 1; min-width: 0; }
@@ -675,7 +737,7 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Home</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav>
 <h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">43,362 lines · 16,801 words · 904 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.3 (2026-03-23) 🛣️</a> ✦ Last updated <time datetime="2026-07-01" class="relative-time relative-time-coarse">2026-07-01</time></p>
+<p class="head-meta"><a href="site-stats/">44,355 lines · 16,801 words · 904 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.3 (2026-03-23) 🛣️</a> ✦ Last updated <time datetime="2026-07-02" class="relative-time relative-time-coarse">2026-07-02</time></p>
 <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
 <div class="row">
 <div class="main">
@@ -718,6 +780,7 @@ a.app-card:hover {
   <li><a href="site-stats/">Site Stats</a></li>
   <li><a href="site-roadmap/">Site Roadmap</a></li>
   <li><a href="whats-new/">What's New</a></li>
+  <li><a href="settings/">Settings</a></li>
 </ul>
 </div>
 </div>

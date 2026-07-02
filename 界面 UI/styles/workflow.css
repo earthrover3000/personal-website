@@ -3,32 +3,21 @@
    the workflow-specific surfaces: code blocks, step list, URL grid,
    collapsible details sections, kbd, inline tags. */
 
-/* ---- Workflow-specific theme tokens ---- */
+/* ---- Workflow-specific theme tokens ----
+   Each pair via light-dark(light, dark); follows `color-scheme` (set on :root
+   by base.css, which this page also loads), so the manual theme toggle flips
+   these GitHub-palette tokens too. */
 :root {
-  --text-h:        #e6edf3;          /* slightly brighter heading text */
-  --accent-h:      #79c0ff;          /* hover variant of --accent */
-  --orange:        #ffa657;          /* inline code highlight */
-  --gitignored:    #484f58;          /* dimmed file paths */
-  --tag-blue:      #1f3a5f;
-  --tag-blue-text: #79c0ff;
-  --tag-green:     #1a3a2a;
-  --tag-green-text:#56d364;
-  --tag-red:       #3d1f1f;
-  --tag-red-text:  #ff7b72;
-}
-@media (prefers-color-scheme: light) {
-  :root {
-    --text-h:        #1f2328;
-    --accent-h:      #0550ae;
-    --orange:        #953800;
-    --gitignored:    #8c959f;
-    --tag-blue:      #ddf4ff;
-    --tag-blue-text: #0550ae;
-    --tag-green:     #dafbe1;
-    --tag-green-text:#1a7f37;
-    --tag-red:       #ffebe9;
-    --tag-red-text:  #cf222e;
-  }
+  --text-h:         light-dark(#1f2328, #e6edf3);   /* brighter heading text */
+  --accent-h:       light-dark(#0550ae, #79c0ff);   /* hover variant of --accent */
+  --orange:         light-dark(#953800, #ffa657);   /* inline code highlight */
+  --gitignored:     light-dark(#8c959f, #484f58);   /* dimmed file paths */
+  --tag-blue:       light-dark(#ddf4ff, #1f3a5f);
+  --tag-blue-text:  light-dark(#0550ae, #79c0ff);
+  --tag-green:      light-dark(#dafbe1, #1a3a2a);
+  --tag-green-text: light-dark(#1a7f37, #56d364);
+  --tag-red:        light-dark(#ffebe9, #3d1f1f);
+  --tag-red-text:   light-dark(#cf222e, #ff7b72);
 }
 
 a { color: var(--accent); text-decoration: none; }

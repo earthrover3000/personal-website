@@ -5,6 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maps &amp; Projections · Great Circle Mapper</title>
+  <!-- Site-wide theme (manual dark/light/auto): stamps <html data-theme>
+       before paint so navigation never flashes the wrong theme. -->
+  <script src="../../../../../界面 UI/page-widgets/theme-init.js"></script>
   <link rel="stylesheet" href="../../../../../界面 UI/styles/base.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -104,8 +107,9 @@
 <script defer src="../../../../../引擎 Engines/map-projection/boundaries.js"></script>
 <script defer src="../../../../../引擎 Engines/map-projection/lakes.js"></script>
 <script defer src="../../../../../引擎 Engines/map-projection/airports.js"></script>
-<!-- Terrain layers (bathymetry + topography) are OFF by default and ~1.8 MB combined, so they are NOT
-     loaded here — createWorldMap lazy-fetches them via opts.lazyLayers on the first Ocean-depth / Land-
+<!-- The terrain grid (ocean depth + land elevation, one combined band-index file — see
+     引擎 Engines/map-projection/scripts/make_terrain_grid.py) is OFF by default, so it is NOT loaded
+     here — createWorldMap lazy-fetches it via opts.lazyLayers on the first Ocean-depth / Land-
      elevation toggle, keeping the UI + basemap fast to interactive. -->
 <script>
   // Built synchronously (during parse) so the canvas boxes + controls are in the DOM at first paint
@@ -114,8 +118,7 @@
   // CSS; the region overview's box is pre-sized in createWorldMap's embed branch.
   createWorldMap({ mount: '#great-circle-mapper', controls: true, presets: GREAT_CIRCLE.routes, uiDefaults: GREAT_CIRCLE.defaults,
                    cities: WORLD_CITIES,
-                   lazyLayers: { bathymetry: '../../../../../引擎 Engines/map-projection/bathymetry.js',
-                                 topography: '../../../../../引擎 Engines/map-projection/topography.js',
+                   lazyLayers: { terrain: '../../../../../引擎 Engines/map-projection/terrain-grid.js',
                                  regions: '../../../../../引擎 Engines/map-projection/un-regions.js' } });
 
   // Region Map Explorer — its empty state mounts a static Northern-Hǎo map. The dropdown rests on a

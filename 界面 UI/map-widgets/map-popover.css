@@ -23,12 +23,12 @@
 .map-trigger { cursor: pointer; }
 .map-trigger:hover { text-decoration: underline; }
 
-/* Dark by default (mirrors base.css's structure: dark :root, light via
-   @media prefers-color-scheme: light). The popover stays armored — no
-   var(--*) reads from the host page — so its theme decision is made
-   here, independent of whatever the host's CSS does. The OSM tiles
-   themselves remain light; only the card chrome (background, label
-   bar, close button) flips. */
+/* Light/dark via light-dark() on each colour below, driven by the inherited
+   `color-scheme` (base.css sets it on :root and the manual theme toggle forces
+   it). The popover reads no var(--*) from the host, but it does inherit
+   color-scheme, so it follows the site-wide theme choice. Hosts that don't load
+   base.css get color-scheme's default (OS-following). Only the card chrome
+   (background, label bar, close button) flips; the OSM tiles stay light. */
 
 #map-popover {
   position: fixed;
@@ -40,7 +40,7 @@
   opacity: 0;
   transition: opacity 0.4s ease;
   pointer-events: none;
-  color: #e0e0e0;
+  color: light-dark(#222, #e0e0e0);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 1rem;
   font-weight: 400;
@@ -56,10 +56,10 @@
      different sizes). Default cap is 360 px; otherwise allow up to 90%
      of the smaller viewport dimension so the popover can fill a phone. */
   width: var(--map-popover-card-width, min(90vw, 90vh, 360px));
-  background: #1a1a1a;
+  background: light-dark(#fff, #1a1a1a);
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: light-dark(0 8px 32px rgba(0, 0, 0, 0.25), 0 8px 32px rgba(0, 0, 0, 0.5));
 }
 
 #map-popover-map {
@@ -81,13 +81,13 @@
 #map-popover-label {
   padding: 0.55rem 1rem;
   text-align: center;
-  color: #e0e0e0;
+  color: light-dark(#222, #e0e0e0);
   font-weight: 500;
   font-size: 1rem;
   font-family: inherit;
   line-height: 1.4;
-  border-top: 1px solid #2e2e2e;
-  background: #141414;
+  border-top: 1px solid light-dark(#eee, #2e2e2e);
+  background: light-dark(#fafafa, #141414);
 }
 
 #map-popover .map-popover-close {
@@ -102,43 +102,25 @@
   display: none;
   align-items: center;
   justify-content: center;
-  background: rgba(20, 20, 20, 0.92);
+  background: light-dark(rgba(255, 255, 255, 0.92), rgba(20, 20, 20, 0.92));
   border: none;
   border-radius: 50%;
-  color: #ccc;
+  color: light-dark(#555, #ccc);
   font-family: inherit;
   font-size: 1.2rem;
   font-weight: 400;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  box-shadow: light-dark(0 1px 4px rgba(0, 0, 0, 0.15), 0 1px 4px rgba(0, 0, 0, 0.4));
 }
 
 #map-popover.is-persistent .map-popover-close { display: flex; }
 
 #map-popover .map-popover-close:hover {
-  color: #fff;
-  background: #1a1a1a;
+  color: light-dark(#000, #fff);
+  background: light-dark(#fff, #1a1a1a);
 }
 
-@media (prefers-color-scheme: light) {
-  #map-popover { color: #222; }
-  #map-popover .map-popover-card {
-    background: #fff;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-  }
-  #map-popover-label {
-    color: #222;
-    background: #fafafa;
-    border-top: 1px solid #eee;
-  }
-  #map-popover .map-popover-close {
-    background: rgba(255, 255, 255, 0.92);
-    color: #555;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-  }
-  #map-popover .map-popover-close:hover {
-    color: #000;
-    background: #fff;
-  }
-}
+/* Light/dark now expressed inline via light-dark() on each rule above; it
+   follows the inherited `color-scheme` (set on :root by base.css), so the
+   popover flips with the manual theme toggle instead of only the OS. */
