@@ -5,6 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Itinerary Calendar</title>
+  <!-- Site-wide theme (manual dark/light/auto): stamps <html data-theme>
+       before paint so navigation never flashes the wrong theme. -->
+  <script src="../../../../../界面 UI/page-widgets/theme-init.js"></script>
   <link rel="stylesheet" href="../../../../../界面 UI/styles/base.css">
   <link rel="stylesheet" href="../../../../../界面 UI/styles/docs.css">
 
@@ -78,10 +81,8 @@
       background: transparent;
     }
     .fc td, .fc th { border-color: var(--border) !important; }
-    .fc .fc-day-today { background: rgba(124, 158, 245, 0.08) !important; }
-    @media (prefers-color-scheme: light) {
-      .fc .fc-day-today { background: rgba(58, 95, 217, 0.08) !important; }
-    }
+    /* light-dark() so the "today" highlight follows the manual theme toggle. */
+    .fc .fc-day-today { background: light-dark(rgba(58, 95, 217, 0.08), rgba(124, 158, 245, 0.08)) !important; }
     .fc .fc-daygrid-day-number {
       color: var(--text);
       padding: 6px 8px;
