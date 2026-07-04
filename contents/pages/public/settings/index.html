@@ -469,7 +469,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
   font-family: inherit;
   font-size: 1.1rem;
   line-height: 1.4;
-  padding: 0.35rem 2rem 0.35rem 0.8rem;
+  /* Subtract the 1px top+bottom border from the vertical padding so this
+     bordered select's border-box height matches the plain <a> rows (which
+     have no border). Without this the tier-nav row is 2px taller and shifts
+     the whole side-column grid down, misaligning it with the main column. */
+  padding: calc(0.35rem - 1px) 2rem calc(0.35rem - 1px) 0.8rem;
   background: transparent;
   /* Closed-state text uses the body text colour, not the accent — the
      visible "current tier" name reads as a "you are here" label, not as
@@ -517,26 +521,29 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
    relative to the index/docs links. On the private index this puts "Travel
    Calendar" (the second page link) on the same baseline as "Site Map" (the
    first docs link in the side column), not "Life Clock". */
-.apps { display: flex; flex-direction: column; gap: 0.6rem; margin: 0.2rem 0 0; }
+/* Gap 0.2rem — the SAME collapsed pitch as the side/page list rows (li margin
+   0.2rem). Cards must repeat on the side-column row grid so the two columns
+   align; a wider gap (the old 0.6rem) made each card span 2.23 rows instead of
+   2 and drifted the page list ~0.4rem lower per card. */
+.apps { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.2rem 0 0; }
 
 a.app-card {
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  /* Vertical padding tightened from 0.7rem to 0.4rem so the card can hold
-     one line of name (line-height 1.4) + two lines of description
-     (line-height 1.4) inside the 4.68rem baseline without compressing
-     either's line-height. Math: 4.68 − 0.8 padding = 3.88 text area;
-     1.54 name + 2 × 1.19 desc = 3.92, effectively fits via line-clamp. */
-  padding: 0.4rem 0.9rem;
-  /* Outer height 4.68rem = exact span of two side-list rows top-to-bottom:
-     row 1 visual height (2.24rem = 1.54 line + 0.7 padding) + inter-row gap
-     (0.2rem collapsed margin) + row 2 visual height (2.24rem) = 4.68rem.
-     This makes card's top align with side row 1 top, and card's bottom align
-     with side row 2 bottom — and the page-list rows BELOW the card then
-     line up exactly with side rows 3, 4, 5… min- (not fixed) so longer
-     descriptions can still grow if needed. */
-  min-height: 4.68rem;
+  /* Vertical padding 0.3rem so the border-box card can hold one line of name
+     (1.54rem) + two lines of description (2 × 1.19rem) plus the 1px top+bottom
+     border inside the 4.675rem height. Content math (border-box): 3.92 text
+     + 0.6 padding + 0.125 border = 4.645rem ≤ 4.675, so min-height governs and
+     every card renders at exactly 4.675rem. (The old 0.4rem padding forgot the
+     border and overflowed the box to ~4.84rem, breaking the grid.) */
+  padding: 0.3rem 0.9rem;
+  /* Height 4.675rem = two side-list row pitches (2 × 2.4375rem = 4.875rem)
+     minus the 0.2rem gap that follows the card, so card-box + gap = exactly
+     two rows. This makes the card span two side rows top-to-bottom and keeps
+     every page-list row BELOW the card on the same grid as side rows 3, 4, 5…
+     min- (not fixed) as a safety net; content is sized to never exceed it. */
+  min-height: 4.675rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
