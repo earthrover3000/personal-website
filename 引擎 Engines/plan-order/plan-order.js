@@ -130,6 +130,34 @@
     return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   }
 
+  // Bilingual fields are symmetric `<base>_en/_zh/_raw` trios. These resolve one
+  // onto the normalized display model, reading the new keys first and falling
+  // back to the pre-migration keys (entries: text/zh; folders: description/
+  // description_zh) so a not-yet-migrated plan still renders. `enOf` folds the
+  // untranslated `_raw` in as a last resort, so an offline-staged entry shows its
+  // text instead of a blank line. See plan/translate.py for the write side.
+  function pick() {
+    for (var i = 0; i < arguments.length; i++) {
+      var v = arguments[i];
+      if (v != null && v !== '') return String(v);
+    }
+    return null;
+  }
+  // `enOf(o, base, ...legacyKeys)` — new `_en` first, then each legacy key in
+  // order (a field renamed twice carries a chain), then the base's own `_raw`.
+  function enOf(o, base) {
+    var vals = [o[base + '_en']];
+    for (var i = 2; i < arguments.length; i++) vals.push(o[arguments[i]]);
+    vals.push(o[base + '_raw']);
+    return pick.apply(null, vals);
+  }
+  function zhOf(o, base) {
+    var vals = [o[base + '_zh']];
+    for (var i = 2; i < arguments.length; i++) vals.push(o[arguments[i]]);
+    return pick.apply(null, vals);
+  }
+  function rawOf(o, base) { return pick(o[base + '_raw']); }
+
   // A mnemonic UPPERCASE letter for a top-level section, from its title:
   // first letters of words first (Infrastructure → I, Developer Docs → D), then
   // any other letter, then A–Z; `taken` (mutated) keeps them unique in order. So
@@ -213,9 +241,12 @@
         rows.push({
           type: 'entry',
           number: itemNumber(ctx.counters, ctx.activeDepth, i + 1),
-          status: it.status || null,
-          text: it.text != null ? String(it.text) : '',
-          zh: it.zh != null ? String(it.zh) : null,
+          status: pick(it.stage, it.status),   // roadmap stage token (was `status`)
+          title: enOf(it, 'title'),            // optional short title (English)
+          title_zh: zhOf(it, 'title'),
+          text: enOf(it, 'summary', 'text_en', 'text') || '',   // the line (was `text`)
+          zh: zhOf(it, 'summary', 'text_zh', 'zh'),
+          raw: rawOf(it, 'summary'),
           depth: ctx.activeDepth + 1,
           doc: where.doc,
           ownerKind: where.ownerKind,
@@ -247,7 +278,7 @@
             id: g.id || (nodeId + '-' + slugify(g.title)), title: String(g.title),
             depth: hn.activeDepth, doc: 'entries', ownerKind: 'subgroup',
             ownerKey: nodeId, parentId: nodeId, subgroupIndex: gi,
-            description: g.description || null, description_zh: g.description_zh || null,
+            description: enOf(g, 'desc', 'description'), description_zh: zhOf(g, 'desc', 'description_zh'),
           });
           emitEntries(g.entries || [], ctx, {
             doc: 'entries', ownerKind: 'subgroup', ownerKey: nodeId,
@@ -272,8 +303,8 @@
         id: page.id, title: String(page.title != null ? page.title : page.id),
         label: page.label || null, depth: hn.activeDepth,
         doc: 'entries', ownerKind: 'node', ownerKey: page.id,
-        description: page.description || null, description_zh: page.description_zh || null,
-        status: page.status || null, subgroupParent: false,
+        description: enOf(page, 'desc', 'description'), description_zh: zhOf(page, 'desc', 'description_zh'),
+        status: pick(page.stage, page.status), subgroupParent: false,
       };
       rows.push(row);
       emitEntriesFor(page.id, ctx, L, row);
@@ -296,8 +327,8 @@
         type: 'devSub', level: 3, number: hn.number,
         id: sub.id, title: String(sub.title != null ? sub.title : sub.id),
         depth: hn.activeDepth, doc: 'dev', ownerKind: 'dev', ownerKey: sub.id,
-        devIndex: di, description: sub.description || null,
-        description_zh: sub.description_zh || null, subgroupParent: false,
+        devIndex: di, description: enOf(sub, 'desc', 'description'),
+        description_zh: zhOf(sub, 'desc', 'description_zh'), subgroupParent: false,
       });
       emitEntries(sub.entries || [], devCtx,
         { doc: 'dev', ownerKind: 'dev', ownerKey: sub.id, devIndex: di });
@@ -311,7 +342,7 @@
         type: 'section', level: 2, number: secKey,
         id: sec.id, title: String(sec.title != null ? sec.title : sec.id),
         doc: 'entries', ownerKind: 'node', ownerKey: sec.id,
-        status: sec.status || null, subgroupParent: false,
+        status: pick(sec.stage, sec.status), subgroupParent: false,
       };
       rows.push(row);
       emitEntriesFor(sec.id, ctx, 2, row);          // section-level entries (activeDepth 0)

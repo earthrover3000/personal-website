@@ -257,3 +257,48 @@ body:has(#view-block:checked) .touched-date { display: none; }
 body:has(#view-block:checked) .touched-block { display: inline-block; }
 body:has(#view-ago:checked) .touched-date { display: none; }
 body:has(#view-ago:checked) .touched-ago { display: inline-block; }
+
+/* ── Roadmap / What's New surfaces ──────────────────────────────────────────
+   Shared by /site-roadmap and /whats-new (site_roadmap package). Both render
+   the milestone timeline as a .stats-table; the What's New face reuses the same
+   rows, so these rules serve both. */
+/* Stage/version bars: collapsible like stats, labels selectable to copy.
+   Defining events never fold (nofold) so a collapsed section still shows its
+   headline + date; only non-defining events fold. */
+.roadmap-bar td { user-select: text; }
+/* Fixed-width stage label so the `✦` + title align across every bar
+   (Phase/Version differ in length). Generous so the longest never spills. */
+.roadmap-bar .rm-stage { display: inline-block; min-width: 7em; }
+/* Defining event's date on the bar — shown only when collapsed (the defining
+   row itself folds away then). Full cell size/weight to match the expanded
+   date + Today line; no collapse chevron on this date cell. */
+.roadmap-bar-date { display: none; }
+.section-bar.collapsed .roadmap-bar-date {
+  display: inline; font-size: 0.9rem; font-weight: 600;
+  text-transform: none; letter-spacing: normal;
+}
+.section-bar.roadmap-bar td:nth-child(2)::before { content: none; }
+/* Defining event — the milestone that moved the site into this version.
+   Lighter than the title bar's grey so the two don't merge, with an accent
+   left-edge + bold name, and a hover highlight. */
+.roadmap-defining td { background: color-mix(in srgb, var(--border) 55%, transparent); font-weight: 600; }
+.roadmap-defining td:first-child { border-left: 3px solid var(--accent); }
+.roadmap-defining:hover td { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+/* Today line — the past→future boundary (roadmap timeline only; the What's New
+   face is shipped-only and emits no Today row). Faint-red wash matching the
+   event-manifold / life-clock "now" marker (ANCHOR_MARKER_COLOR #E53935). */
+.roadmap-today td { background: color-mix(in srgb, #E53935 14%, transparent); font-weight: 600; }
+
+/* Roadmap ⇄ What's New mode toggle. Same pure-CSS radiogroup idiom as the
+   date view-toggle: the checked #mode-* radio shows its view (and its heading)
+   and hides the other. Both views + both headings render server-side, so the
+   page is complete with no JS and fully crawler-visible; switching is instant.
+   The two output files (/site-roadmap, /whats-new) differ only in which radio
+   ships checked — the entry point picks the landing mode. */
+.mode-toggle { margin-top: 0; }
+.mode-only { display: none; }
+.mode-view { display: none; }
+body:has(#mode-roadmap:checked) .mode-only-roadmap,
+body:has(#mode-roadmap:checked) #mode-roadmap-view { display: block; }
+body:has(#mode-whatsnew:checked) .mode-only-whatsnew,
+body:has(#mode-whatsnew:checked) #mode-whatsnew-view { display: block; }

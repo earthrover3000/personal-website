@@ -11,42 +11,24 @@
   <link rel="stylesheet" href="../../../../界面 UI/styles/base.css">
   <link rel="stylesheet" href="../../../../界面 UI/styles/docs.css">
   <link rel="stylesheet" href="../../../../界面 UI/styles/stats.css">
-  <style>
-    /* Roadmap stage/version bars: collapsible like stats, labels selectable to
-       copy. Defining events never fold (nofold) so a collapsed section still
-       shows its headline + date; only non-defining events fold.
-       Row indent is shared in stats.css (.stats-table entries under their bar). */
-    .roadmap-bar td { user-select: text; }
-    /* Fixed-width stage label so the `✦` + title align across every bar
-       (Phase/Version differ in length). Generous so the longest never spills. */
-    .roadmap-bar .rm-stage { display: inline-block; min-width: 7em; }
-    /* Defining event's date on the bar — shown only when collapsed (the
-       defining row itself folds away then). Full cell size/weight to match the
-       expanded date + Today line; no collapse chevron on this date cell. */
-    .roadmap-bar-date { display: none; }
-    .section-bar.collapsed .roadmap-bar-date {
-      display: inline; font-size: 0.9rem; font-weight: 600;
-      text-transform: none; letter-spacing: normal;
-    }
-    .section-bar.roadmap-bar td:nth-child(2)::before { content: none; }
-    /* Defining event — the milestone that moved the site into this version.
-       Lighter than the title bar's grey so the two don't merge, with an accent
-       left-edge + bold name, and a hover highlight. */
-    .roadmap-defining td { background: color-mix(in srgb, var(--border) 55%, transparent); font-weight: 600; }
-    .roadmap-defining td:first-child { border-left: 3px solid var(--accent); }
-    .roadmap-defining:hover td { background: color-mix(in srgb, var(--accent) 16%, transparent); }
-    /* Today line — the past→future boundary, same two-column format as an event
-       with a faint-red wash. Red matches the event-manifold / life-clock "now"
-       marker (ANCHOR_MARKER_COLOR #E53935). */
-    .roadmap-today td { background: color-mix(in srgb, #E53935 14%, transparent); font-weight: 600; }
-  </style>
+  <!-- Roadmap + What's New share one body: both views plus the Roadmap/What's
+       New mode toggle. All styling (bars, defining/today rows, mode toggle)
+       lives in stats.css so the two surfaces can't drift. -->
 </head>
 <body>
   <div class="container">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../">Home</a> <span class="sep">›</span> <a href="../">Index</a> <span class="sep">›</span> <span aria-current="page">Site Roadmap</span></nav>
-    <h1>Charlie 丁志成 ✦ Site Roadmap</h1>
-    <p class="head-meta">Phase 0.4 ✦ Confirmation of scope · Preparing site preview (2026-06-27)</p>
+    <h1 class="mode-only mode-only-roadmap">Charlie 丁志成 ✦ Site Roadmap</h1>
+    <h1 class="mode-only mode-only-whatsnew">Charlie 丁志成 ✦ What's New</h1>
+    <p class="head-meta">Phase 0.4 ✦ Confirmation of scope (2026-06-27)</p>
 
+    <div class="view-toggle mode-toggle" role="radiogroup" aria-label="View mode">
+  <span>View:</span>
+  <input type="radio" id="mode-roadmap" name="mode" checked>
+  <label for="mode-roadmap">Roadmap</label>
+  <input type="radio" id="mode-whatsnew" name="mode">
+  <label for="mode-whatsnew">What's New</label>
+</div>
     <div class="view-toggle" role="radiogroup" aria-label="Date display mode">
   <span>Show dates as:</span>
   <input type="radio" id="view-date" name="view" checked>
@@ -57,7 +39,8 @@
   <label for="view-ago">From today</label>
 </div>
 
-    <h2 class="section-heading">Site Timeline</h2>
+    <div class="mode-view mode-view-roadmap" id="mode-roadmap-view">
+<h2 class="section-heading">Site Timeline</h2>
 <table class="stats-table site-milestones">
   <thead><tr><th>Milestone</th><th>Date</th></tr></thead>
   <tbody>
@@ -67,13 +50,14 @@
     <tr class="roadmap-event roadmap-defining"><td>Prototype site went live (WordPress)</td><td><span class="touched-date">2025-02-03</span><span class="touched-block">Block 11</span><span class="touched-ago" data-date="2025-02-03">1yr 5mo</span></td></tr>
     <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.3</span> ✦ Explosion of ideas</td><td><span class="roadmap-bar-date"><span class="touched-date">2026-03-23</span><span class="touched-block">Block 19</span><span class="touched-ago" data-date="2026-03-23">3mo</span></span></td></tr>
     <tr class="roadmap-event roadmap-defining"><td>Prototype site went live (GitHub Pages)</td><td><span class="touched-date">2026-03-23</span><span class="touched-block">Block 19</span><span class="touched-ago" data-date="2026-03-23">3mo</span></td></tr>
-    <tr class="roadmap-event"><td>Instagram bio repointed (GitHub Pages)</td><td><span class="touched-date">2026-05-08</span><span class="touched-block">Block 20</span><span class="touched-ago" data-date="2026-05-08">58 days</span></td></tr>
-    <tr class="roadmap-event roadmap-defining"><td>Lifespan Atlas content scope confirmed</td><td><span class="touched-date">2026-06-27</span><span class="touched-block">Block 21</span><span class="touched-ago" data-date="2026-06-27">8 days</span></td></tr>
-    <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.4</span> ✦ Confirmation of scope · Preparing site preview</td><td><span class="roadmap-bar-date"><span class="touched-date">2026-06-27</span><span class="touched-block">Block 21</span><span class="touched-ago" data-date="2026-06-27">8 days</span></span></td></tr>
-    <tr class="roadmap-today nofold"><td>Today</td><td><span class="touched-date">2026-07-05</span><span class="touched-block">Block 21</span><span class="touched-ago">today</span></td></tr>
-    <tr class="roadmap-event"><td>Site roadmap established</td><td><span class="touched-date">TBC</span><span class="touched-block">TBC</span><span class="touched-ago">TBC</span></td></tr>
+    <tr class="roadmap-event"><td>Instagram bio repointed (GitHub Pages)</td><td><span class="touched-date">2026-05-08</span><span class="touched-block">Block 20</span><span class="touched-ago" data-date="2026-05-08">2mo</span></td></tr>
+    <tr class="roadmap-event roadmap-defining"><td>Lifespan Atlas content scope confirmed</td><td><span class="touched-date">2026-06-27</span><span class="touched-block">Block 21</span><span class="touched-ago" data-date="2026-06-27">11 days</span></td></tr>
+    <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.4</span> ✦ Confirmation of scope</td><td><span class="roadmap-bar-date"><span class="touched-date">2026-06-27</span><span class="touched-block">Block 21</span><span class="touched-ago" data-date="2026-06-27">11 days</span></span></td></tr>
+    <tr class="roadmap-today nofold"><td>Today</td><td><span class="touched-date">2026-07-08</span><span class="touched-block">Block 21</span><span class="touched-ago">today</span></td></tr>
+    <tr class="roadmap-event roadmap-defining"><td>Site roadmap established</td><td><span class="touched-date">TBC</span><span class="touched-block">TBC</span><span class="touched-ago">TBC</span></td></tr>
+    <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.5</span> ✦ Preparing site preview</td><td><span class="roadmap-bar-date"><span class="touched-date">TBC</span><span class="touched-block">TBC</span><span class="touched-ago">TBC</span></span></td></tr>
     <tr class="roadmap-event roadmap-defining"><td>Site preview published</td><td><span class="touched-date">TBC</span><span class="touched-block">TBC</span><span class="touched-ago">TBC</span></td></tr>
-    <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Version 0.5</span> ✦ Site preview · Preparing first official release</td><td><span class="roadmap-bar-date"><span class="touched-date">TBC</span><span class="touched-block">TBC</span><span class="touched-ago">TBC</span></span></td></tr>
+    <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Version 0.6</span> ✦ Site preview · Preparing first official release</td><td><span class="roadmap-bar-date"><span class="touched-date">TBC</span><span class="touched-block">TBC</span><span class="touched-ago">TBC</span></span></td></tr>
     <tr class="roadmap-event roadmap-defining"><td>Personal website (v1.0) published</td><td><span class="touched-date">TBC</span><span class="touched-block">TBC</span><span class="touched-ago">TBC</span></td></tr>
     <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Version 1.0</span> ✦ First official release · Preparing additional features</td><td><span class="roadmap-bar-date"><span class="touched-date">TBC</span><span class="touched-block">TBC</span><span class="touched-ago">TBC</span></span></td></tr>
     <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Version 1.+</span> ✦ Additional content and features</td><td></td></tr>
@@ -82,6 +66,23 @@
 </table>
 <h2 class="section-heading">Site Log</h2>
 <p class="head-meta">Coming soon — a log/rings view of the site’s milestones, reusing Lifespan Atlas’s rings.</p>
+</div>
+<div class="mode-view mode-view-whatsnew" id="mode-whatsnew-view">
+<table class="stats-table site-milestones">
+  <thead><tr><th>Milestone</th><th>Date</th></tr></thead>
+  <tbody>
+    <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.4</span> ✦ Confirmation of scope</td><td><span class="roadmap-bar-date"><span class="touched-date">2026-06-27</span><span class="touched-block">Block 21</span><span class="touched-ago" data-date="2026-06-27">11 days</span></span></td></tr>
+    <tr class="roadmap-event roadmap-defining"><td>Lifespan Atlas content scope confirmed</td><td><span class="touched-date">2026-06-27</span><span class="touched-block">Block 21</span><span class="touched-ago" data-date="2026-06-27">11 days</span></td></tr>
+    <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.3</span> ✦ Explosion of ideas</td><td><span class="roadmap-bar-date"><span class="touched-date">2026-03-23</span><span class="touched-block">Block 19</span><span class="touched-ago" data-date="2026-03-23">3mo</span></span></td></tr>
+    <tr class="roadmap-event roadmap-defining"><td>Prototype site went live (GitHub Pages)</td><td><span class="touched-date">2026-03-23</span><span class="touched-block">Block 19</span><span class="touched-ago" data-date="2026-03-23">3mo</span></td></tr>
+    <tr class="roadmap-event"><td>Instagram bio repointed (GitHub Pages)</td><td><span class="touched-date">2026-05-08</span><span class="touched-block">Block 20</span><span class="touched-ago" data-date="2026-05-08">2mo</span></td></tr>
+    <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.2</span> ✦ Emergence of website concept</td><td><span class="roadmap-bar-date"><span class="touched-date">2025-02-03</span><span class="touched-block">Block 11</span><span class="touched-ago" data-date="2025-02-03">1yr 5mo</span></span></td></tr>
+    <tr class="roadmap-event roadmap-defining"><td>Prototype site went live (WordPress)</td><td><span class="touched-date">2025-02-03</span><span class="touched-block">Block 11</span><span class="touched-ago" data-date="2025-02-03">1yr 5mo</span></td></tr>
+    <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.1</span> ✦ First creative sparks</td><td><span class="roadmap-bar-date"><span class="touched-date">Late 2024</span><span class="touched-block">~Block 10</span><span class="touched-ago">~1yr 6mo</span></span></td></tr>
+    <tr class="roadmap-event roadmap-defining"><td>Life Clock idea emerged</td><td><span class="touched-date">Late 2024</span><span class="touched-block">~Block 10</span><span class="touched-ago">~1yr 6mo</span></td></tr>
+  </tbody>
+</table>
+</div>
   </div>
   <script src="../../../../界面 UI/page-widgets/stats-table.js"></script>
 </body>
