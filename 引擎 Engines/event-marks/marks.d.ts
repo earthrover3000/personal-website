@@ -15,9 +15,12 @@ export type BlockContext = {
   numBlocks: number;
   /** Day-counts of each completed past block. */
   pastDurations: number[];
-  /** Average block duration in days, rounded to integer (0 when no blocks). */
+  /** Effective synthesised-slot length in days: the rounded average, or the
+   *  caller's projLen override verbatim (0 when no blocks and no override).
+   *  Every projection/extrapolation consumer reads this. */
   avgLen: number;
-  /** Average past-block duration in days, unrounded float. */
+  /** Average past-block duration in days, unrounded float — always the TRUE
+   *  mean, never the projLen override; use for display statistics. */
   avgLenFloat: number;
   /** First boundary in ms (= blockMs[0]). 0 when no blocks. */
   epochMs: number;
@@ -38,6 +41,9 @@ export type BlockContext = {
 export declare function computeBlockContext(
   boundaries: readonly string[],
   todayMs: number,
+  /** Override for the synthesised-slot length in days (see BlockContext.avgLen).
+   *  Omitted/undefined → the personal average (historical behaviour). */
+  projLen?: number,
 ): BlockContext;
 export declare function msToBlock(ms: number, ctx: BlockContext): number;
 export declare function msToBlockString(ms: number, ctx: BlockContext): string;

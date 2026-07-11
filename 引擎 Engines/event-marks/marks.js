@@ -27,9 +27,17 @@ export const isoToDayMs = (iso) => Date.parse(iso + "T00:00:00Z");
 
 /** Build a block context from raw boundary date strings (ISO YYYY-MM-DD) and
  *  the current "today" timestamp. Pure — no side effects. Synthesises a
- *  virtual current block past the last CSV boundary (length = 2 × round(avgLen)
- *  days, extending in avgLen steps until it exceeds today). */
-export function computeBlockContext(boundaries, todayMs) {
+ *  virtual current block past the last CSV boundary (length = 2 × slot-length
+ *  days, extending in slot-length steps until it exceeds today).
+ *
+ *  `projLen` (optional, days) overrides the synthesised-slot length: when
+ *  given and > 0, every projection/extrapolation uses it instead of the
+ *  personal average (e.g. the atlas's projected-block-length setting, which
+ *  can pin slots to the canonical 61 days = tropical year ÷ 6). It lands in
+ *  ctx.avgLen — the field every downstream consumer already reads as "the
+ *  slot length" — while ctx.avgLenFloat always stays the TRUE unrounded mean
+ *  for display. Omitted → rounded mean, the historical behaviour. */
+export function computeBlockContext(boundaries, todayMs, projLen) {
   const blockMs = boundaries.map(isoToDayMs);
   const numBlocks = Math.max(0, blockMs.length - 1);
   const pastDurations = [];
@@ -45,7 +53,7 @@ export function computeBlockContext(boundaries, todayMs) {
   const avgLenFloat = durationBasis.length > 0
     ? durationBasis.reduce((a, b) => a + b, 0) / durationBasis.length
     : 0;
-  const avgLen = Math.round(avgLenFloat);
+  const avgLen = projLen && projLen > 0 ? Math.round(projLen) : Math.round(avgLenFloat);
   const epochMs = numBlocks > 0 ? blockMs[0] : 0;
   const lastBoundaryMs = numBlocks > 0 ? blockMs[numBlocks] : 0;
   const synthesized = numBlocks > 0 && lastBoundaryMs <= todayMs && avgLen > 0;

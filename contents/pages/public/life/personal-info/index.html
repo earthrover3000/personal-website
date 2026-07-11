@@ -73,12 +73,15 @@
   <h2>Places I've lived</h2>
   <p>Click any coordinate to peek at it on a map.</p>
   <ul class="places">
-    <!-- lat/lon are the lat/lon of each city's OSM place=city node
-         (openstreetmap.org/node/<id>) — same source as the test-page
-         tester. Display strings stay rounded to 1 decimal. -->
-    <li><span class="coord map-trigger" data-lat="53.3493795" data-lon="-6.2605593" data-name="Dublin">(53.3° N, 6.3° W, 🌍)</span></li>      <!-- node 3473474851 -->
-    <li><span class="coord map-trigger" data-lat="52.2055314" data-lon="0.1186637" data-name="Cambridge">(52.2° N, 0.1° E, 🌍)</span></li>   <!-- node 20971094 -->
-    <li><span class="coord map-trigger" data-lat="51.5074456" data-lon="-0.1277653" data-name="London">(51.5° N, 0.1° W, 🌍)</span></li>     <!-- node 107775 -->
+    <!-- Rendered from the lived-places SSOT (Personal Data
+         life/places-lived.yaml) by build.py via
+         helpers.render_places_lived_html(), one row per place in file
+         order. lat/lon are each city's OSM place=city node
+         (openstreetmap.org/node/<id>); display strings stay rounded to
+         1 decimal. -->
+    <li><span class="coord map-trigger" data-lat="53.3493795" data-lon="-6.2605593" data-name="Dublin">(53.3° N, 6.3° W, 🌍)</span></li> <!-- node 3473474851 -->
+    <li><span class="coord map-trigger" data-lat="52.2055314" data-lon="0.1186637" data-name="Cambridge">(52.2° N, 0.1° E, 🌍)</span></li> <!-- node 20971094 -->
+    <li><span class="coord map-trigger" data-lat="51.5074456" data-lon="-0.1277653" data-name="London">(51.5° N, 0.1° W, 🌍)</span></li> <!-- node 107775 -->
     <li><span class="coord map-trigger" data-lat="31.2323437" data-lon="121.4691024" data-name="Shanghai">(31.2° N, 121.5° E, 🌏)</span></li> <!-- node 778910398 -->
   </ul>
 
