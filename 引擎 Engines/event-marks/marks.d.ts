@@ -23,7 +23,7 @@ export type BlockContext = {
    *  mean, never the projLen override; use for display statistics. */
   avgLenFloat: number;
   /** First boundary in ms (= blockMs[0]). 0 when no blocks. */
-  epochMs: number;
+  genesisMs: number;
   /** Last CSV boundary in ms (= blockMs[N]). 0 when no blocks. */
   lastBoundaryMs: number;
   /** True iff today >= last CSV boundary AND avgLen > 0. */

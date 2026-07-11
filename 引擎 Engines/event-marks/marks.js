@@ -54,7 +54,7 @@ export function computeBlockContext(boundaries, todayMs, projLen) {
     ? durationBasis.reduce((a, b) => a + b, 0) / durationBasis.length
     : 0;
   const avgLen = projLen && projLen > 0 ? Math.round(projLen) : Math.round(avgLenFloat);
-  const epochMs = numBlocks > 0 ? blockMs[0] : 0;
+  const genesisMs = numBlocks > 0 ? blockMs[0] : 0;
   const lastBoundaryMs = numBlocks > 0 ? blockMs[numBlocks] : 0;
   const synthesized = numBlocks > 0 && lastBoundaryMs <= todayMs && avgLen > 0;
   let syntheticEndMs = lastBoundaryMs;
@@ -66,33 +66,33 @@ export function computeBlockContext(boundaries, todayMs, projLen) {
   const anchorIdx = synthesized ? numBlocks : numBlocks - 1;
   return {
     blockMs, numBlocks, pastDurations, avgLen, avgLenFloat,
-    epochMs, lastBoundaryMs, synthesized, syntheticEndMs, anchorMs, anchorIdx,
+    genesisMs, lastBoundaryMs, synthesized, syntheticEndMs, anchorMs, anchorIdx,
     todayMs,
   };
 }
 
 /** Map a ms timestamp to a block index. In-range dates return the closing
  *  block's index; past the last boundary every avgLen-day chunk is its own
- *  synthesised block; pre-epoch dates extrapolate backward the same way. */
+ *  synthesised block; pre-genesis dates extrapolate backward the same way. */
 export function msToBlock(ms, ctx) {
-  const { blockMs, numBlocks, lastBoundaryMs, epochMs, avgLen } = ctx;
+  const { blockMs, numBlocks, lastBoundaryMs, genesisMs, avgLen } = ctx;
   for (let i = 0; i < numBlocks; i++) {
     if (ms >= blockMs[i] && ms < blockMs[i + 1]) return i;
   }
   if (ms >= lastBoundaryMs && avgLen > 0) {
     return numBlocks + Math.floor((ms - lastBoundaryMs) / MS_PER_DAY / avgLen);
   }
-  if (ms < epochMs && avgLen > 0) {
-    return -Math.ceil((epochMs - ms) / MS_PER_DAY / avgLen);
+  if (ms < genesisMs && avgLen > 0) {
+    return -Math.ceil((genesisMs - ms) / MS_PER_DAY / avgLen);
   }
   return 0;
 }
 
 /** Like msToBlock but returns a display string. CSV-defined blocks render
  *  plainly; synthesised slots past the CSV are tilded UNLESS they contain
- *  today; pre-epoch extrapolations are always tilded. */
+ *  today; pre-genesis extrapolations are always tilded. */
 export function msToBlockString(ms, ctx) {
-  const { blockMs, numBlocks, lastBoundaryMs, epochMs, avgLen, todayMs } = ctx;
+  const { blockMs, numBlocks, lastBoundaryMs, genesisMs, avgLen, todayMs } = ctx;
   for (let i = 0; i < numBlocks; i++) {
     if (ms >= blockMs[i] && ms < blockMs[i + 1]) return String(i);
   }
@@ -103,8 +103,8 @@ export function msToBlockString(ms, ctx) {
       : -1;
     return slot === todaySlot ? String(slot) : `~${slot}`;
   }
-  if (ms < epochMs && avgLen > 0) {
-    return `~${-Math.ceil((epochMs - ms) / MS_PER_DAY / avgLen)}`;
+  if (ms < genesisMs && avgLen > 0) {
+    return `~${-Math.ceil((genesisMs - ms) / MS_PER_DAY / avgLen)}`;
   }
   return "?";
 }
@@ -175,7 +175,7 @@ export function getWeekMarksInRange(startTime, endTime) {
  *  (ms) — CSV-defined blocks plus avgLen-day synthesised slots before/after.
  *  Empty when the context has no blocks. */
 export function getBlockMarksInRange(startTime, endTime, ctx) {
-  const { blockMs, numBlocks, lastBoundaryMs, epochMs, avgLen } = ctx;
+  const { blockMs, numBlocks, lastBoundaryMs, genesisMs, avgLen } = ctx;
   if (numBlocks === 0) return [];
   const blockBounds = (i) => {
     if (i >= 0 && i < numBlocks) return [blockMs[i], blockMs[i + 1]];
@@ -185,7 +185,7 @@ export function getBlockMarksInRange(startTime, endTime, ctx) {
       const s = lastBoundaryMs + offset * avgLen * MS_PER_DAY;
       return [s, s + avgLen * MS_PER_DAY];
     }
-    const s = epochMs + i * avgLen * MS_PER_DAY;
+    const s = genesisMs + i * avgLen * MS_PER_DAY;
     return [s, s + avgLen * MS_PER_DAY];
   };
   let i = msToBlock(startTime, ctx);
