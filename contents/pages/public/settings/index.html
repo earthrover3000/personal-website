@@ -627,6 +627,24 @@ a.app-card:hover {
     .theme-opt.is-active .theme-opt-desc { color: var(--bg); opacity: 0.8; }
     .theme-opt-label { font-weight: 500; }
     .theme-opt-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.35; }
+
+    /* Local-access URLs — populated live from local-access.json (see wiring). */
+    .local-line { margin: 0.45rem 0; }
+    .local-label {
+      display: inline-block; min-width: 4.5rem;
+      color: var(--muted); font-size: 0.8rem; text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .local-url {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 1rem; color: var(--accent); word-break: break-all;
+    }
+    /* Show/hide-the-LOCAL-badge preference. */
+    .badge-toggle {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      margin-top: 1rem; color: var(--text); font-size: 0.9rem; cursor: pointer;
+    }
+    .badge-toggle input { accent-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -641,6 +659,15 @@ a.app-card:hover {
     <button type="button" class="theme-opt" data-mode="auto" role="radio" aria-checked="false"><span class="theme-opt-label">Auto</span><span class="theme-opt-desc">Follow this device’s system setting</span></button>
     <button type="button" class="theme-opt" data-mode="light" role="radio" aria-checked="false"><span class="theme-opt-label">Light</span><span class="theme-opt-desc">Always light, regardless of the system</span></button>
     <button type="button" class="theme-opt" data-mode="dark" role="radio" aria-checked="false"><span class="theme-opt-label">Dark</span><span class="theme-opt-desc">Always dark, regardless of the system</span></button>
+  </div>
+</section>
+<section class="setting" id="local-access" hidden>
+  <h2>Local access</h2>
+  <p class="setting-desc">Open one of these on another device on the same Wi‑Fi (e.g. your phone) to view this site. Shown only while the local server is running. The <em>name</em> link is preferred — it keeps working even if this PC’s IP changes.</p>
+  <p class="local-line" id="local-line-host" hidden><span class="local-label">By name</span><a class="local-url" id="local-url-host" href="#" rel="noopener"></a></p>
+  <p class="local-line" id="local-line-ip" hidden><span class="local-label">By IP</span><a class="local-url" id="local-url" href="#" rel="noopener"></a></p>
+  <div>
+    <label class="badge-toggle"><input type="checkbox" id="local-badge-toggle"> Show the <strong>LOCAL</strong> badge on pages</label>
   </div>
 </section>
 <script>
@@ -660,6 +687,45 @@ a.app-card:hover {
   });
   reflect(window.getSiteTheme ? window.getSiteTheme() : 'auto');
   if (window.onSiteThemeChange) window.onSiteThemeChange(reflect);
+})();
+</script>
+<script>
+(function () {
+  var sec = document.getElementById('local-access');
+  if (!sec) return;
+  function fill(lineId, linkId, url) {
+    if (!url) return false;
+    var line = document.getElementById(lineId);
+    var link = document.getElementById(linkId);
+    if (!line || !link) return false;
+    link.textContent = url;
+    link.href = url;
+    line.hidden = false;
+    return true;
+  }
+  fetch('../../local-access.json', { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (info) {
+      if (!info) return;
+      var ipUrl = info.url ||
+        (info.ip ? 'http://' + info.ip + ':' + info.port + '/' : null);
+      var shown = fill('local-line-host', 'local-url-host', info.hostname_url);
+      shown = fill('local-line-ip', 'local-url', ipUrl) || shown;
+      if (shown) sec.hidden = false;
+    })
+    .catch(function () {});
+})();
+</script>
+<script>
+(function () {
+  var cb = document.getElementById('local-badge-toggle');
+  if (!cb) return;
+  var K = 'site-local-badge';
+  cb.checked = localStorage.getItem(K) !== 'off';
+  cb.addEventListener('change', function () {
+    if (window.setLocalBadge) { window.setLocalBadge(cb.checked); return; }
+    if (cb.checked) localStorage.removeItem(K); else localStorage.setItem(K, 'off');
+  });
 })();
 </script>
 </div>
