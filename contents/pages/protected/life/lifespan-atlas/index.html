@@ -4,7 +4,11 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="apple-touch-icon" href="apple-touch-icon-180x180.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Zoom LOCKED by default (native-app feel); the Settings → Dev "Pinch
+         zoom" toggle unlocks it at runtime (LifespanAtlas effect rewrites this
+         tag + drops the iOS gesture guards). Locked here too so the very first
+         paint can't be pinch-zoomed before that effect mounts. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#1a5757" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -28,7 +32,7 @@
       }
       html, body { margin: 0; padding: 0; min-height: 100vh; background: #1a5757; }
     </style>
-    <script type="module" crossorigin src="./assets/index-Q3cUtuXp.js"></script>
+    <script type="module" crossorigin src="./assets/index-Br8oBYg7.js"></script>
   <link rel="manifest" href="./manifest.webmanifest"></head>
   <body>
     <div id="root"></div>
