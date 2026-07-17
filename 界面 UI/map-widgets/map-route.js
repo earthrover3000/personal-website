@@ -180,7 +180,12 @@
                 };
                 mer = window.createWorldMap(merOpts);
               }
-              merOpts.crop = { lat: rg.lat, lon: rg.lon, radiusKm: rg.defaultRadiusKm };
+              // fill: 1 — the disc exactly inscribes the square, so the circle
+              // porthole clip coincides with the region's radius circle. Same
+              // extent as the Region Map Explorer's crops (both modes), which
+              // pass fill: 1 for the same reason — the region's canonical crop
+              // means ONE extent everywhere it appears.
+              merOpts.crop = { lat: rg.lat, lon: rg.lon, radiusKm: rg.defaultRadiusKm, fill: 1 };
               merOpts.routes = [[props.origin, props.dest]];
             } else if (!hao) {
               haoOpts = {
