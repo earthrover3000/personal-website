@@ -68,6 +68,7 @@
   var LAND_BOUNDS = [0, 500, 1000, 2000, 3000, 4000, 5000];
   var TERRAIN_LAND_BASE = 16;
   var DEFAULT_SIZE = 360;   // box px — matches the Region Map Explorer default
+  var CROP_FILL = 0.94;     // crop framing (opts.crop): the region disc's diameter as a fraction of the square canvas edge — a small breathing margin around the full disc; per-crop opts.crop.fill overrides (1 = disc exactly inscribed, for circle-clipped hosts)
   var ZOOM_LEVELS = [1, 2, 4, 8, 16, 32];   // each step doubles: 100, 200, 400, 800, 1600, 3200 %
   // Quick-orient presets: which region sits at the top, as a fixed-dial angle (°, multiple of 15),
   // per vertical framing. Only the vertical (Northern/Southern) framings have these; the horizontal
@@ -503,6 +504,52 @@
       state.zoom = z; updateZoomReadout(); render();                  // zoom pivots on the centre point automatically
     }
     function resetView() { state.zoom = 1; state.cx = null; state.cy = null; updateZoomReadout(); }   // size + centre only — orientation mode/angle are left as the user set them
+    // ---- close-up CROP framing (embed only) -------------------------------
+    // opts.crop = {lat, lon, radiusKm|defaultRadiusKm, fill?} frames the view on that region's canonical
+    // Web-Mercator disc — the SAME circle the Region Explorer shows and mercatorDisc() outlines —
+    // so the full disc fills the square canvas (diameter = CROP_FILL of the edge). Meaningful only
+    // with projection 'mercator' on a horizontal (equatorial) framing, where the disc is a true
+    // CIRCLE in projected space; the engine picks that framing itself (cropCoordinate), so callers
+    // pass no `coordinate`. Like opts.routes, opts.crop is re-read every render — an embed swaps
+    // regions by mutating opts.crop + render() (no state poking; _cropKey makes repeats free).
+    var _cropKey = '';
+    function cropCoordinate(cr) {
+      // The horizontal framing whose seam meridian lies FARTHEST (in wrapped longitude) from the
+      // crop centre, so the projection seam can never cut through the disc: a crop disc spans well
+      // under 90° of longitude, and with the config's two complementary framings the winner's seam
+      // is ≥ 90° away. Data-driven off cfg.coordinates — no framing ids hardcoded.
+      var best = null, bestD = -1;
+      (cfg.coordinates || []).forEach(function (c) {
+        if (c.kind !== 'horizontal') return;
+        var seam = c.seam != null ? c.seam : PROJ.wrap180(PROJ.centralOf(c) + 180);
+        var d = Math.abs(PROJ.wrap180(cr.lon - seam));
+        if (d > bestD) { bestD = d; best = c.id; }
+      });
+      return best || state.coordinate;                                 // no horizontal framing configured → leave the framing alone
+    }
+    function applyCrop(cr) {
+      var rk = cr.radiusKm != null ? cr.radiusKm : cr.defaultRadiusKm;   // accept the region-list {defaultRadiusKm} shape directly
+      if (!(isFinite(cr.lat) && isFinite(cr.lon) && rk > 0)) return;
+      // Per-crop fill override: hosts that clip the square canvas to its inscribed CIRCLE
+      // (the Region Explorer's vector basemap) pass fill:1 so the disc boundary lands exactly
+      // on the clip circle — the same geometry as the Leaflet crop. Default keeps the square
+      // embeds' breathing margin.
+      var fill = (cr.fill > 0 && cr.fill <= 1) ? cr.fill : CROP_FILL;
+      var key = cr.lat + '|' + cr.lon + '|' + rk + '|' + fill;
+      if (key === _cropKey) return;                                    // same crop → keep the computed view (re-renders are free)
+      _cropKey = key;
+      state.coordinate = cropCoordinate(cr);
+      // Pin the disc centre (projected through the chosen framing) to the canvas centre…
+      var p = PROJ.project(activeCoord(), state.projection, cr.lat, cr.lon);
+      state.cx = p.x; state.cy = p.y;
+      // …and zoom so the disc DIAMETER spans CROP_FILL of the canvas edge. draw() maps projected
+      // units → px at scale = (edge/maxSpan)·0.98·zoom (square embed canvas, θ=0), and the disc's
+      // projected radius r comes from PROJ.mercatorDiscGeom — the exact mercatorDisc math, shared,
+      // never re-derived here. Solving scale·2r = CROP_FILL·edge, the edge cancels:
+      //   zoom = fill·maxSpan / (0.98·2r)  — canvas-size-independent.
+      var g = geom(), r = PROJ.mercatorDiscGeom({ lat: cr.lat, lon: cr.lon }, rk).r;
+      state.zoom = fill * Math.max(g.spanX, g.spanY) / (0.98 * 2 * r);
+    }
     // The framing in effect: a custom vertical centre (from "Centre on arc") if set, else the preset hemisphere.
     var _customCoord = null;
     function activeCoord() {
@@ -1257,6 +1304,7 @@
         cssW = cssH = Math.max(50, Math.min(state.size, (mount.clientWidth || 9999)));
         canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
       }
+      if (!showControls && opts.crop) applyCrop(opts.crop);                 // close-up crop framing (re-read each render, like opts.routes)
       var f = computeFit();
       if (state.cx == null) { state.cx = f.px0; state.cy = f.py0; }         // first render: centre on the projection centre
       if (state.orientMode === 'north' && !animating && (!dragging || state.northLive)) { updateNorthTheta(); f = computeFit(); }  // north-up: live while dragging if northLive, else only when not dragging; never mid-tween

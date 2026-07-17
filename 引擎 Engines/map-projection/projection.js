@@ -77,15 +77,38 @@
   // (last point == first). Shape mirrors greatCircle() so consumers treat both the same way.
   function mercatorDisc(centre, radiusKm, n) {
     n = n || 256;
-    var c = mercator(centre.lat, centre.lon);                       // [x0 = λ rad, y0]
-    var r = radiusKm / (EARTH_RADIUS_KM * Math.cos(centre.lat * D2R));
+    var g0 = mercatorDiscGeom(centre, radiusKm);
     var lat = [], lon = [], i, t, g;
     for (i = 0; i <= n; i++) {                                       // <= n closes the loop (i=n repeats i=0)
       t = 2 * Math.PI * i / n;
-      g = mercatorInverse(c[0] + r * Math.cos(t), c[1] + r * Math.sin(t));
+      g = mercatorInverse(g0.x + g0.r * Math.cos(t), g0.y + g0.r * Math.sin(t));
       lat.push(g[0]); lon.push(g[1]);
     }
     return { lat: lat, lon: lon };
+  }
+
+  // The disc's geometry IN the normalized Mercator plane: centre (x,y) = mercator(centre) and
+  // radius r = radiusKm / (EARTH_RADIUS_KM · cos φ0). The ONE place that formula lives — shared
+  // by mercatorDisc (the drawn outline), mercatorDiscContains (the membership gate) and
+  // world-map.js's crop framing, so all three always describe the same circle.
+  function mercatorDiscGeom(centre, radiusKm) {
+    var c = mercator(centre.lat, centre.lon);
+    return { x: c[0], y: c[1], r: radiusKm / (EARTH_RADIUS_KM * Math.cos(centre.lat * D2R)) };
+  }
+
+  // TRUE iff (lat,lon) lies inside the SAME Mercator-plane disc mercatorDisc() outlines — plane
+  // (chordal) distance in the normalized Mercator plane, NOT haversine, so the gate agrees exactly
+  // with the drawn circle (the flight-popover close-up gate's contract). Δλ is wrapped to ±180° so
+  // a disc straddling the antimeridian still contains its far side (any real disc spans < 360°).
+  // Latitudes beyond ±MERCATOR_MAXLAT are always OUTSIDE: mercator() would clamp them onto the
+  // cutoff line, which could fake containment near the rim of a high-latitude disc — a point Web
+  // Mercator cannot show is never "inside a Mercator crop".
+  function mercatorDiscContains(centre, radiusKm, lat, lon) {
+    if (lat < -MERCATOR_MAXLAT || lat > MERCATOR_MAXLAT) return false;
+    var g = mercatorDiscGeom(centre, radiusKm);
+    var dx = wrap180(lon - centre.lon) * D2R;                       // Mercator x is just λ in radians → wrapped Δλ
+    var dy = mercator(lat, lon)[1] - g.y;
+    return dx * dx + dy * dy <= g.r * g.r;
   }
 
   // Normalise any base projection to [east, north].
@@ -190,6 +213,7 @@
     EARTH_RADIUS_KM: EARTH_RADIUS_KM, MERCATOR_MAXLAT: MERCATOR_MAXLAT,
     pBase: pBase, winkel: winkel, baseProject: baseProject,
     mercator: mercator, mercatorInverse: mercatorInverse, mercatorDisc: mercatorDisc,
+    mercatorDiscGeom: mercatorDiscGeom, mercatorDiscContains: mercatorDiscContains,
     genCoords: genCoords, wrap180: wrap180, greatCircle: greatCircle,
     rotFromCentre: rotFromCentre, centralOf: centralOf,
     toDomain: toDomain, projectDomain: projectDomain, project: project,

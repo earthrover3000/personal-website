@@ -16,10 +16,11 @@
        the cities-transport page uses the same two files. -->
   <script src="../../../../../界面 UI/map-widgets/map-export.js"></script>
   <script src="../../../../../界面 UI/map-widgets/map-explorer.js"></script>
-  <!-- Page-local data — sibling file in this folder, deployed by
-       build.py via the project config's extra_files: ['regions.js'].
-       Exposes window.GEOGRAPHY_DATA = { regions }. -->
-  <script src="regions.js"></script>
+  <!-- Shared region data (window.WORLD_REGIONS = { regions }) — single source
+       of truth in the engine module (was a page-local sibling here). Also read
+       by the flight-route popover's close-up gate (界面 UI/map-widgets/
+       map-route.js), so adding a region there updates both. -->
+  <script src="../../../../../引擎 Engines/map-projection/regions.js"></script>
   <!-- page-nav.js auto-injects a search bar + Contents nav whenever the
        page has 2+ <h2> direct children. Currently a no-op (one section
        only) but ready for when more sections get added. -->
@@ -75,7 +76,7 @@
 
   <h2>Region Map Explorer</h2>
   <p class="lede">
-    Sibling of the <a href="../cities-transport/">City Map Explorer</a> at regional scale — pick a well-known geographic region and render its extent at exactly the chosen pixel size and radius, clipped to a circle. Toggle <strong>Railways</strong> for an <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> overlay. Use <strong>Save PNG</strong> to export a lossless image of the visible circle.
+    Sibling of the <a href="../cities-transport/">City Map Explorer</a> at regional scale — pick a well-known geographic region and render its extent at exactly the chosen pixel size and radius, clipped to a circle. Toggle <strong>Railways</strong> for an <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> overlay. Switch <strong>Basemap</strong> from OpenStreetMap tiles to the <strong>projection engine</strong> to draw the same Web-Mercator crop with the vector toolkit above. Use <strong>Save PNG</strong> to export a lossless image of the visible circle.
   </p>
 
   <div id="region-explorer"></div>
@@ -132,19 +133,44 @@
     defaultRadiusKm: 510,
     filenamePrefix: 'map',
     placeholder: 'Select location…',
-    locations: GEOGRAPHY_DATA.regions,
+    locations: WORLD_REGIONS.regions,
     overview: function (el, api) {
       // Static (disablePan) Northern-Hǎo map; clicking a region's enclosed area selects it
       // (api.selectLocation → the Leaflet crop for that region).
       var h = createWorldMap({
         mount: el, controls: false, coordinate: 'north', projection: 'hao', detail: 'coarse',
-        regions: GEOGRAPHY_DATA.regions,
+        regions: WORLD_REGIONS.regions,
         disablePan: true,
         onRegionClick: function (rg) { api.selectLocation(rg.value); }
       });
       // Size (px) control resizes this static map. Skip a no-op (initial sync, px already == default)
       // so it doesn't force an early synchronous render before the deferred first draw.
       return { setSize: function (px) { if (px === h.state.size) return; h.state.size = px; h.render(); } };
+    },
+    // Vector basemap ("Basemap: Projection engine" toggle) — the engine's own Web-Mercator
+    // rendering of the SAME region disc the Leaflet tile crop shows. FINE (50m) detail: unlike
+    // the coarse overview picker this IS the headline rendering. fill:1 overrides the engine's
+    // usual breathing margin so the disc exactly inscribes the square — the widget's circular
+    // clip then coincides with the radius circle, matching the Leaflet crop's geometry. The
+    // engine picks the equatorial framing itself from the crop's longitude (seam-safe).
+    vectorCrop: function (el, loc, radiusKm, sizePx) {
+      var crop = { lat: loc.lat, lon: loc.lon, radiusKm: radiusKm, fill: 1 };
+      var h = createWorldMap({ mount: el, controls: false, projection: 'mercator', crop: crop,
+                               detail: 'fine', disablePan: true, size: sizePx });
+      // Re-crop/resize = mutate opts.crop / state.size + render() (world-map re-reads opts.crop
+      // each render). Key-dedup makes a mode flip with nothing changed a free no-op.
+      var lastKey = loc.lat + '|' + loc.lon + '|' + radiusKm + '|' + sizePx;
+      return {
+        update: function (loc2, r2, px) {
+          crop.lat = loc2.lat; crop.lon = loc2.lon; crop.radiusKm = r2;
+          if (isFinite(px)) h.state.size = px;
+          var key = crop.lat + '|' + crop.lon + '|' + r2 + '|' + h.state.size;
+          if (key === lastKey) return;
+          lastKey = key;
+          h.render();
+        },
+        getCanvas: function () { return el.querySelector('canvas'); }   // the widget's circle-clipped Save PNG reads this
+      };
     }
   });
 </script>

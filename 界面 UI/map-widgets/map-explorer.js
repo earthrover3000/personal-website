@@ -68,11 +68,26 @@
       // world-map sets it to pointer over a clickable region.
       '.map-explorer-overview { margin-top:0.8rem; max-width:100%; }' +
       '.map-explorer-overview canvas { cursor:default; }' +
+      // Vector-basemap slot (opt-in via opts.vectorCrop): sized + circle-clipped exactly like the
+      // Leaflet canvas, so the two basemaps swap in place. The engine's own canvas chrome (border +
+      // 6px radius) is stripped — inside the circular clip it would leave stray border arcs at the
+      // four points where the circle touches the square edge.
+      '.map-explorer-vector {' +
+      '  width:360px; height:360px; max-width:100%;' +
+      '  background:#eee; margin-top:0.8rem;' +
+      '  overflow:hidden; border-radius:50%;' +
+      '}' +
+      '.map-explorer-vector canvas { border:none; border-radius:0; }' +
+      // Vector basemap active: dim the OSM-tile-only controls (Railways overlay + export tile-zoom);
+      // the inputs are also disabled in JS so the dimming maps to genuinely inert controls.
+      '.map-explorer-vector-mode .map-ctl-railways,' +
+      '.map-explorer-vector-mode .map-tester-readout > label { opacity:0.45; }' +
       // Empty state ("Select location…"): dim the controls that only act on a rendered Mercator
       // crop. Location + Size (px) stay live (Size resizes the overview); the inputs themselves are
       // also disabled in JS so the dimming maps to genuinely inert controls.
       '.map-explorer-empty .map-ctl-radius,' +
       '.map-explorer-empty .map-ctl-railways,' +
+      '.map-explorer-empty .map-ctl-basemap,' +
       '.map-explorer-empty .map-tester-readout > button,' +
       '.map-explorer-empty .map-tester-readout > label { opacity:0.45; }' +
       '.map-tester-readout {' +
@@ -178,10 +193,22 @@
     // then just shown/hidden as the selection toggles. Omitted → the slot
     // stays an empty grey circle as before.
     var overview = (typeof config.overview === 'function') ? config.overview : null;
+    // Optional vector basemap. A function(el, location, radiusKm, sizePx) the page
+    // uses to render an engine-drawn Web-Mercator crop of the SAME location disc
+    // into `el` (which this widget sizes + circle-clips exactly like the Leaflet
+    // canvas). Must return a handle:
+    //   { update(location, radiusKm, sizePx),   // re-crop/resize the cached instance
+    //     getCanvas() }                          // live <canvas>, for Save PNG (optional)
+    // When configured, a "Basemap" toggle (OpenStreetMap / Projection engine)
+    // appears in the control row; OSM stays the default. Omitted (cities-transport)
+    // → no toggle UI exists at all and behaviour is exactly as before.
+    var vectorCrop = (typeof config.vectorCrop === 'function') ? config.vectorCrop : null;
 
     // Inject markup
     var selectId = idPfx + '-loc';
     var overviewId = idPfx + '-overview';
+    var vectorId = idPfx + '-vector';
+    var basemapModeName = idPfx + '-basemap-mode';
     var sizeId = idPfx + '-size';
     var radiusId = idPfx + '-radius';
     var radiusModeName = idPfx + '-radius-mode';
@@ -219,6 +246,19 @@
         '</label>';
     }
 
+    // Basemap toggle — only rendered when the page supplies a vectorCrop
+    // callback (Region Explorer); without it (City Explorer) no trace of the
+    // control exists. Option labels are deliberate literals right here so
+    // rewording them later is a one-line change.
+    var basemapControlHtml = '';
+    if (vectorCrop) {
+      basemapControlHtml =
+        '<span class="map-radius-group map-ctl-basemap">Basemap:' +
+          '<label><input type="radio" name="' + basemapModeName + '" value="osm" checked> OpenStreetMap</label>' +
+          '<label><input type="radio" name="' + basemapModeName + '" value="vector"> Projection engine</label>' +
+        '</span>';
+    }
+
     mount.innerHTML =
       '<div class="map-tester-controls">' +
         '<label>' + escHtml(locationLabel) + ':' +
@@ -229,8 +269,10 @@
         '</label>' +
         radiusControlHtml +
         '<label class="map-ctl-railways"><input type="checkbox" id="' + railwaysId + '"> Railways</label>' +
+        basemapControlHtml +
       '</div>' +
       '<div class="map-explorer-canvas" id="' + canvasId + '"></div>' +
+      (vectorCrop ? '<div class="map-explorer-vector" id="' + vectorId + '" style="display:none"></div>' : '') +
       '<div class="map-explorer-overview" id="' + overviewId + '" style="display:none"></div>' +
       '<div class="map-tester-readout">' +
         '<button type="button" class="btn-primary" id="' + renderBtnId + '">Render</button>' +
@@ -265,6 +307,29 @@
     var overviewInited = false;
     var overviewHandle = null;            // whatever config.overview() returns; may expose setSize(px)
     var hasEmptyState = !!placeholder;    // only widgets with a prompt option have an empty state to grey out
+    var vectorEl = vectorCrop ? document.getElementById(vectorId) : null;
+    var vectorHandle = null;              // whatever config.vectorCrop() returns; cached so mode flips just update it
+
+    // ---- Basemap mode helpers (all no-ops without opts.vectorCrop) ----
+    function basemapRadios() {
+      return vectorCrop ? mount.querySelectorAll('input[name="' + basemapModeName + '"]') : null;
+    }
+    // The selected radio is the mode's single source of truth ('osm' | 'vector').
+    function vectorActive() {
+      var rs = basemapRadios();
+      if (rs) for (var i = 0; i < rs.length; i++) if (rs[i].checked) return rs[i].value === 'vector';
+      return false;
+    }
+    // Disable + dim the OSM-tile-only controls while the vector basemap shows:
+    // Railways is an OpenRailwayMap TILE overlay (nothing to overlay on the engine
+    // canvas) and the export "at zoom" input is a tile-zoom concept. Both restore
+    // when flipping back — render() calls this on every mode-relevant pass.
+    function applyVectorModeUI(isVector) {
+      if (!vectorCrop) return;
+      railwaysEl.disabled = isVector;
+      zoomEl.disabled = isVector;
+      mount.classList.toggle('map-explorer-vector-mode', isVector);
+    }
 
     // Is the currently-selected option a real location (has coords) vs the
     // coordless "Select location…" prompt? Drives both render() and the UI mode.
@@ -318,6 +383,10 @@
       renderBtn.disabled = isEmpty;
       saveBtn.disabled = isEmpty;
       zoomEl.disabled = isEmpty;
+      // Basemap toggle: only meaningful with a rendered location crop — the overview
+      // (a Northern-Hǎo world map) has no OSM equivalent to toggle to, so it greys out.
+      var bms = basemapRadios();
+      if (bms) for (var b = 0; b < bms.length; b++) bms[b].disabled = isEmpty;
       var radios = radiusRadios();
       if (radios) for (var i = 0; i < radios.length; i++) radios[i].disabled = isEmpty;
       if (isEmpty) radiusEl.disabled = true;
@@ -350,6 +419,10 @@
       if (lmap) { lmap.remove(); lmap = null; railwaysLayer = null; }
       canvas.innerHTML = '';
       canvas.style.borderRadius = '50%';
+      // Park the vector slot (instance stays cached — the basemap mode survives a trip
+      // through the empty state) and restore the Leaflet canvas as the visible slot;
+      // showOverview() below then swaps in the overview where one is configured.
+      if (vectorEl) { vectorEl.style.display = 'none'; canvas.style.display = ''; }
       coordEl.textContent = '';
       rzEl.textContent = '';
       actualEl.textContent = '';
@@ -470,23 +543,47 @@
       // canvas instead of drawing. Lets the user return to it any time to
       // clear the display.
       if (!isFinite(lat) || !isFinite(lon)) { clearDisplay(); return; }
-      hideOverview();                       // a real location → show the Leaflet canvas (must precede the width probe below)
+      hideOverview();                       // a real location → show the active basemap slot (must precede the width probe below)
       applyEmptyStateUI(false);             // re-enable the crop-only controls
+      var vector = vectorActive();
+      applyVectorModeUI(vector);            // vector basemap → park the OSM-tile-only controls
+      // Swap the display slots to the active basemap (Leaflet canvas vs vector slot).
+      // Instances are never torn down on a flip — the hidden one just waits, and gets
+      // refreshed lazily on its next activation via this same render() path.
+      if (vectorEl) { vectorEl.style.display = vector ? '' : 'none'; canvas.style.display = vector ? 'none' : ''; }
       var size = parseInt(sizeEl.value, 10);
       var radiusKm = getRadiusKm();
       if (!isFinite(size) || size < 50) return;
       if (!isFinite(radiusKm) || radiusKm <= 0) return;
       // Clamp to the available column width — going wider would trigger
-      // canvas's max-width:100% (which leaves height untouched and breaks
+      // the slot's max-width:100% (which leaves height untouched and breaks
       // the square aspect ratio). Probe by stretching to 100% and reading
-      // the laid-out width, then restore.
-      var prevW = canvas.style.width;
-      canvas.style.width = '100%';
-      var maxSize = Math.floor(canvas.getBoundingClientRect().width);
-      canvas.style.width = prevW;
+      // the laid-out width, then restore. Probe the VISIBLE slot — a
+      // display:none one reports zero width.
+      var probeEl = vector ? vectorEl : canvas;
+      var prevW = probeEl.style.width;
+      probeEl.style.width = '100%';
+      var maxSize = Math.floor(probeEl.getBoundingClientRect().width);
+      probeEl.style.width = prevW;
       if (maxSize > 0 && size > maxSize) {
         size = maxSize;
         sizeEl.value = size;
+      }
+      if (vector) {
+        // ---- Vector basemap: delegate rendering to the page's callback ----
+        // The widget owns the slot's box + circular clip (mirroring the Leaflet
+        // canvas); the callback owns everything drawn inside it. Lazily built on
+        // first activation, then re-cropped/resized in place — so flipping back
+        // and forth is cheap and the readout mirrors the OSM one sans tile zoom.
+        vectorEl.style.width = size + 'px';
+        vectorEl.style.height = size + 'px';
+        var loc = { value: opt.value, lat: lat, lon: lon };
+        if (!vectorHandle) vectorHandle = vectorCrop(vectorEl, loc, radiusKm, size) || {};
+        else if (typeof vectorHandle.update === 'function') vectorHandle.update(loc, radiusKm, size);
+        rzEl.textContent = radiusKm + ' km radius · projection engine';
+        actualEl.textContent = 'rendered: ' + size + ' × ' + size + ' px';
+        zoomMaxEl.textContent = '';         // tile-zoom range is meaningless here
+        return;
       }
       canvas.style.width = size + 'px';
       canvas.style.height = size + 'px';
@@ -545,6 +642,10 @@
       });
     }
     railwaysEl.addEventListener('change', updateRailways);
+    if (vectorCrop) {
+      // Basemap flip → re-render: render() reads the checked radio and swaps slots.
+      basemapRadios().forEach(function (r) { r.addEventListener('change', render); });
+    }
 
     // Snap to integer + clamp to [min, max] on commit. The export
     // pipeline rounds internally anyway, so showing fractional values
@@ -563,9 +664,33 @@
     });
 
     saveBtn.addEventListener('click', function () {
+      var opt = locEl.options[locEl.selectedIndex];
+      // Vector basemap: map-export.js is Leaflet-tile-specific, so export here is a
+      // plain snapshot of the engine canvas — drawn circle-clipped at its native
+      // (devicePixelRatio-scaled) resolution onto a transparent-cornered PNG. No
+      // tile zoom applies; the "at zoom" input is disabled in this mode.
+      if (vectorActive()) {
+        var src = (vectorHandle && typeof vectorHandle.getCanvas === 'function') ? vectorHandle.getCanvas() : null;
+        if (!src || !src.width) return;
+        var out = document.createElement('canvas');
+        out.width = src.width; out.height = src.height;
+        var octx = out.getContext('2d');
+        octx.beginPath();
+        octx.arc(out.width / 2, out.height / 2, Math.min(out.width, out.height) / 2, 0, 2 * Math.PI);
+        octx.clip();
+        octx.drawImage(src, 0, 0);
+        var vname = filenamePrefix + '-' + opt.value + '-' + getRadiusKm() + 'km-vector.png';
+        out.toBlob(function (blob) {
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = vname;
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+        }, 'image/png');
+        return;
+      }
       if (!lmap) return;
       var btnEl = this;
-      var opt = locEl.options[locEl.selectedIndex];
       var exportZ = parseInt(zoomEl.value, 10);
       if (!isFinite(exportZ)) exportZ = Math.round(lmap.getZoom());
       // Defensive clamp in case auto falls outside the displayed

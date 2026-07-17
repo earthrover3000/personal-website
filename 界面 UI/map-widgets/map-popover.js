@@ -5,7 +5,7 @@
    map inside is drawn. Actual drawing is done by pluggable RENDERERS
    registered by name (the classic Leaflet point preview lives in this same
    file as the 'leaflet-point' renderer; sibling map-route.js registers a
-   'hao-route' renderer that draws a flight arc via the map-projection
+   'flight-route' renderer that draws a flight arc via the map-projection
    engine).
 
    Auto-injects #map-popover on DOMContentLoaded (idempotent — skips if
@@ -25,7 +25,7 @@
      window.mapPopover.show(lat, lon, name)      — legacy positional form:
          delegates to the default 'leaflet-point' renderer.
      window.mapPopover.show(props)               — object form:
-         { renderer: 'leaflet-point'|'hao-route'|…,   which renderer draws
+         { renderer: 'leaflet-point'|'flight-route'|…,   which renderer draws
            label: '…',                                text on the bar below
            dismiss: 'peek'|'persistent'|'manual',     per-call override of the
                                                       page default; 'manual'
@@ -39,7 +39,7 @@
            …renderer-specific props }                 e.g. lat/lon for
                                                       'leaflet-point',
                                                       origin/dest for
-                                                      'hao-route'
+                                                      'flight-route'
      window.mapPopover.hide()
      window.mapPopover.setShape('circle'|'square')  — sets the page default
      window.mapPopover.register(name, factory)      — add a renderer

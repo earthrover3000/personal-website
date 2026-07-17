@@ -68,7 +68,7 @@
 /* Renderer mounts — each registered renderer owns ONE root element inside
    .map-popover-content (the shell display-toggles them when switching).
    #map-popover-map is the built-in leaflet-point renderer's mount;
-   .map-popover-route is the hao-route renderer's (map-route.js). Both share
+   .map-popover-route is the flight-route renderer's (map-route.js). Both share
    the square footprint + the circle/square shape clip. */
 
 #map-popover-map,
