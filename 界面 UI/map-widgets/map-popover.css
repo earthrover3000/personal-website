@@ -7,13 +7,16 @@
    and wires every .map-trigger span to a Leaflet preview centred on its
    data-lat / data-lon.
 
-   Two modes, toggled per host page:
+   Three dismiss modes, toggled per host page (or per show() call):
      - default — peek mode: fades in, holds ~2 s, fades out. Clicks pass
        through the empty area (pointer-events: none on the container).
      - persistent — set <body data-map-popover-persistent>: stays open
        until dismissed. An X button, click outside the card, and Escape
        all close it. The container catches clicks (pointer-events: auto)
        so the outside-click works.
+     - manual — show-prop dismiss:'manual': the CALLER hides it (hover-
+       follow popovers); the card itself goes pointer-transparent so it
+       never steals the mouse from the element being hovered.
 
    Armored per the css-leak-defense rule: every property the host page
    might set (color, font-family, line-height, font-size, font-weight,
@@ -62,20 +65,59 @@
   box-shadow: light-dark(0 8px 32px rgba(0, 0, 0, 0.25), 0 8px 32px rgba(0, 0, 0, 0.5));
 }
 
-#map-popover-map {
+/* Renderer mounts — each registered renderer owns ONE root element inside
+   .map-popover-content (the shell display-toggles them when switching).
+   #map-popover-map is the built-in leaflet-point renderer's mount;
+   .map-popover-route is the hao-route renderer's (map-route.js). Both share
+   the square footprint + the circle/square shape clip. */
+
+#map-popover-map,
+.map-popover-route {
   width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
   /* Default shape: circle. Override per page via
-     <body data-map-popover-shape="square"> or window.mapPopover.setShape(). */
+     <body data-map-popover-shape="square">, per call via the shape show
+     prop, or live via window.mapPopover.setShape(). */
   border-radius: 50%;
 }
 
-#map-popover.shape-square #map-popover-map {
+#map-popover.shape-square #map-popover-map,
+#map-popover.shape-square .map-popover-route {
   /* Rounded-square mode: the map fills the card; corner-clipping comes
      from the card's own border-radius (10 px — the original design from
      before the popover went circular). No radius on the map itself. */
   border-radius: 0;
+}
+
+.map-popover-route {
+  /* Whisper-grey plate behind the route canvas. The Hǎo world drawing is
+     vase-shaped on a TRANSPARENT canvas, so without a fill the circle clip
+     has nothing to cut and the round display area silently vanishes into the
+     card. A barely-there neutral — an inset tone, not a colour — keeps the
+     porthole legible while staying far too faint to fight the card. NOT ocean
+     blue (implies sea beyond the map's edge) and NOT the engine's mercVoid
+     slate (reads heavy against the card) — both tried and rejected. Dark
+     value: a step lighter than the card's #1a1a1a, same whisper weight. */
+  background: light-dark(#eef1f4, #242a30);
+}
+
+.map-popover-route canvas { display: block; }
+
+/* Manual (hover-follow) dismiss: the popover is pure display — the card
+   must never intercept the pointer, or hovering near it would fire
+   mouseleave on the trigger → hide → mouseenter → flicker. */
+#map-popover.dismiss-manual .map-popover-card { pointer-events: none; }
+
+/* Opt-in placement: <body data-map-popover-placement="bottom-right"> (or
+   the placement show prop) parks the card in the lower-right corner —
+   the itinerary calendar's hover mini-map spot. Default stays centered
+   (existing pages untouched). The container is inset: 0, so flex-end on
+   both axes + padding gives the 24 px corner margin. */
+#map-popover.place-bottom-right {
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 24px;
 }
 
 #map-popover-label {

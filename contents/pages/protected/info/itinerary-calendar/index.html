@@ -10,6 +10,10 @@
   <script src="../../../../../界面 UI/page-widgets/theme-init.js"></script>
   <link rel="stylesheet" href="../../../../../界面 UI/styles/base.css">
   <link rel="stylesheet" href="../../../../../界面 UI/styles/docs.css">
+  <!-- Shared floating map popover (shell + hao-route renderer): shows the
+       hovered flight's great-circle arc bottom-right. Leaflet is NOT loaded
+       on this page — the popover's leaflet-point renderer is never used. -->
+  <link rel="stylesheet" href="../../../../../界面 UI/map-widgets/map-popover.css">
 
   <!-- FullCalendar -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.11/index.global.min.css" rel="stylesheet">
@@ -138,9 +142,18 @@
       color: var(--muted);
       font-size: 0.75rem;
     }
+
+    /* Flight route mini-map — the SHARED map popover (界面 UI/map-widgets)
+       in bottom-right placement (body attr below) showing a rounded-square
+       Northern-Hǎo route map while a flight event ("AAA → BBB") is hovered.
+       Only the card width is tuned here — 220 px, the compact mini-map
+       size (the popover's one sizing knob). */
+    #map-popover { --map-popover-card-width: 220px; }
   </style>
 </head>
-<body>
+<!-- data-map-popover-placement: park the shared popover bottom-right — the
+     mini-map corner — instead of its default centered placement. -->
+<body data-map-popover-placement="bottom-right">
   <div class="container">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../../">Home</a> <span class="sep">›</span> <a href="../../">Protected Index</a> <span class="sep">›</span> <span aria-current="page">Itinerary Calendar</span></nav>
     <h1>Itinerary Calendar</h1>
@@ -206,8 +219,45 @@
       const calEl = document.getElementById('calendar');
       const popup = document.getElementById('popup');
 
+      // ---- URL-recorded position: #date=YYYY-MM-DD[&view=list] ----
+      // The visible month (and Month/List view) round-trips through the URL
+      // hash, so a refresh — or a shared/bookmarked link — reopens the
+      // calendar where it was. Written with history.replaceState (never
+      // location.hash =) so prev/next taps don't flood browser history; the
+      // DEFAULT position (today's month, Month view) strips the hash to keep
+      // the plain URL canonical. A pasted/edited hash applies live via the
+      // hashchange listener below the render call.
+      const readHash = () => {
+        const p = new URLSearchParams(location.hash.slice(1));
+        const d = p.get('date') || '';
+        return {
+          // Accept YYYY-MM-DD or bare YYYY-MM (normalised to the 1st);
+          // anything else falls back to today.
+          date: /^\d{4}-\d{2}(-\d{2})?$/.test(d) ? (d.length === 7 ? d + '-01' : d) : null,
+          view: p.get('view') === 'list' ? 'listMonth' : 'dayGridMonth',
+        };
+      };
+      const initPos = readHash();
+
       const calendar = new FullCalendar.Calendar(calEl, {
-        initialView: 'dayGridMonth',
+        initialView: initPos.view,
+        initialDate: initPos.date || undefined,
+        datesSet(info) {
+          // Mirror the position into the hash on every navigation (also fires
+          // once on first render, which harmlessly rewrites the same hash).
+          const d = info.view.currentStart;
+          const iso = d.getFullYear() + '-'
+            + String(d.getMonth() + 1).padStart(2, '0') + '-'
+            + String(d.getDate()).padStart(2, '0');
+          const now = new Date();
+          const isDefault = info.view.type === 'dayGridMonth'
+            && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+          const hash = isDefault ? ''
+            : '#date=' + iso + (info.view.type === 'listMonth' ? '&view=list' : '');
+          if (hash !== location.hash) {
+            history.replaceState(null, '', location.pathname + location.search + hash);
+          }
+        },
         headerToolbar: {
           left: 'prev,next today',
           center: 'title',
@@ -222,8 +272,14 @@
         height: 'auto',
         eventMouseEnter(info) {
           const ep = info.event.extendedProps;
-          const start = info.event.start ? info.event.start.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
-          const end = info.event.end ? info.event.end.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
+          const fmt = (d) => d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+          const start = info.event.start ? fmt(info.event.start) : '';
+          // iCal all-day DTEND is EXCLUSIVE (a 12 Aug all-day event ends 13 Aug),
+          // so step back a day for all-day events to show the inclusive last day
+          // — a true single-day event then reads as just its one date.
+          let endDate = info.event.end;
+          if (endDate && info.event.allDay) { endDate = new Date(endDate); endDate.setDate(endDate.getDate() - 1); }
+          const end = endDate ? fmt(endDate) : '';
           popup.innerHTML = `
             <strong>${info.event.title}</strong>
             <div class="date-range">${start}${end && end !== start ? ' → ' + end : ''}</div>
@@ -231,9 +287,12 @@
             ${ep.description ? `<div style="margin-top:4px;opacity:.65;font-size:.68rem">${ep.description.slice(0,120)}${ep.description.length > 120 ? '…' : ''}</div>` : ''}
           `;
           popup.classList.add('visible');
+          // Plot the flight arc if this event's title is a route ("AAA → BBB").
+          if (window.__flightMap) window.__flightMap.enter(info.event.title);
         },
         eventMouseLeave() {
           popup.classList.remove('visible');
+          if (window.__flightMap) window.__flightMap.leave();
         },
         eventDidMount(info) {
           // Color events by hash of title for consistent per-trip colors.
@@ -249,6 +308,13 @@
 
       calendar.render();
 
+      // Apply a manually pasted/edited hash without a reload. No feedback
+      // loop: datesSet writes via replaceState, which never fires hashchange.
+      window.addEventListener('hashchange', () => {
+        const h = readHash();
+        calendar.changeView(h.view, h.date || undefined);
+      });
+
       // Move popup with mouse
       document.addEventListener('mousemove', e => {
         popup.style.left = (e.clientX + 14) + 'px';
@@ -257,6 +323,46 @@
     }
 
     loadCalendar();
+  </script>
+
+  <!-- Shared floating map popover: shell first, then the hao-route renderer
+       (which registers itself into the shell). The map-projection engine
+       stays LAZY — map-route.js only fetches it on the first flight hover. -->
+  <script src="../../../../../界面 UI/map-widgets/map-popover.js"></script>
+  <script src="../../../../../界面 UI/map-widgets/map-route.js"></script>
+
+  <script type="module">
+    // Flight route mini-map glue. The heavy lifting now lives in the shared
+    // map popover (界面 UI/map-widgets: shell + hao-route renderer, which
+    // reuses the site's map-projection engine in its Northern Hǎo framing —
+    // the "northern hemisphere 郝's version"). This page only parses the
+    // hovered title via the shared flight-title SSOT — the SAME grammar the
+    // lifespan-atlas travel calendar uses (引擎 Engines/location-history/
+    // flight-title.js) — so a calendar event titled "LCY → DUB" plots its
+    // great-circle arc on hover.
+    import { parseFlightTitle } from '../../../../../引擎 Engines/location-history/flight-title.js';
+
+    const enter = (title) => {
+      const route = parseFlightTitle(title);
+      // Not a flight — no map (and retract one left over from a previous
+      // hover). Unknown airport codes are the renderer's call: it validates
+      // against WORLD_AIRPORTS after the engine loads and signals the shell
+      // to stay hidden. Stale-hover races (event A hovered, then quickly
+      // event B while the engine is still loading) are token-guarded inside
+      // the shell — the last show()/hide() always wins.
+      if (!route) { window.mapPopover.hide(); return; }
+      window.mapPopover.show({
+        renderer: 'hao-route',
+        origin: route.origin,
+        dest: route.dest,
+        label: route.origin + ' → ' + route.dest,
+        dismiss: 'manual',   // hover-follow: we hide on mouseleave — no 2 s timer, no X
+        shape: 'circle',     // round display area — matches the home page's popover look
+      });
+    };
+    const leave = () => window.mapPopover.hide();
+
+    window.__flightMap = { enter, leave };
   </script>
 </body>
 </html>

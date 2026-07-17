@@ -180,6 +180,7 @@
       edges: !!opts.edges,                                // overlay the Hǎo Northern & Southern map edges (seam half-meridians) as geographic curves
       middleLine: !!opts.middleLine,                      // draw the central meridian (the straight middle axis a centred route lies on) at graticule weight
       flightMode: opts.flightMode || uiDefaults.flight_paths || 'selected',
+      routeArrows: opts.routeArrows != null ? !!opts.routeArrows : !!uiDefaults.flight_arrows,   // draw a direction arrowhead at each route arc's midpoint (origin → destination); embeds force it on via opts.routeArrows
       routeGroup: presets.default_group || '',            // '' → dropdown rests on "(none)" = no flights
       freeRoutes: opts.routes || [], freePoints: [],
       size: opts.size || DEFAULT_SIZE,
@@ -429,6 +430,7 @@
       check('Mercator limit (poles)', state.mercatorEdge, function (v) { state.mercatorEdge = v; render(); });
       check('Mercator limit (gen. poles)', state.mercatorEdgeGen, function (v) { state.mercatorEdgeGen = v; render(); });
       check('Central axis', state.middleLine, function (v) { state.middleLine = v; render(); });
+      check('Direction arrows', state.routeArrows, function (v) { state.routeArrows = v; render(); });   // arrowhead at each route arc's midpoint, origin → destination
       if (cities) {                                                   // city-dot layers: World cities (49 GaWC) + Lived-in (4), MUTUALLY EXCLUSIVE; name on hover
         var worldChk, livedChk;
         worldChk = check('World cities', state.cityLayer === 'world', function (v) { state.cityLayer = v ? 'world' : 'none'; if (v && livedChk) livedChk.checked = false; render(); });
@@ -1126,6 +1128,7 @@
         var A = endpoint(rt[0]), B = endpoint(rt[1]); if (!A || !B) return;
         var gc = PROJ.greatCircle(A, B, NSAMP);
         stroke(MAPGEO.lineSegs(coord, proj, gc.lat, gc.lon), ROUTE_COLORS[ri % ROUTE_COLORS.length], 1.6);
+        if (state.routeArrows) routeArrow(gc, ROUTE_COLORS[ri % ROUTE_COLORS.length]);
         mark(rt[0], A); mark(rt[1], B);
       });
       activePoints().forEach(function (code) { var A = endpoint(code); if (A) mark(code, A); });   // lone airports: label, no arc
@@ -1164,6 +1167,28 @@
         var pr = PROJ.project(coord, proj, AB[0], AB[1]); var p = px(pr.x, pr.y);
         ctx2.beginPath(); ctx2.arc(p[0], p[1], 2.6, 0, 2 * Math.PI); ctx2.fillStyle = PAL.marker; ctx2.fill();
         if (typeof code === 'string') { ctx2.fillStyle = PAL.marker; ctx2.font = '11px -apple-system,Segoe UI,sans-serif'; ctx2.fillText(code, p[0] + 4, p[1] - 4); }
+      }
+      // Direction arrowhead at a route arc's MIDPOINT, pointing origin → dest.
+      // gc.lat/lon run A→B, so the tangent from the two samples straddling the
+      // midpoint gives the travel direction. Skipped when that span jumps across
+      // a seam cut (a huge px gap = a wrapped segment whose tangent is bogus).
+      function routeArrow(gc, color) {
+        var n = gc.lat.length; if (n < 3) return;
+        var m = n >> 1;
+        function P(i) { var pr = PROJ.project(coord, proj, gc.lat[i], gc.lon[i]); return px(pr.x, pr.y); }
+        var pm = P(m), pa = P(m - 1), pb = P(m + 1);
+        var dx = pb[0] - pa[0], dy = pb[1] - pa[1], len = Math.sqrt(dx * dx + dy * dy);
+        if (!len || len > Math.max(W, H) * 0.5) return;          // seam wrap → no arrow
+        dx /= len; dy /= len;
+        var head = 8, half = 4.5, nx = -dy, ny = dx;             // px: arrowhead length + half-width
+        var tx = pm[0] + dx * head * 0.5, ty = pm[1] + dy * head * 0.5;   // tip ahead of the midpoint
+        var bx = pm[0] - dx * head * 0.5, by = pm[1] - dy * head * 0.5;   // base behind it
+        ctx2.beginPath();
+        ctx2.moveTo(tx, ty);
+        ctx2.lineTo(bx + nx * half, by + ny * half);
+        ctx2.lineTo(bx - nx * half, by - ny * half);
+        ctx2.closePath();
+        ctx2.fillStyle = color; ctx2.fill();
       }
       if (dragging && state.orientMode === 'north') {                     // north-locked drag: mark the canvas centre — the point north-up is computed from (hidden on release)
         ctx2.beginPath(); ctx2.arc(W / 2, H / 2, 5, 0, 2 * Math.PI); ctx2.fillStyle = '#c0392b'; ctx2.fill();

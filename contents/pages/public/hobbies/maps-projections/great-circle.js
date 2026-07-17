@@ -10,7 +10,7 @@
 // (first-seen order). Add/edit groups freely — the dropdown is built from this list.
 (function (r) {
   r.GREAT_CIRCLE = {
-    defaults: { boundaries: false, bathymetry: false, topography: false, regions: false, mercator_edge: false, mercator_edge_gen: false, city_layer: 'none', flight_paths: 'selected' },   // initial control state: borders/terrain/region-shading/mercator-limits off; preset-routes mode
+    defaults: { boundaries: false, bathymetry: false, topography: false, regions: false, mercator_edge: false, mercator_edge_gen: false, city_layer: 'none', flight_paths: 'selected', flight_arrows: false },   // initial control state: borders/terrain/region-shading/mercator-limits off; preset-routes mode; direction arrows off (toggle: "Direction arrows")
     routes: {
       default_group: '',                                         // '' → dropdown starts on "Preset routes…" (none)
       groups: [
