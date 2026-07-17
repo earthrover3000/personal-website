@@ -151,11 +151,11 @@
     }
 
     /* Flight route mini-map — the SHARED map popover (界面 UI/map-widgets)
-       in bottom-right placement (body attr below) showing a rounded-square
-       Northern-Hǎo route map while a flight event ("AAA → BBB") is hovered.
-       Only the card width is tuned here — 220 px, the compact mini-map
-       size (the popover's one sizing knob). */
-    #map-popover { --map-popover-card-width: 220px; }
+       in bottom-right placement (body attr below) showing the hovered
+       flight's route while a flight event ("AAA → BBB") is hovered. No
+       card-width override: the popover's shared default (min(90vw, 90vh,
+       360px) — the home page's size) applies, so the two pages stay the
+       same size by construction. */
   </style>
 </head>
 <!-- data-map-popover-placement: park the shared popover bottom-right — the
