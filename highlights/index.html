@@ -441,6 +441,145 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
 .tier-nav option:checked { color: var(--text); }
 /* .filter rule is in base.css; only the row layout below stays index-specific. */
 
+/* Category chips — derived filter row between the search input and .row,
+   led by a muted "Filter:" label. One chip per category present among the
+   index's entries; multi-select with OR semantics (an entry shows while it
+   carries any active category; none active = show all). Non-matching
+   entries hide via .cat-hidden, a class deliberately separate from
+   .search-hidden so search and category compose as AND. */
+.cat-hidden { display: none !important; }
+.cat-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0.6rem 0 0.2rem; }
+/* Disclosure control — the row's only resting-state UI. Shows the active
+   count while collapsed with filters applied ("Filter (2) ▸"). */
+.cat-chips__toggle {
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  padding: 0.15rem 0.4rem 0.15rem 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.cat-chips__toggle:hover { color: var(--text); }
+/* Expanded chips take their own full-width line below the control row, so
+   the Filter toggle and the Planned switch never shift when expanding. */
+.cat-chips__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  flex-basis: 100%;
+}
+.cat-chips__body[hidden] { display: none; }
+
+/* iOS-style Planned switch — right edge of the control row. Mirrors the
+   Settings "Show planned pages" checkbox via the same localStorage key. */
+.planned-switch {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  padding: 0.15rem 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.planned-switch:hover { color: var(--text); }
+.planned-switch__track {
+  width: 1.9rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  background: var(--border);
+  position: relative;
+  transition: background 0.15s;
+}
+.planned-switch__knob {
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  background: var(--bg);
+  transition: transform 0.15s;
+}
+.planned-switch[aria-pressed="true"] .planned-switch__track { background: var(--accent); }
+.planned-switch[aria-pressed="true"] .planned-switch__knob { transform: translateX(0.8rem); }
+/* Contextual reset — hidden while no chip is active (an action, not a
+   filter, so it doesn't join the pill state model). */
+.cat-chips__clear {
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  padding: 0.15rem 0.4rem;
+  border: none;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.cat-chips__clear:hover { text-decoration: underline; }
+.cat-chips__clear[hidden] { display: none; }
+.cat-chip {
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  padding: 0.15rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+}
+.cat-chip:hover { border-color: var(--accent); color: var(--text); }
+.cat-chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--surface);
+  color: var(--accent);
+}
+/* Chips whose only members are planned rows (incl. the Uncategorised
+   pseudo-chip) surface only while planned rows are revealed — otherwise
+   they'd filter the everyday list down to nothing. */
+html:not([data-show-planned]) .cat-chip--planned-only { display: none; }
+/* Divider after the leading Uncategorised pseudo-chip — it filters by
+   absence, a different kind of control than the topic chips it precedes. */
+.cat-chips__divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+  margin: 0 0.2rem;
+}
+
+/* Planned-page teaser rows — inert grey entries after the live page list,
+   hidden unless the visitor opted in on Settings ("Show planned pages"):
+   the index head snippet stamps <html data-show-planned> from
+   localStorage['site-show-planned'] before first paint (theme-init
+   pattern). Metrics mirror .row a (same font, line-height, padding) so
+   revealed rows sit on the same grid as the link rows above them. */
+.planned-row {
+  display: none;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  padding: 0.35rem 0.8rem;
+  color: var(--muted);
+}
+html[data-show-planned] .planned-row { display: block; }
+.planned-tag {
+  font-size: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+  margin-left: 0.45rem;
+  vertical-align: 0.12rem;
+  letter-spacing: 0.02em;
+}
+
 .row { display: flex; gap: 2rem; align-items: flex-start; }
 /* Both columns flex:1 → they divide the row's available width evenly,
    minus the 2 rem gap. No hardcoded width on either side. */

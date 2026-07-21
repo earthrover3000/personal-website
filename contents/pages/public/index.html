@@ -67,6 +67,7 @@
   });
 })();
 </script>
+<script>if(localStorage.getItem("site-show-planned")==="on")document.documentElement.setAttribute("data-show-planned","");</script>
 <style>/* Shared base styles for index pages (root, protected, private) and docs
    pages (site-map, site-stats, lifespan-atlas plan). Loaded BEFORE the
    page-specific stylesheet so page rules can override.
@@ -503,6 +504,145 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
 .tier-nav option:checked { color: var(--text); }
 /* .filter rule is in base.css; only the row layout below stays index-specific. */
 
+/* Category chips — derived filter row between the search input and .row,
+   led by a muted "Filter:" label. One chip per category present among the
+   index's entries; multi-select with OR semantics (an entry shows while it
+   carries any active category; none active = show all). Non-matching
+   entries hide via .cat-hidden, a class deliberately separate from
+   .search-hidden so search and category compose as AND. */
+.cat-hidden { display: none !important; }
+.cat-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0.6rem 0 0.2rem; }
+/* Disclosure control — the row's only resting-state UI. Shows the active
+   count while collapsed with filters applied ("Filter (2) ▸"). */
+.cat-chips__toggle {
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  padding: 0.15rem 0.4rem 0.15rem 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.cat-chips__toggle:hover { color: var(--text); }
+/* Expanded chips take their own full-width line below the control row, so
+   the Filter toggle and the Planned switch never shift when expanding. */
+.cat-chips__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  flex-basis: 100%;
+}
+.cat-chips__body[hidden] { display: none; }
+
+/* iOS-style Planned switch — right edge of the control row. Mirrors the
+   Settings "Show planned pages" checkbox via the same localStorage key. */
+.planned-switch {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  padding: 0.15rem 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.planned-switch:hover { color: var(--text); }
+.planned-switch__track {
+  width: 1.9rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  background: var(--border);
+  position: relative;
+  transition: background 0.15s;
+}
+.planned-switch__knob {
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  background: var(--bg);
+  transition: transform 0.15s;
+}
+.planned-switch[aria-pressed="true"] .planned-switch__track { background: var(--accent); }
+.planned-switch[aria-pressed="true"] .planned-switch__knob { transform: translateX(0.8rem); }
+/* Contextual reset — hidden while no chip is active (an action, not a
+   filter, so it doesn't join the pill state model). */
+.cat-chips__clear {
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  padding: 0.15rem 0.4rem;
+  border: none;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.cat-chips__clear:hover { text-decoration: underline; }
+.cat-chips__clear[hidden] { display: none; }
+.cat-chip {
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  padding: 0.15rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+}
+.cat-chip:hover { border-color: var(--accent); color: var(--text); }
+.cat-chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--surface);
+  color: var(--accent);
+}
+/* Chips whose only members are planned rows (incl. the Uncategorised
+   pseudo-chip) surface only while planned rows are revealed — otherwise
+   they'd filter the everyday list down to nothing. */
+html:not([data-show-planned]) .cat-chip--planned-only { display: none; }
+/* Divider after the leading Uncategorised pseudo-chip — it filters by
+   absence, a different kind of control than the topic chips it precedes. */
+.cat-chips__divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+  margin: 0 0.2rem;
+}
+
+/* Planned-page teaser rows — inert grey entries after the live page list,
+   hidden unless the visitor opted in on Settings ("Show planned pages"):
+   the index head snippet stamps <html data-show-planned> from
+   localStorage['site-show-planned'] before first paint (theme-init
+   pattern). Metrics mirror .row a (same font, line-height, padding) so
+   revealed rows sit on the same grid as the link rows above them. */
+.planned-row {
+  display: none;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  padding: 0.35rem 0.8rem;
+  color: var(--muted);
+}
+html[data-show-planned] .planned-row { display: block; }
+.planned-tag {
+  font-size: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+  margin-left: 0.45rem;
+  vertical-align: 0.12rem;
+  letter-spacing: 0.02em;
+}
+
 .row { display: flex; gap: 2rem; align-items: flex-start; }
 /* Both columns flex:1 → they divide the row's available width evenly,
    minus the 2 rem gap. No hardcoded width on either side. */
@@ -744,12 +884,30 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Home</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav>
 <h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">62,639 lines · 18,514 words · 914 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-07-08) 🛣️</a> ✦ Last updated <time datetime="2026-07-20" class="relative-time relative-time-coarse">2026-07-20</time></p>
+<p class="head-meta"><a href="site-stats/">63,231 lines · 18,514 words · 914 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-07-08) 🛣️</a> ✦ Last updated <time datetime="2026-07-21" class="relative-time relative-time-coarse">2026-07-21</time></p>
 <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
+<div class="cat-chips" role="group" aria-label="Filter by category">
+  <button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button>
+  <button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button>
+  <div class="cat-chips__body" hidden>
+  <button type="button" class="cat-chip" data-cat="__none__" aria-pressed="false">❓ Uncategorised</button>
+  <span class="cat-chips__divider" aria-hidden="true"></span>
+  <button type="button" class="cat-chip cat-chip--planned-only" data-cat="experiments" aria-pressed="false">🧪 Experiments</button>
+  <button type="button" class="cat-chip" data-cat="geography" aria-pressed="false">🗺️ Geography</button>
+  <button type="button" class="cat-chip" data-cat="linguistics" aria-pressed="false">🔤 Linguistics</button>
+  <button type="button" class="cat-chip" data-cat="maths" aria-pressed="false">📐 Maths</button>
+  <button type="button" class="cat-chip" data-cat="music" aria-pressed="false">🎵 Music</button>
+  <button type="button" class="cat-chip" data-cat="personal" aria-pressed="false">👤 Personal</button>
+  <button type="button" class="cat-chip" data-cat="philosophy" aria-pressed="false">🕯️ Philosophy</button>
+  <button type="button" class="cat-chip cat-chip--planned-only" data-cat="practical" aria-pressed="false">🪪 Practical</button>
+  <button type="button" class="cat-chip cat-chip--planned-only" data-cat="technology" aria-pressed="false">💻 Technology</button>
+  <button type="button" class="cat-chips__clear" hidden>× Clear</button>
+  </div>
+</div>
 <div class="row">
 <div class="main">
 <div class="apps">
-  <a class="app-card" href="life/chromatic-camelot/">
+  <a class="app-card" href="life/chromatic-camelot/" data-categories="personal music">
     <img class="app-card__icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlApw1AAAAQlBMVEX7uKtAOjlnVVHYppgB0mo/X//vrqYvLy/3C42OZcWHamTCkoimf3dTR0X5ZZ23jsLWn7aRw49Iy32Kgt5abPOedZx5ETv/AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAFOElEQVR42u2ci5biIAyGA2gcabFV5/2fdXV2dsdpaQmQtHhO8gLN11y4/3B6cwMFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFaADAPO0NAYz1feccwj/Druu9DW8BEHz34/jE0PU+tAxgVpx/iYY3TQI8vAequT60BmDp3n8z8MahEsA6KLDONwLgi9z/qge2MMDWf/8/Qm/2BTA91BoLQimAR6g3jkQqAzAd8Bj6XQBs6vePw8NGWlcN2wP4xF8dzt82oHwpFAAkqnc8vxgpCs5uCZBK/1/+Ewmg3w7AuCz/qQTllQC8/sN5ZsR2ZLcBSLXPcQ4wUoe1LQCS7X/u/3kgT/GMOEBy9oARgDN9om2EAXzShTEGQJ90lJRyBoCFMoAxY2YRBAGMA+kIlBAAXwEv1UDWvDWbABgTKN6Fzpnz0yADYGj/cahoo2W9CLg66GIOZa988giIAIH69aGiB/0f0QQA6CuwoS6BsmcVUFHBiLi2nCn2H8BzA0QCcPn4a5e1wWCEwqVy4AWwi+4/DSNL4q+/X+r+s5B5Abo1/2NBqLeeE8Cs+y9DYBkB+oT/sSyqNscIMHVv5v+eSQT5JTwPgEgIIHAB9ASA/UIAHBkkA0ALAeQPApsBdDwAngLwIQFAaqWQP4rxRuBxgmyt9dGTzo4FAEGwiF9OXU3kxM0wAAQAsTbahUS2egaAyGYQVwDmfTJg9nAMBWtJpqlErM9PCWw9QKy4WCZzHaVp9/UA0e0sBv/RUCLu6gHin79UF4Cn7d8YIQDAS10DRUMrOl8LYFZ8uFwuyD9NCHlFAFwbQnz7DphVBMCyJco60/zV97BVAEMdeUyjAOShM7w7gG20iM27A1CLuFkAahutBjBCANSBrLqITygDQJ1KVLfR09rhKgrs+kwmcyiyHnja9XZ42s0xh6DPXNdD2eme++t+DQJpQVM/mYtfkLgeXu3Kl0TTJWV6TQklx2O//T8cHBfB7Dok1i9oIisad5haYTUnt1U41sSRKr7NAK4gs7HFsSsxr+J5AIpDkNhaZNkXmhfBNQJwhb12dyH/iO+2GQDP5u6sCCL+H24i043AA+D3AvBMR0yGkEK3vQ5oSMes3S414PjOiX26Czl+/w3jVYPJDHeLDCJf24KC+2ZX+QDQryGTAFJlzF0ByH7haRICvIkmUNYNZCi68/eLgPn/O3/a4tLf9Va5IFtKfitzczeyPYTXp+HCI6yS62ZFD46ZL74+vLh/Hr/snmLAn/fervzhOvPVYxiOP3Zfeoxrg9n+Oa4n+X8/vtonCr0ALbp+7zL/fzQGaE+nvQAI27zjcWpD4V1EkScoPjOBIknUnXZVNUglER6PiRD4fQEC5lXAvArszroSPjeDHjnUUgRSw1kM4Mj1anWLt5RpADS7S5O4qhQSyCHO98TpIk4fuMi/6F5rRck2KhCC/Df1weUMZLOxogF5nuUsws9UAPhDUCLLsEwwpiZzOa9jBIUxlgmGlP/so3GhtsriiDb+ZNHnwC3BwCoOs9xM79/uL7QrbESiak1fBcex+mmJvEBS6IQfWMlLVBVqDLUDUCgzFFqSaSsJgmlKZy5fasu1pvSXW8y+Pa3FLAQ0LYpFZugV+kblOqkIrmG90V5GPGVDxVeT1F7k959bc9euCqcK+M8vGrwi/tqbd1E9tr1jOP3aV3fa2If8sbDc7gbC2SY8rpOJqjar8rcCKIACKIACKIACKIACKIACKIACKIACKIACKIACKIACKEA+wB8bUQlg1rEn3gAAAABJRU5ErkJggg==" alt="" />
     <div class="app-card__body">
       <div class="app-card__name">Chromatic Camelot</div>
@@ -757,7 +915,7 @@ a.app-card:hover {
     </div>
     <div class="app-card__open">Open</div>
   </a>
-  <a class="app-card" href="life/life-dial/">
+  <a class="app-card" href="life/life-dial/" data-categories="personal maths philosophy">
     <img class="app-card__icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlApw1AAAAKlBMVEVjY2ObXeXm5uabmpsAAACOXshrZ3B5a4q9vLzJE07Y19eCYKs9FSLYf5wFR6ucAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAEXElEQVR42u2dbXfzIAiGWazgYvv//+7TdXu2NcmsvBhjDnzeOeMK3GgMUngb3MABHMABHMABHMABHMABHMABHMABHMABHMABHMABHMABHOBUAPHbRgOImQjhyZAoxxEA7r4vXH/GMKcwBYgl538g4jEBIkGtWTJYAWQElmE+EkDMIDCbMMCuudMAAfq5/0DoDpBBabkrQERQG8Z+AAQmRp0ALB6/PgjQL/ttlADN0gcpfNvrLQbtDFBOHwopzdOTzSkFapFGMoBYcCQsff9NEdCaAGz9D2l6YQWGuBfAX/Kll95/xYEMpQxm/le6/xkGMiMAI/857hcQcnuAzfxHpvsPBDTRAVj4H+ZJYHOwIAC9/8XHn9LMCwK3mjIBNv4jFTy8vd/tVgjChhKwJcDG/wvTC//vVviToN1VgLIAldJn/vK/FIMpKUsRqARQrj63GoAtIcRGAMisnt8A7+VqhBoZgEIA+KJ6VgJsEFALgMj1vxpggyA2AECOfnkAayWjPUBm+88AWBNkcwBO/f8BuF4u1xqA9XoQjQGWCqapBuDysGsFwERCHYNMwVizfbtdvqwGYCXkaApAbAF8PNT/ANeq7bUsBCAKQKjaLwMLYCWDaAhAggRiAyyTiAwBJAnEBlglkR1A5lcgCcCyEmUzABQFgA+QBMsx8CVcGwA+wDIE0QiAZAEQACS+jIEt4eoACACWIbABiMIASAASO4eAnUFTS4CZnUPArUGhKcBiOUYLAHEGiQDYOQTMVQyntgATMtcyYEogtAYITBEAUwKpNUBiigCYq8DcGmBmrgTA0zBNrQEWa1lUA2SxBIQAgadi4Gk4tQdIPBU3BbjCx2d6vHYFQLGG559Wg1msYlQDiJexX/6HkMRLmS0ACf1nxYBMAaK0CKVngCAtQ7ETwCIAnCQ6BsAyAIwQHANg5X+9ChzAAU4BMLyIhy+jUzjIQma1lUi9thLjb+ZMttOp43Za8UJzb9diu3+oN7LH82S301kDKF7qZWb9Uq84VpEZGh+rKA62RGZ+sKU4WhSZ/dEi7SsC+8Nd+fG6gQRy1w8c+gwy+cAh/8SkzyDs+5FPX4Oo72fWPTKo6kM37reWEbtZomWrgToA1LnZQxsAs2YPabuNNgDYu+FJG4Dcu+VMGQDo3vTHXQMaNv3J2i5Vi7Bt26Ws8VWXQNS/9ViVQMatx6Lmb00Fsm7+FrXfawQAR7gAoRBAgwsQgisoCv9xl0tAqZmAm1wC4l/DkvtPx7gIJ/YfD3IVUXwxOh7kMqhMvw0vg7Kv40rqf9PruOwL0S/Tf+8L0ZsjSeRC6HAlffihAH+NZQjDjGUYfzDG+KNJxh8OM/54nuKApyEGJI0/omr8IWEnGNM2/qC88UcVnmBYpGBU7cHGdarziHxkrQ8NPsXY5vqx38cdnH2C0eVnGB5/hvH95/gBhTf/DQ4HcAAHcAAHcAAHcAAHcAAHcAAHcAAHcAAHcAAHcAAHODXAPwWXsZAh72HWAAAAAElFTkSuQmCC" alt="" />
     <div class="app-card__body">
       <div class="app-card__name">Life Dial</div>
@@ -767,11 +925,29 @@ a.app-card:hover {
   </a>
 </div>
 <ul>
-  <li><a href="guides/chinese-languages/">Chinese Language(s)</a></li>
-  <li><a href="hobbies/maps-projections/">Maps & Projections</a></li>
-  <li><a href="hobbies/linguistics-dissertation/">Linguistics Dissertation</a></li>
-  <li><a href="hobbies/cities-transport/">Cities & Transport</a></li>
-  <li><a href="life/personal-info/">Personal Info</a></li>
+  <li data-categories="linguistics"><a href="guides/chinese-languages/">Chinese Language(s)</a></li>
+  <li data-categories="geography maths"><a href="hobbies/maps-projections/">Maps & Projections</a></li>
+  <li data-categories="linguistics"><a href="hobbies/linguistics-dissertation/">Linguistics Dissertation</a></li>
+  <li data-categories="geography"><a href="hobbies/cities-transport/">Cities & Transport</a></li>
+  <li data-categories="personal"><a href="life/personal-info/">Personal Info</a></li>
+  <li class="planned-row" data-categories="experiments personal"><span>Kissing Advice</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="technology experiments"><span>Cryptocurrency</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="experiments personal"><span>Bracelet Database</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="maths"><span>Elementary Maths</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="technology"><span>IT Infrastructure</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="personal"><span>Media Subscriptions</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="maths"><span>Set Theory</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="personal"><span>Venues & Places</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="practical"><span>CV & Portfolio</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="personal practical"><span>External Links</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="personal practical"><span>Food Intolerances</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="practical"><span>Guest Hosting</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="practical"><span>Emergency Medical ID</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="personal practical"><span>Drug Policy</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="practical"><span>Qualifications</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="personal"><span>Childhood Photos</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="personal practical"><span>Dating Profile</span><span class="planned-tag">planned</span></li>
+  <li class="planned-row" data-categories="linguistics"><span>Irish Orthography</span><span class="planned-tag">planned</span></li>
 </ul>
 </div>
 <div class="side">
@@ -786,6 +962,7 @@ a.app-card:hover {
   <li aria-hidden="true"><a style="visibility:hidden">&nbsp;</a></li>
   <li><a href="site-stats/">Site Stats</a></li>
   <li><a href="site-roadmap/">Site Roadmap</a></li>
+  <li><a href="category-matrix/">Category Matrix</a></li>
   <li><a href="whats-new/">What's New</a></li>
   <li><a href="settings/">Settings</a></li>
 </ul>
@@ -858,6 +1035,77 @@ a.app-card:hover {
     const opt = Array.from(document.querySelectorAll('.tier-nav option'))
       .find(o => o.value && o.textContent.toLowerCase().split(/\s+/).includes(q));
     if (opt) { e.preventDefault(); location.href = opt.value; }
+  });
+})();
+(function() {
+  // Category chips: multi-select, OR semantics — an entry stays visible
+  // while it carries ANY active category; no active chips means show all.
+  // Hides non-matching entries via .cat-hidden — a class deliberately
+  // separate from .search-hidden, so the text search and the category
+  // filter compose as AND without stomping each other's state.
+  const chips = document.querySelectorAll('.cat-chips .cat-chip');
+  if (!chips.length) return;
+  const items = document.querySelectorAll('.main .app-card, .main > ul > li');
+  const clear = document.querySelector('.cat-chips__clear');
+  const body = document.querySelector('.cat-chips__body');
+  const toggle = document.querySelector('.cat-chips__toggle');
+  const updateToggle = (activeCount) => {
+    if (!toggle || !body) return;
+    const open = !body.hidden;
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.textContent = open ? 'Filter ▾'
+      : (activeCount ? `Filter (${activeCount}) ▸` : 'Filter ▸');
+  };
+  const apply = () => {
+    const active = Array.from(chips)
+      .filter(c => c.getAttribute('aria-pressed') === 'true')
+      .map(c => c.dataset.cat);
+    items.forEach(item => {
+      const cats = (item.dataset.categories || '').split(' ').filter(Boolean);
+      item.classList.toggle('cat-hidden',
+        active.length > 0 && !active.some(c =>
+          c === '__none__' ? cats.length === 0 : cats.includes(c)));
+    });
+    if (clear) clear.hidden = active.length === 0;
+    updateToggle(active.length);
+  };
+  if (toggle && body) toggle.addEventListener('click', () => {
+    body.hidden = !body.hidden;
+    apply();
+  });
+  chips.forEach(chip => chip.addEventListener('click', () => {
+    const on = chip.getAttribute('aria-pressed') === 'true';
+    chip.setAttribute('aria-pressed', on ? 'false' : 'true');
+    apply();
+  }));
+  if (clear) clear.addEventListener('click', () => {
+    chips.forEach(c => c.setAttribute('aria-pressed', 'false'));
+    apply();
+  });
+})();
+(function() {
+  // Planned-row reveal, live half. The head snippet stamps
+  // <html data-show-planned> once at load; this keeps the on-page switch,
+  // the attribute, and other pages in agreement — re-stamping on switch
+  // clicks, back/forward-cache restores, and cross-page storage changes
+  // (the Settings checkbox remains a synced second control).
+  if (!document.querySelector('.planned-row')) return;
+  const K = 'site-show-planned';
+  const sw = document.querySelector('.planned-switch');
+  const stamp = () => {
+    const on = localStorage.getItem(K) === 'on';
+    document.documentElement.toggleAttribute('data-show-planned', on);
+    if (sw) sw.setAttribute('aria-pressed', on ? 'true' : 'false');
+  };
+  if (sw) sw.addEventListener('click', () => {
+    if (localStorage.getItem(K) === 'on') localStorage.removeItem(K);
+    else localStorage.setItem(K, 'on');
+    stamp();
+  });
+  stamp();
+  window.addEventListener('pageshow', (e) => { if (e.persisted) stamp(); });
+  window.addEventListener('storage', (e) => {
+    if (e.key === K || e.key === null) stamp();
   });
 })();
 </script>
