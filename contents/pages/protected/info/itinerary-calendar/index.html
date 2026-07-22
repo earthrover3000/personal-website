@@ -10,9 +10,10 @@
   <script src="../../../../../界面 UI/page-widgets/theme-init.js"></script>
   <link rel="stylesheet" href="../../../../../界面 UI/styles/base.css">
   <link rel="stylesheet" href="../../../../../界面 UI/styles/docs.css">
-  <!-- Shared floating map popover (shell + flight-route renderer): shows the
-       hovered flight's great-circle arc bottom-right. Leaflet is NOT loaded
-       on this page — the popover's leaflet-point renderer is never used. -->
+  <!-- Shared floating map popover (shell + flight-route renderer): shows a
+       flight's great-circle arc bottom-right — hover to preview, click to
+       pin. Leaflet is NOT loaded on this page — the popover's leaflet-point
+       renderer is never used. -->
   <link rel="stylesheet" href="../../../../../界面 UI/map-widgets/map-popover.css">
 
   <!-- FullCalendar -->
@@ -119,6 +120,9 @@
       cursor: pointer;
     }
     .fc .fc-event-title { font-weight: 500; }
+    /* PINNED flight event (clicked): accent ring in the same language as the
+       chosen-day ring — its route stays on the mini-map until unpinned. */
+    .fc .fc-event.fc-event-pinned { box-shadow: 0 0 0 2px var(--accent); }
     .fc-list-event-dot { border-color: var(--accent) !important; }
 
     /* Hover popup — dark surface card with subtle shadow */
@@ -263,6 +267,17 @@
         if (cell) cell.classList.add('fc-day-chosen');
       };
 
+      // Ring every rendered instance of the pinned flight. The pin is the
+      // ROUTE (parsed from the title), so same-route events share the ring.
+      // Month navigation rebuilds event elements — eventDidMount restores
+      // the class per element; this sweep handles live toggles.
+      const paintPin = () => {
+        document.querySelectorAll('.fc-event[data-flight-title]').forEach((el) => {
+          el.classList.toggle('fc-event-pinned',
+            !!window.__flightMap && window.__flightMap.isPinned(el.dataset.flightTitle));
+        });
+      };
+
       const syncUrl = (view) => {
         const d = view.currentStart;
         const iso = d.getFullYear() + '-'
@@ -296,6 +311,16 @@
           selDate = selDate === info.dateStr ? null : info.dateStr;
           paintSel();
           syncUrl(calendar.view);
+        },
+        eventClick(info) {
+          // Click a flight event to PIN its route on the mini-map; click it
+          // again to unpin (map fades out). While pinned, hovering another
+          // flight previews that route and the pinned one returns on
+          // mouseleave. Non-flight events don't react to clicks.
+          if (window.__flightMap) {
+            window.__flightMap.toggle(info.event.title);
+            paintPin();
+          }
         },
         headerToolbar: {
           left: 'prev,next today',
@@ -342,6 +367,12 @@
           for (let c of info.event.title) hash = (hash * 31 + c.charCodeAt(0)) & 0xffff;
           info.el.style.background = colors[hash % colors.length];
           info.el.style.borderColor = 'transparent';
+          // Tag the element with its title so paintPin can sweep the DOM, and
+          // restore the pin ring on elements rebuilt by month navigation.
+          info.el.dataset.flightTitle = info.event.title;
+          if (window.__flightMap && window.__flightMap.isPinned(info.event.title)) {
+            info.el.classList.add('fc-event-pinned');
+          }
         }
       });
 
@@ -386,27 +417,61 @@
     // great-circle arc on hover.
     import { parseFlightTitle } from '../../../../../引擎 Engines/location-history/flight-title.js';
 
-    const enter = (title) => {
-      const route = parseFlightTitle(title);
-      // Not a flight — no map (and retract one left over from a previous
-      // hover). Unknown airport codes are the renderer's call: it validates
-      // against WORLD_AIRPORTS after the engine loads and signals the shell
-      // to stay hidden. Stale-hover races (event A hovered, then quickly
-      // event B while the engine is still loading) are token-guarded inside
-      // the shell — the last show()/hide() always wins.
-      if (!route) { window.mapPopover.hide(); return; }
+    // Two layers of map state: a PINNED route (clicked — sticks until
+    // unpinned) under a transient HOVER preview. `showing` tracks the route
+    // key currently on screen so restoring the pin after a same-route hover
+    // is a no-op (no arc re-animation), and duplicate show() calls are
+    // skipped. Unknown airport codes stay the renderer's call: it validates
+    // against WORLD_AIRPORTS after the engine loads and signals the shell to
+    // stay hidden. Stale-hover races (event A hovered, then quickly event B
+    // while the engine is still loading) are token-guarded inside the shell
+    // — the last show()/hide() always wins.
+    let pinned = null;    // {origin, dest} of the clicked flight, or null
+    let showing = null;   // route key currently displayed, or null when hidden
+
+    const routeKey = (r) => r.origin + '>' + r.dest;
+    const display = (route) => {
+      if (showing === routeKey(route)) return;
+      showing = routeKey(route);
       window.mapPopover.show({
         renderer: 'flight-route',
         origin: route.origin,
         dest: route.dest,
         label: route.origin + ' → ' + route.dest,
-        dismiss: 'manual',   // hover-follow: we hide on mouseleave — no 2 s timer, no X
+        dismiss: 'manual',   // we drive hide() ourselves — no 2 s timer, no X
         shape: 'circle',     // round display area — matches the home page's popover look
       });
     };
-    const leave = () => window.mapPopover.hide();
+    const clear = () => {
+      if (showing === null) return;
+      showing = null;
+      window.mapPopover.hide();
+    };
 
-    window.__flightMap = { enter, leave };
+    const enter = (title) => {
+      const route = parseFlightTitle(title);
+      // Not a flight: fall back to the pinned route if there is one, else
+      // retract any preview left over from a previous hover.
+      if (route) display(route);
+      else if (pinned) display(pinned);
+      else clear();
+    };
+    const leave = () => { pinned ? display(pinned) : clear(); };
+
+    // Click-to-pin toggle: pin this flight's route, or unpin if it already
+    // is the pin. Non-flight titles are ignored.
+    const toggle = (title) => {
+      const route = parseFlightTitle(title);
+      if (!route) return;
+      if (pinned && routeKey(pinned) === routeKey(route)) { pinned = null; clear(); }
+      else { pinned = route; display(route); }
+    };
+    const isPinned = (title) => {
+      const route = parseFlightTitle(title);
+      return !!(route && pinned && routeKey(pinned) === routeKey(route));
+    };
+
+    window.__flightMap = { enter, leave, toggle, isPinned };
   </script>
 </body>
 </html>
