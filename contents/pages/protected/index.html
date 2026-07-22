@@ -67,7 +67,6 @@
   });
 })();
 </script>
-<script>if(localStorage.getItem("site-show-planned")==="on")document.documentElement.setAttribute("data-show-planned","");</script>
 <style>/* Shared base styles for index pages (root, protected, private) and docs
    pages (site-map, site-stats, lifespan-atlas plan). Loaded BEFORE the
    page-specific stylesheet so page rules can override.
@@ -884,15 +883,11 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Home</a> <span class="sep">›</span> <span aria-current="page">Protected Index</span></nav>
 <h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">63,231 lines · 18,514 words · 914 字 📊</a> ✦ <a href="../public/site-roadmap/">Phase 0.4 (2026-07-08) 🛣️</a> ✦ Last updated <time datetime="2026-07-21T14:23:36Z" title="2026-07-21 14:23 UTC" class="relative-time">2026-07-21</time></p>
+<p class="head-meta"><a href="site-stats/">63,156 lines · 18,514 words · 914 字 📊</a> ✦ <a href="../public/site-roadmap/">Phase 0.4 (2026-07-08) 🛣️</a> ✦ Last updated <time datetime="2026-07-22T17:42:17Z" title="2026-07-22 17:42 UTC" class="relative-time">2026-07-22</time></p>
 <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
 <div class="cat-chips" role="group" aria-label="Filter by category">
   <button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button>
-  <button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button>
   <div class="cat-chips__body" hidden>
-  <button type="button" class="cat-chip" data-cat="__none__" aria-pressed="false">❓ Uncategorised</button>
-  <span class="cat-chips__divider" aria-hidden="true"></span>
-  <button type="button" class="cat-chip cat-chip--planned-only" data-cat="experiments" aria-pressed="false">🧪 Experiments</button>
   <button type="button" class="cat-chip" data-cat="geography" aria-pressed="false">🗺️ Geography</button>
   <button type="button" class="cat-chip" data-cat="linguistics" aria-pressed="false">🔤 Linguistics</button>
   <button type="button" class="cat-chip" data-cat="maths" aria-pressed="false">📐 Maths</button>
@@ -900,7 +895,6 @@ a.app-card:hover {
   <button type="button" class="cat-chip" data-cat="personal" aria-pressed="false">👤 Personal</button>
   <button type="button" class="cat-chip" data-cat="philosophy" aria-pressed="false">🕯️ Philosophy</button>
   <button type="button" class="cat-chip" data-cat="practical" aria-pressed="false">🪪 Practical</button>
-  <button type="button" class="cat-chip cat-chip--planned-only" data-cat="technology" aria-pressed="false">💻 Technology</button>
   <button type="button" class="cat-chips__clear" hidden>× Clear</button>
   </div>
 </div>
@@ -931,25 +925,6 @@ a.app-card:hover {
   <li data-categories="geography"><a href="../public/hobbies/cities-transport/">Cities & Transport</a></li>
   <li data-categories="personal"><a href="../public/life/personal-info/">Personal Info</a></li>
   <li data-categories="practical"><a href="../protected/info/itinerary-calendar/">Itinerary Calendar</a></li>
-  <li class="planned-row" data-categories="experiments personal"><span>Kissing Advice</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="technology experiments"><span>Cryptocurrency</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="experiments personal"><span>Bracelet Database</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="maths"><span>Elementary Maths</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="technology"><span>IT Infrastructure</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="personal"><span>Media Subscriptions</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="maths"><span>Set Theory</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="personal"><span>Venues & Places</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="practical"><span>CV & Portfolio</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="personal practical"><span>External Links</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="personal practical"><span>Food Intolerances</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="practical"><span>Guest Hosting</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="practical"><span>Emergency Medical ID</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="personal practical"><span>Drug Policy</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="practical"><span>Qualifications</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="personal"><span>Childhood Photos</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="personal practical"><span>Dating Profile</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="linguistics"><span>Irish Orthography</span><span class="planned-tag">planned</span></li>
-  <li class="planned-row" data-categories="practical"><span>Sexual Health</span><span class="planned-tag">planned</span></li>
 </ul>
 </div>
 <div class="side">
@@ -977,7 +952,6 @@ a.app-card:hover {
   <li><a href="site-stats/">Site Stats</a></li>
   <li><a href="../public/site-roadmap/">Site Roadmap</a></li>
   <li><a href="category-matrix/">Category Matrix</a></li>
-  <li><a href="../public/whats-new/">What's New</a></li>
   <li><a href="../public/settings/">Settings</a></li>
 </ul>
 </div>

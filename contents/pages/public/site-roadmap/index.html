@@ -11,9 +11,10 @@
   <link rel="stylesheet" href="../../../../界面 UI/styles/base.css">
   <link rel="stylesheet" href="../../../../界面 UI/styles/docs.css">
   <link rel="stylesheet" href="../../../../界面 UI/styles/stats.css">
-  <!-- Roadmap + What's New share one body: both views plus the Roadmap/What's
-       New mode toggle. All styling (bars, defining/today rows, mode toggle)
-       lives in stats.css so the two surfaces can't drift. -->
+  <!-- The single roadmap surface carries BOTH views — the timeline and the
+       What's New changelog — plus the pure-CSS Roadmap/What's New mode toggle.
+       All styling (bars, defining/today rows, mode toggle) lives in stats.css.
+       There is no separate /whats-new page; What's New is a mode here. -->
 </head>
 <body>
   <div class="container">
@@ -52,9 +53,9 @@
     <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.3</span> ✦ Explosion of ideas</td><td><span class="roadmap-bar-date"><span class="touched-date">2026-03-23</span><span class="touched-block">Block 19</span><span class="touched-ago" data-date="2026-03-23">3mo</span></span></td></tr>
     <tr class="roadmap-event roadmap-defining"><td>Prototype site went live (GitHub Pages)</td><td><span class="touched-date">2026-03-23</span><span class="touched-block">Block 19</span><span class="touched-ago" data-date="2026-03-23">3mo</span></td></tr>
     <tr class="roadmap-event"><td>Instagram bio repointed (GitHub Pages)</td><td><span class="touched-date">2026-05-08</span><span class="touched-block">Block 20</span><span class="touched-ago" data-date="2026-05-08">2mo</span></td></tr>
-    <tr class="roadmap-event roadmap-defining"><td>Lifespan Atlas content scope confirmed</td><td><span class="touched-date">2026-07-08</span><span class="touched-block">Block 21</span><span class="touched-ago" data-date="2026-07-08">13 days</span></td></tr>
-    <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.4</span> ✦ Confirmation of scope</td><td><span class="roadmap-bar-date"><span class="touched-date">2026-07-08</span><span class="touched-block">Block 21</span><span class="touched-ago" data-date="2026-07-08">13 days</span></span></td></tr>
-    <tr class="roadmap-today nofold"><td>Today</td><td><span class="touched-date">2026-07-21</span><span class="touched-block">Block 21</span><span class="touched-ago">today</span></td></tr>
+    <tr class="roadmap-event roadmap-defining"><td>Lifespan Atlas content scope confirmed</td><td><span class="touched-date">2026-07-08</span><span class="touched-block">Block 21</span><span class="touched-ago" data-date="2026-07-08">14 days</span></td></tr>
+    <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.4</span> ✦ Confirmation of scope</td><td><span class="roadmap-bar-date"><span class="touched-date">2026-07-08</span><span class="touched-block">Block 21</span><span class="touched-ago" data-date="2026-07-08">14 days</span></span></td></tr>
+    <tr class="roadmap-today nofold"><td>Today</td><td><span class="touched-date">2026-07-22</span><span class="touched-block">Block 21</span><span class="touched-ago">today</span></td></tr>
     <tr class="roadmap-event roadmap-defining"><td>Site roadmap established</td><td><span class="touched-date">TBC</span><span class="touched-block">TBC</span><span class="touched-ago">TBC</span></td></tr>
     <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.5</span> ✦ Preparing site preview</td><td><span class="roadmap-bar-date"><span class="touched-date">TBC</span><span class="touched-block">TBC</span><span class="touched-ago">TBC</span></span></td></tr>
     <tr class="roadmap-event roadmap-defining"><td>Site preview published</td><td><span class="touched-date">TBC</span><span class="touched-block">TBC</span><span class="touched-ago">TBC</span></td></tr>
@@ -73,8 +74,8 @@
 <table class="stats-table site-milestones">
   <thead><tr><th>Milestone</th><th>Date</th></tr></thead>
   <tbody>
-    <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.4</span> ✦ Confirmation of scope</td><td><span class="roadmap-bar-date"><span class="touched-date">2026-07-08</span><span class="touched-block">Block 21</span><span class="touched-ago" data-date="2026-07-08">13 days</span></span></td></tr>
-    <tr class="roadmap-event roadmap-defining"><td>Lifespan Atlas content scope confirmed</td><td><span class="touched-date">2026-07-08</span><span class="touched-block">Block 21</span><span class="touched-ago" data-date="2026-07-08">13 days</span></td></tr>
+    <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.4</span> ✦ Confirmation of scope</td><td><span class="roadmap-bar-date"><span class="touched-date">2026-07-08</span><span class="touched-block">Block 21</span><span class="touched-ago" data-date="2026-07-08">14 days</span></span></td></tr>
+    <tr class="roadmap-event roadmap-defining"><td>Lifespan Atlas content scope confirmed</td><td><span class="touched-date">2026-07-08</span><span class="touched-block">Block 21</span><span class="touched-ago" data-date="2026-07-08">14 days</span></td></tr>
     <tr class="section-bar roadmap-bar"><td><span class="rm-stage">Phase 0.3</span> ✦ Explosion of ideas</td><td><span class="roadmap-bar-date"><span class="touched-date">2026-03-23</span><span class="touched-block">Block 19</span><span class="touched-ago" data-date="2026-03-23">3mo</span></span></td></tr>
     <tr class="roadmap-event roadmap-defining"><td>Prototype site went live (GitHub Pages)</td><td><span class="touched-date">2026-03-23</span><span class="touched-block">Block 19</span><span class="touched-ago" data-date="2026-03-23">3mo</span></td></tr>
     <tr class="roadmap-event"><td>Instagram bio repointed (GitHub Pages)</td><td><span class="touched-date">2026-05-08</span><span class="touched-block">Block 20</span><span class="touched-ago" data-date="2026-05-08">2mo</span></td></tr>
@@ -87,5 +88,16 @@
 </div>
   </div>
   <script src="../../../../界面 UI/page-widgets/stats-table.js"></script>
+  <script>
+    // Deep-link: /site-roadmap/#whats-new lands the page in What's New mode —
+    // the home page's "What's New" link points here. Checking the radio drives
+    // the pure-CSS `body:has(#mode-whatsnew:checked)` rules, so the toggle stays
+    // in sync. Pure enhancement: no-JS visitors land on the roadmap, one click
+    // from the changelog.
+    if (location.hash === '#whats-new') {
+      var wn = document.getElementById('mode-whatsnew');
+      if (wn) wn.checked = true;
+    }
+  </script>
 </body>
 </html>
