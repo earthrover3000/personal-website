@@ -4,7 +4,7 @@
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cities & Transport · City Map Explorer</title>
+  <title>Cities & Transport</title>
   <!-- Site-wide theme (manual dark/light/auto): stamps <html data-theme>
        before paint so navigation never flashes the wrong theme. -->
   <script src="../../../../../界面 UI/page-widgets/theme-init.js"></script>
@@ -21,8 +21,8 @@
        Mapper loads the same file). Exposes window.URBANISM_DATA = { gawcList, livedList }. -->
   <script src="../../../../../引擎 Engines/map-projection/cities.js"></script>
   <!-- page-nav.js auto-injects a search bar + Contents nav whenever the
-       page has 2+ <h2> direct children. Currently a no-op (one section
-       only) but ready for when more sections get added. -->
+       page has 2+ <h2> direct children — live here since the section
+       stubs took the page to three. -->
   <script src="../../../../../界面 UI/page-widgets/page-nav.js" defer></script>
   <style>
     /* Page-specific element rules — scoped to .container > * per the
@@ -58,6 +58,15 @@
       color: var(--text);
       margin: 0 0 1rem;
     }
+    /* Planned-section stubs (Cambridge Cycleways / Lujiazui Roads): the
+       heading claims its number and Contents slot now; this note stands in
+       for the body until the map is built. */
+    .section-planned {
+      color: var(--muted);
+      font-style: italic;
+      font-size: 0.9rem;
+      margin-bottom: 1.6rem;
+    }
   </style>
 </head>
 <body>
@@ -67,7 +76,19 @@
   <h1>Cities &amp; Transport</h1>
   <p class="head-meta">&nbsp;</p>
 
-  <h2>City Map Explorer</h2>
+  <h2>Cambridge Cycleways</h2>
+  <p class="lede">
+    An interactive map of Cambridge's cycle network — cycleways, cycle lanes and greenways across the city and out to the surrounding villages.
+  </p>
+  <p class="section-planned">🚧 In the works — the map will appear here.</p>
+
+  <h2>Lujiazui Roads</h2>
+  <p class="lede">
+    A detailed interactive road map of Little Lujiazui (小陆家嘴), Shanghai's financial district — including the street grid I mapped by hand as a child.
+  </p>
+  <p class="section-planned">🚧 In the works — the map will appear here.</p>
+
+  <h2>Commuter Railway Explorer</h2>
   <p class="lede">
     Pick a city and edge length to render its map at exactly that pixel size, clipped to a circle. Toggle <strong>Railways</strong> to overlay <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> — useful for comparing the railway/metro footprint of cities at a common 17 km radius. Use <strong>Save PNG</strong> to export a lossless image of the visible circle.
   </p>
