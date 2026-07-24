@@ -61,7 +61,8 @@
   <p class="lede">
     A world map you can re-project live, entirely in the browser. Pick a coordinate framing
     (Eastern / Western / Northern / Southern) and a projection (<strong>Winkel Tripel</strong>
-    or Hǎo's <strong>等差分多圆锥</strong> vertical map), toggle country borders, and draw
+    or Hǎo's <strong>等差分多圆锥</strong> vertical map), toggle country borders (plus state/province
+    lines for the seven largest countries), and draw
     great-circle flight paths — the preset routes, or your own: type 3-letter IATA codes such as
     <code>PEK-JFK, LHR-HND-SIN</code>. Add terrain with <strong>Ocean depth</strong> (graded bathymetry
     bands) and <strong>Land elevation</strong> (hypsometric shaded relief), or shade the land by
@@ -120,7 +121,8 @@
   createWorldMap({ mount: '#great-circle-mapper', controls: true, presets: GREAT_CIRCLE.routes, uiDefaults: GREAT_CIRCLE.defaults,
                    cities: WORLD_CITIES,
                    lazyLayers: { terrain: '../../../../../引擎 Engines/map-projection/terrain-grid.js',
-                                 regions: '../../../../../引擎 Engines/map-projection/un-regions.js' } });
+                                 regions: '../../../../../引擎 Engines/map-projection/un-regions.js',
+                                 admin1: '../../../../../引擎 Engines/map-projection/admin1.js' } });
 
   // Region Map Explorer — its empty state mounts a static Northern-Hǎo map. The dropdown rests on a
   // re-selectable "Select location…" option; while it's chosen the display shows that overview, with

@@ -21,7 +21,7 @@
   // each toward a dark anchor (geo.cpt assumes a paper background, so dark mode needs a parallel ramp).
   var LIGHT_PAL = {
     ocean: '#b7d2ea', land: '#cde0a8', coast: '#5f7d43',
-    graticule: '#9bb6d0', edge: '#4f7193', border: '#9a7b5a', marker: '#15202b', mercVoid: '#707a85', city: '#0e7490',
+    graticule: '#9bb6d0', edge: '#4f7193', border: '#9a7b5a', border1: '#a98d6e', marker: '#15202b', mercVoid: '#707a85', city: '#0e7490',   // border1 = admin-1 (province) lines, a step lighter than `border` so the hierarchy reads country > province
     bathyColors: { 0: '#f5ffff', 200: '#e4f8fc', 1000: '#a2dbf2', 2000: '#6ec3eb', 3000: '#53abe0', 4000: '#448dc9', 5000: '#3563a0', 6000: '#2f548a', 7000: '#294475', 8000: '#1f3055' },
     landColors: { 0: '#33893c', 500: '#a8bc66', 1000: '#d0a553', 2000: '#9e4201', 3000: '#64331a', 4000: '#694d3f', 5000: '#7f7e7d' },
     // UN-subregion shading: four distinct hues (coral / green / blue / sand), indexed by the colour
@@ -31,7 +31,7 @@
   };
   var DARK_PAL = {
     ocean: '#172430', land: '#36422f', coast: '#76926a',
-    graticule: '#314a5e', edge: '#5e83a3', border: '#8f7458', marker: '#e9eef2', mercVoid: '#525c67', city: '#22d3ee',
+    graticule: '#314a5e', edge: '#5e83a3', border: '#8f7458', border1: '#7c644b', marker: '#e9eef2', mercVoid: '#525c67', city: '#22d3ee',   // border1 = admin-1 (province) lines, dimmed toward the dark land so country strokes stay dominant
     bathyColors: { 0: '#4f5966', 200: '#4b5765', 1000: '#384f62', 2000: '#2a4960', 3000: '#22425d', 4000: '#1e3957', 5000: '#1a2e4b', 6000: '#182a45', 7000: '#16253f', 8000: '#131f36' },
     landColors: { 0: '#234925', 500: '#525d36', 1000: '#62542e', 2000: '#4e2c0e', 3000: '#362618', 4000: '#383126', 5000: '#41443f' },
     // Parallel four-colour subregion ramp for the dark theme: same hue order (coral/green/blue/sand),
@@ -92,6 +92,8 @@
       '.gcm-opts{display:flex;flex-wrap:wrap;gap:0.35rem 0.8rem;align-items:center;}' +
       '.gcm-controls label{display:inline-flex;align-items:center;gap:0.35rem;font-size:0.9rem;color:var(--text);cursor:pointer;}' +
       '.gcm-controls input[type=radio],.gcm-controls input[type=checkbox]{accent-color:var(--accent);}' +
+      '.gcm-controls label:has(input:disabled){color:var(--muted);opacity:0.55;cursor:default;}' +   // grey the WHOLE label of a disabled toggle (Provinces while Countries is off), not just the box
+
       '.gcm-controls input[type=number]{font:inherit;width:5rem;padding:0.3rem 0.5rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
       '.gcm-controls select{font:inherit;padding:0.4rem 0.6rem;max-width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
       '.gcm-routesel{display:inline-flex;align-items:center;gap:0.35rem;}' +
@@ -173,6 +175,7 @@
       coordinate: opts.coordinate || cfg.default_coordinate,
       projection: opts.projection || cfg.default_projection,
       boundaries: opts.boundaries != null ? opts.boundaries : !!uiDefaults.boundaries,
+      admin1: opts.admin1 != null ? opts.admin1 : !!uiDefaults.admin1,   // first-order (state/province) borders, seven largest countries (WORLD_ADMIN1, lazy); drawn only while `boundaries` is on
       bathymetry: opts.bathymetry != null ? opts.bathymetry : !!uiDefaults.bathymetry,   // ocean-depth tint bands (WORLD_TERRAIN_GRID codes 0..11)
       topography: opts.topography != null ? opts.topography : !!uiDefaults.topography,    // land elevation shade bands (WORLD_TERRAIN_GRID codes 16..)
       regions: opts.regions != null ? opts.regions : !!uiDefaults.regions,                // UN-subregion 4-colour shading (WORLD_UN_REGIONS); mutually exclusive with topography (both shade land)
@@ -411,9 +414,21 @@
         c.addEventListener('change', function () { fn(c.checked); }); lab.appendChild(c); lab.appendChild(document.createTextNode(text)); opts.appendChild(lab);
         return c;
       }
-      var topoChk, regionChk;
+      var topoChk, regionChk, adm1Chk;
       radio('coarse', 'Coarse'); radio('fine', 'Fine'); opts.appendChild(el('span', null, '·'));
-      check('Countries', state.boundaries, function (v) { state.boundaries = v; render(); });
+      check('Countries', state.boundaries, function (v) {
+        state.boundaries = v;
+        if (adm1Chk) adm1Chk.disabled = !v;               // Provinces subdivide the country layer — meaningless (and greyed) without it
+        render();
+      });
+      // Admin-1 (state/province) borders for the seven largest countries. Lazy like the UN regions:
+      // WORLD_ADMIN1 fetches on first toggle-on, and its arrival invalidates the geom cache.
+      adm1Chk = check('Provinces', state.admin1, function (v) {
+        state.admin1 = v;
+        if (v) ensureLayer('WORLD_ADMIN1', lazyLayers.admin1, function (fresh) { if (fresh) geomKey = ''; render(); });
+        else render();
+      });
+      adm1Chk.disabled = !state.boundaries;
       check('Ocean depth', state.bathymetry, function (v) { state.bathymetry = v; render(); });   // texture bake is scheduled from the draw path (usually pre-warmed already)
       // Land elevation and UN regions both shade the land, so they're MUTUALLY EXCLUSIVE: turning one on
       // turns the other off (and unticks its box).
@@ -834,6 +849,14 @@
         var ln = [], lt = [], k; for (k = 0; k < ring.length; k++) { ln.push(ring[k][0]); lt.push(ring[k][1]); }
         push(bndLine, MAPGEO.ringOutlineArcs(coord, proj, ln, lt));
       });
+      // Admin-1 (province) borders — OPEN polylines (NE's lines file ships internal borders only,
+      // coastal edges pre-excluded), so lineSegs, not the ring machinery. Empty until the lazy
+      // WORLD_ADMIN1 arrives (its load blanks geomKey, so this rebuilds with the data in place).
+      var adm1Line = [], A1 = layer(root.WORLD_ADMIN1);
+      if (A1) A1.forEach(function (line) {
+        var ln = [], lt = [], k; for (k = 0; k < line.length; k++) { ln.push(line[k][0]); lt.push(line[k][1]); }
+        push(adm1Line, MAPGEO.lineSegs(coord, proj, lt, ln));
+      });
       // Terrain (ocean depth + land elevation) is NOT built here: it lives in
       // the async texture bake (bakeTerrainPair below), so framing switches and
       // the initial basemap render never pay the grid-warp cost.
@@ -891,7 +914,7 @@
       }
       var mercGeoSet = mercSet(mercatorGeo(), coord.kind === 'horizontal'), mercGenSet = mercSet(mercatorClampGeo(coord), true);
       geomCache = { b: b, px0: (uMinX + uMaxX) / 2, py0: (uMinY + uMaxY) / 2, spanX: uMaxX - uMinX, spanY: uMaxY - uMinY,
-                    grat: grat, coastFill: coastFill, coastLine: coastLine, lakesFill: lakesFill, lakesLine: lakesLine, bndLine: bndLine,
+                    grat: grat, coastFill: coastFill, coastLine: coastLine, lakesFill: lakesFill, lakesLine: lakesLine, bndLine: bndLine, adm1Line: adm1Line,
                     regionFill: regionFill,
                     bandN: bandN, bandS: bandS, edgeN: edgeN, edgeS: edgeS, midLine: midLine,
                     mercGeoSet: mercGeoSet, mercGenSet: mercGenSet };
@@ -1150,6 +1173,7 @@
       for (var li = 0; li < G.lakesFill.length; li++) fillRing(G.lakesFill[li], PAL.ocean);   // inland water painted over land (and over the shade bands)
       stroke(G.coastLine, PAL.coast, 0.6);                                  // coastline outline
       stroke(G.lakesLine, PAL.coast, 0.4);                                  // lake shores
+      if (state.boundaries && state.admin1) stroke(G.adm1Line, PAL.border1, 0.3);   // province borders (under the heavier country strokes; never without them)
       if (state.boundaries) stroke(G.bndLine, PAL.border, 0.45);            // country borders
       if (state.edges) {                                                    // Hǎo Northern (purple) & Southern (orange) edge bands + seam centre lines
         ctx2.save(); poly(G.b); ctx2.clip();                                // clip belt fills to the lens so no shading (or its anti-aliased edge) escapes the boundary
