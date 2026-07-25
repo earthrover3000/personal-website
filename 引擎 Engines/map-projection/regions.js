@@ -25,7 +25,7 @@
       // Mercator-plane circumcentre of Dover, Cnoc Bólais, and Duncansby
       // Head — pixel rim passes through all three at ~499 km, 510 km
       // gives a small breathing margin.
-      { value: 'british-isles', lat: 54.439107,  lon:  -4.112081,  label: 'British Isles', defaultRadiusKm: 510  },
+      { value: 'britain-ireland', lat: 54.439107,  lon:  -4.112081,  label: 'Britain & Ireland', defaultRadiusKm: 510  },
       // Centred on Baoji 宝鸡 (OSM place=city node 244076584) — a
       // central-China anchor that frames the populated east-coast
       // corridor + western interior at 1500 km.
