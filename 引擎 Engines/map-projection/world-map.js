@@ -93,6 +93,13 @@
       '.gcm-controls label{display:inline-flex;align-items:center;gap:0.35rem;font-size:0.9rem;color:var(--text);cursor:pointer;}' +
       '.gcm-controls input[type=radio],.gcm-controls input[type=checkbox]{accent-color:var(--accent);}' +
       '.gcm-controls label:has(input:disabled){color:var(--muted);opacity:0.55;cursor:default;}' +   // grey the WHOLE label of a disabled toggle (Provinces while Countries is off), not just the box
+      // A group may stack several rows (Framing = rotation + centre; Boundaries = countries + its
+      // child + cities). gcm-sublabel names each row; gcm-subopts marks a row that is a CHILD of the
+      // one above it (Provinces under Countries) — indented behind a rule so the nesting is visible
+      // rather than implied by a disabled box.
+      '.gcm-sublabel{font-size:0.78rem;color:var(--muted);flex:0 0 auto;}' +
+      '.gcm-subopts{margin-left:0.55rem;padding-left:0.85rem;border-left:2px solid var(--border);}' +
+      '.gcm-sep{color:var(--border);user-select:none;}' +
 
       '.gcm-controls input[type=number]{font:inherit;width:5rem;padding:0.3rem 0.5rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
       '.gcm-controls select{font:inherit;padding:0.4rem 0.6rem;max-width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
@@ -213,11 +220,15 @@
       var controls = el('div', 'gcm-controls');
       // PROJECTION + HEMISPHERE are promoted to the TOOLBAR (built below as compact dropdowns) — they're
       // the headline "what map am I looking at" controls, so they're not buried in this panel.
-      // LAYERS — detail + the overlays toggled on the basemap (Size px control is gone; the map is full-bleed)
-      controls.appendChild(layersGroup());
+      //
+      // Panel order runs most-reached-for first: Routes (the page's whole point) → Framing (where the
+      // map points; its arc-centre box is really a route operation, hence the adjacency) → the two
+      // geography groups → the projection guides → Export. Each group is built by one of the builders
+      // further down; none of them is a catch-all.
+      //
       // ROUTES — a preset group AND your own additive paths
       var flightGroup = el('fieldset', 'gcm-group gcm-flightgroup');     // a preset group AND custom routes can be shown together (custom is additive)
-      flightGroup.appendChild(el('span', 'gcm-legend', 'Airports / flight paths'));
+      flightGroup.appendChild(el('span', 'gcm-legend', 'Routes'));
       var flightOpts = el('div', 'gcm-opts');
 
       selectedWrap = el('span', 'gcm-routesel');                         // preset route-group dropdown
@@ -245,14 +256,21 @@
 
       flightOpts.appendChild(selectedWrap); flightOpts.appendChild(freeWrap); flightOpts.appendChild(errSpan);   // dropdown + custom box shown together
       flightGroup.appendChild(flightOpts);
+      // Direction arrows DECORATES the route arcs, so it belongs here rather than among the basemap
+      // layers where it used to sit. Own row, so it doesn't crowd the custom-route box above (which
+      // grows to fill its row).
+      var arrowRow = optRow();
+      check(arrowRow, 'Direction arrows', state.routeArrows, function (v) { state.routeArrows = v; render(); });   // arrowhead at each arc's midpoint, origin → destination
+      flightGroup.appendChild(arrowRow);
       controls.appendChild(flightGroup);
 
-      // ORIENTATION — dial + region presets (north-up lock lives on the compass in the rail)
-      controls.appendChild(orientationGroup());
-
-      var centreGroup = el('fieldset', 'gcm-group gcm-flightgroup');      // CENTRE: from an arc (two airport codes) OR typed directly as lat/lon
-      centreGroup.appendChild(el('span', 'gcm-legend', 'Centre'));
-      var centreOpts = el('div', 'gcm-opts'), centreErr = el('span', 'gcm-err');
+      // FRAMING — where the map is pointed: the rotation dial with its "put a region up" presets (the
+      // north-up lock lives on the compass in the toolbar), and the projection centre taken either
+      // from a flight arc or typed as lat/lon. One group, because they answer the same question.
+      var framingGroup = groupEl('Framing');
+      framingGroup.appendChild(orientationRow());
+      var centreOpts = optRow(), centreErr = el('span', 'gcm-err');       // CENTRE: from an arc (two airport codes) OR typed directly as lat/lon
+      centreOpts.appendChild(el('span', 'gcm-sublabel', 'Centre'));
       var codeStyle = 'font:inherit;width:4.2rem;padding:0.35rem 0.5rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;text-transform:uppercase;';
       var numStyle = 'font:inherit;width:5rem;padding:0.35rem 0.5rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;';
       var box1 = el('input'), box2 = el('input');
@@ -287,8 +305,15 @@
       centreOpts.appendChild(box1); centreOpts.appendChild(el('span', null, '–')); centreOpts.appendChild(box2); centreOpts.appendChild(centreBtn);
       centreOpts.appendChild(el('span', null, ' · lat')); centreOpts.appendChild(latBox); centreOpts.appendChild(el('span', null, 'lon')); centreOpts.appendChild(lonBox);
       centreOpts.appendChild(centreErr);
-      centreGroup.appendChild(centreOpts); controls.appendChild(centreGroup);
+      framingGroup.appendChild(centreOpts); controls.appendChild(framingGroup);
       updateCentreBoxes();                                               // show the starting framing's centre immediately
+
+      // GEOGRAPHY — the basemap itself, then the human geography drawn on it, then the overlays that
+      // describe the projection rather than the world. These three replace the old single "Layers"
+      // fieldset, which had grown to 14 unrelated controls in one flat row.
+      controls.appendChild(baseMapGroup());
+      controls.appendChild(placesGroup());
+      controls.appendChild(guidesGroup());
 
       // EXPORT — Save PNG lives here (a panel action), not in the toolbar: it's an occasional export, not
       // a primary view control. The serious export path is the offline Node port → Personal Works/maps/.
@@ -395,63 +420,108 @@
     function idLabel(o) { return { id: o.id, label: o.label }; }
     function syncFlightUI() { }   // preset dropdown and custom box are both always visible now (custom is additive)
 
-    function checkboxGroup(legend, label, checked, onchange) {
-      var g = el('fieldset', 'gcm-group'); g.appendChild(el('span', 'gcm-legend', legend));
-      var lab = el('label'); var c = el('input'); c.type = 'checkbox'; c.checked = checked;
-      c.addEventListener('change', function () { onchange(c.checked); });
-      lab.appendChild(c); lab.appendChild(document.createTextNode(label)); g.appendChild(lab); return g;
+    // ---- panel control primitives ----------------------------------------
+    // Shared by every group builder below, so a control looks and behaves the
+    // same wherever it lands.
+    function groupEl(legend) {
+      var g = el('fieldset', 'gcm-group'); g.appendChild(el('span', 'gcm-legend', legend)); return g;
     }
-    function layersGroup() {                                          // detail resolution + the basemap overlay toggles, merged into one "Layers" group
-      var g = el('fieldset', 'gcm-group'); g.appendChild(el('span', 'gcm-legend', 'Layers'));
-      var opts = el('div', 'gcm-opts');
-      function radio(val, text) {
-        var lab = el('label'); var r = el('input'); r.type = 'radio'; r.name = 'detail-' + instanceId; r.value = val; r.checked = (state.detail === val);
-        r.addEventListener('change', function () { if (r.checked) { state.detail = val; render(); } });
-        lab.appendChild(r); lab.appendChild(document.createTextNode(text)); opts.appendChild(lab);
-      }
-      function check(text, on, fn) {
-        var lab = el('label'); var c = el('input'); c.type = 'checkbox'; c.checked = on;
-        c.addEventListener('change', function () { fn(c.checked); }); lab.appendChild(c); lab.appendChild(document.createTextNode(text)); opts.appendChild(lab);
-        return c;
-      }
-      var topoChk, regionChk, adm1Chk;
-      radio('coarse', 'Coarse'); radio('fine', 'Fine'); opts.appendChild(el('span', null, '·'));
-      check('Countries', state.boundaries, function (v) {
+    function optRow(cls) { return el('div', 'gcm-opts' + (cls ? ' ' + cls : '')); }
+    function check(into, text, on, fn) {
+      var lab = el('label'); var c = el('input'); c.type = 'checkbox'; c.checked = on;
+      c.addEventListener('change', function () { fn(c.checked); });
+      lab.appendChild(c); lab.appendChild(document.createTextNode(text)); into.appendChild(lab);
+      return c;
+    }
+    // A mutually-exclusive set, rendered as what it actually IS. These choices
+    // used to be checkboxes that silently unticked each other, so the exclusion
+    // was only discoverable by tripping over it; radios state the rule up front.
+    // items = [[value, label], …]; onpick(value) fires on selection.
+    function radioSet(into, name, items, current, onpick) {
+      items.forEach(function (it) {
+        var lab = el('label'); var r = el('input');
+        r.type = 'radio'; r.name = name + '-' + instanceId; r.value = it[0]; r.checked = (current === it[0]);
+        r.addEventListener('change', function () { if (r.checked) onpick(it[0]); });
+        lab.appendChild(r); lab.appendChild(document.createTextNode(it[1])); into.appendChild(lab);
+      });
+    }
+
+    // ---- panel groups -----------------------------------------------------
+    // BASE MAP — the earth itself: how much detail is drawn, and how the surface
+    // is coloured.
+    function landShade() { return state.topography ? 'topography' : (state.regions ? 'regions' : 'none'); }
+    function baseMapGroup() {
+      var g = groupEl('Base map');
+      var r1 = optRow();
+      r1.appendChild(el('span', 'gcm-sublabel', 'Resolution'));
+      radioSet(r1, 'detail', [['coarse', 'Coarse'], ['fine', 'Fine']], state.detail,
+        function (v) { state.detail = v; render(); });
+      g.appendChild(r1);
+      // Land elevation and UN regions both PAINT THE LAND, so at most one applies.
+      // One radio set with an explicit "None" replaces the pair of checkboxes that
+      // used to untick each other behind the user's back.
+      var r2 = optRow();
+      r2.appendChild(el('span', 'gcm-sublabel', 'Land shading'));
+      radioSet(r2, 'landshade', [['none', 'None'], ['topography', 'Land elevation'], ['regions', 'World regions']], landShade(),
+        function (v) {
+          state.topography = (v === 'topography');
+          state.regions = (v === 'regions');
+          // WORLD_UN_REGIONS is lazy: fetch on first pick, and let its arrival
+          // invalidate the geom cache. The terrain grid behind Land elevation
+          // lazy-loads from the draw path instead, so it needs nothing here.
+          if (v === 'regions') ensureLayer('WORLD_UN_REGIONS', lazyLayers.regions, function (fresh) { if (fresh) geomKey = ''; render(); });
+          else render();
+        });
+      g.appendChild(r2);
+      var r3 = optRow();
+      r3.appendChild(el('span', 'gcm-sublabel', 'Ocean'));
+      check(r3, 'Ocean depth', state.bathymetry, function (v) { state.bathymetry = v; render(); });   // shades WATER, so it is independent of the land choice above
+      g.appendChild(r3);
+      return g;
+    }
+    // BOUNDARIES & PLACES — the human geography drawn on top of the basemap.
+    function placesGroup() {
+      var g = groupEl('Boundaries & places');
+      var adm1Chk;
+      var r1 = optRow();
+      check(r1, 'Countries', state.boundaries, function (v) {
         state.boundaries = v;
         if (adm1Chk) adm1Chk.disabled = !v;               // Provinces subdivide the country layer — meaningless (and greyed) without it
         render();
       });
-      // Admin-1 (state/province) borders for the seven largest countries. Lazy like the UN regions:
-      // WORLD_ADMIN1 fetches on first toggle-on, and its arrival invalidates the geom cache.
-      adm1Chk = check('Provinces', state.admin1, function (v) {
+      g.appendChild(r1);
+      // Admin-1 (state/province) borders for the seven largest countries, lazy
+      // like the UN regions. Provinces is a CHILD of Countries, so it renders as
+      // one: indented in its own sub-row rather than sitting beside its parent as
+      // a sibling that mysteriously greys out.
+      var r2 = optRow('gcm-subopts');
+      adm1Chk = check(r2, 'Provinces', state.admin1, function (v) {
         state.admin1 = v;
         if (v) ensureLayer('WORLD_ADMIN1', lazyLayers.admin1, function (fresh) { if (fresh) geomKey = ''; render(); });
         else render();
       });
       adm1Chk.disabled = !state.boundaries;
-      check('Ocean depth', state.bathymetry, function (v) { state.bathymetry = v; render(); });   // texture bake is scheduled from the draw path (usually pre-warmed already)
-      // Land elevation and UN regions both shade the land, so they're MUTUALLY EXCLUSIVE: turning one on
-      // turns the other off (and unticks its box).
-      topoChk = check('Land elevation', state.topography, function (v) {
-        state.topography = v;
-        if (v) { state.regions = false; if (regionChk) regionChk.checked = false; render(); }
-        else render();
-      });
-      regionChk = check('World regions', state.regions, function (v) {
-        state.regions = v;
-        if (v) { state.topography = false; if (topoChk) topoChk.checked = false; ensureLayer('WORLD_UN_REGIONS', lazyLayers.regions, function (fresh) { if (fresh) geomKey = ''; render(); }); }
-        else render();
-      });
-      check('N/S seam belts', state.edges, function (v) { state.edges = v; render(); });
-      check('Mercator limit (poles)', state.mercatorEdge, function (v) { state.mercatorEdge = v; render(); });
-      check('Mercator limit (gen. poles)', state.mercatorEdgeGen, function (v) { state.mercatorEdgeGen = v; render(); });
-      check('Central axis', state.middleLine, function (v) { state.middleLine = v; render(); });
-      check('Direction arrows', state.routeArrows, function (v) { state.routeArrows = v; render(); });   // arrowhead at each route arc's midpoint, origin → destination
-      if (cities) {                                                   // city-dot layers: World cities (49 GaWC) + Lived-in (4), MUTUALLY EXCLUSIVE; name on hover
-        var worldChk, livedChk;
-        worldChk = check('World cities', state.cityLayer === 'world', function (v) { state.cityLayer = v ? 'world' : 'none'; if (v && livedChk) livedChk.checked = false; render(); });
-        livedChk = check('Lived-in cities', state.cityLayer === 'lived', function (v) { state.cityLayer = v ? 'lived' : 'none'; if (v && worldChk) worldChk.checked = false; render(); });
+      g.appendChild(r2);
+      if (cities) {                                       // city-dot layers: World (49 GaWC) or Lived-in (4); name on hover
+        var r3 = optRow();
+        r3.appendChild(el('span', 'gcm-sublabel', 'Cities'));
+        radioSet(r3, 'citylayer', [['none', 'None'], ['world', 'World cities'], ['lived', 'Lived-in cities']], state.cityLayer,
+          function (v) { state.cityLayer = v; render(); });
+        g.appendChild(r3);
       }
+      return g;
+    }
+    // PROJECTION GUIDES — overlays that describe the PROJECTION rather than the
+    // world: where this framing's seams fall, what Web Mercator cannot reach, and
+    // the straight central axis. Kept apart from the geography groups because on
+    // a page about projections these are the subject, not map furniture.
+    function guidesGroup() {
+      var g = groupEl('Projection guides');
+      var opts = optRow();
+      check(opts, 'N/S seam belts', state.edges, function (v) { state.edges = v; render(); });
+      check(opts, 'Mercator limit (poles)', state.mercatorEdge, function (v) { state.mercatorEdge = v; render(); });
+      check(opts, 'Mercator limit (gen. poles)', state.mercatorEdgeGen, function (v) { state.mercatorEdgeGen = v; render(); });
+      check(opts, 'Central axis', state.middleLine, function (v) { state.middleLine = v; render(); });
       g.appendChild(opts); return g;
     }
     function normalizeOrient(o) {                                     // -> degrees, multiple of 15, in [0,360)
@@ -466,9 +536,12 @@
       var d = state.orientation;
       orientReadout.textContent = d + '°' + (d === 0 ? ' (top)' : (d === 180 ? ' (bottom)' : ''));
     }
-    function orientationGroup() {                                     // fixed dial (15° steps; 0°=top, 180°=bottom) OR dynamic North up
-      var g = el('fieldset', 'gcm-group'); g.appendChild(el('span', 'gcm-legend', 'Orientation'));
+    // Fixed dial (15° steps; 0°=top, 180°=bottom) OR dynamic North up. Returns a
+    // ROW, not a whole group: it shares the "Framing" fieldset with the centre
+    // controls, since both answer "where is the map pointed".
+    function orientationRow() {
       var opts = el('div', 'gcm-opts gcm-dial');
+      opts.appendChild(el('span', 'gcm-sublabel', 'Rotation'));
       var dec = el('button', 'gcm-btn gcm-zoombtn', '↺'); dec.title = 'Rotate counter-clockwise 15°';
       orientReadout = el('span', 'gcm-orient-readout');
       var inc = el('button', 'gcm-btn gcm-zoombtn', '↻'); inc.title = 'Rotate clockwise 15°';
@@ -498,16 +571,7 @@
         if (liveLab) { liveLab.style.display = on ? '' : 'none'; if (liveChk) liveChk.checked = state.northLive; }   // display:none (not visibility) — live is at the left group's inner edge, so hiding it just shrinks the gap; nothing else shifts
         updateOrientReadout(); updateCompass();
       };
-      g.appendChild(opts); syncOrientUI(); return g;
-    }
-    function viewGroup() {
-      var g = el('fieldset', 'gcm-group'); g.appendChild(el('span', 'gcm-legend', 'View'));
-      var opts = el('div', 'gcm-opts');
-      var sizeLab = el('label'); sizeLab.appendChild(document.createTextNode('Size (px) '));
-      var sizeIn = el('input'); sizeIn.type = 'number'; sizeIn.value = state.size; sizeIn.min = 50; sizeIn.max = 2000; sizeIn.step = 10;
-      sizeIn.addEventListener('change', function () { var v = parseInt(sizeIn.value, 10); if (isFinite(v)) { state.size = Math.max(50, Math.min(2000, v)); render(); } });
-      sizeLab.appendChild(sizeIn); opts.appendChild(sizeLab);
-      g.appendChild(opts); return g;
+      syncOrientUI(); return opts;
     }
     function stepZoom(dir) {                                          // move to the next/prev round stop
       var idx = 0, best = Infinity;
