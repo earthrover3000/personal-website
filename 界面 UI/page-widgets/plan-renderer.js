@@ -57,17 +57,36 @@
   let _versionOrder = [];
   let _legend = null;   // [{token, title}] from plan-versions.json, or null
 
+  // ── AUTHORED FIELD NAMES (fixed 2026-07-27) ────────────────────────────────
+  // Every leaf in every plans/*.yaml — 35 entries files and 301 dev entries — is
+  // authored as { stage, summary_en, summary_zh }. This module was reading and
+  // writing { status, text, zh }, which matches NOTHING in the data. Nothing was
+  // being dropped: each leaf rendered as an <li> with a drag handle and an EMPTY
+  // text span, so 399 entries across 7 plan pages displayed as blank bullets and
+  // the version legend collected zero tokens.
+  // ⚠️ It was also a DATA-LOSS trap. extractItemsFromUl harvested the blank spans
+  // back as { text: "" } and the push guard (item.text !== undefined) accepted
+  // them, so pressing Save on any plan page would have overwritten every entry
+  // with an empty string. Read and write are therefore BOTH corrected here — a
+  // read-only fix would still have rewritten the whole file into the wrong
+  // vocabulary on first save.
+  // Legacy status/text/zh is still accepted on read so any file already using it
+  // keeps working; WRITES always emit the authored names.
+  const leafStatus = (it) => it.stage      || it.status;
+  const leafText   = (it) => it.summary_en || it.text;
+  const leafZh     = (it) => it.summary_zh || it.zh;
+
   function _collectStatuses(set) {
     ((devData && devData.sections) || []).forEach(s =>
-      (s.entries || []).forEach(it => { if (it && it.status) set.add(it.status); }));
+      (s.entries || []).forEach(it => { if (it && leafStatus(it)) set.add(leafStatus(it)); }));
     Object.keys(entriesData || {}).forEach(k => {
       const items = entriesData[k];
       if (!Array.isArray(items)) return;
       items.forEach(it => {
         if (it && it.entries && it.title) {
-          (it.entries || []).forEach(sub => { if (sub && sub.status) set.add(sub.status); });
-        } else if (it && it.status) {
-          set.add(it.status);
+          (it.entries || []).forEach(sub => { if (sub && leafStatus(sub)) set.add(leafStatus(sub)); });
+        } else if (it && leafStatus(it)) {
+          set.add(leafStatus(it));
         }
       });
     });
@@ -462,29 +481,30 @@
 
   function renderLeafItem(ul, item) {
     const li = document.createElement('li');
-    if (item.status) li.dataset.status = item.status;
+    const status = leafStatus(item), text = leafText(item), zh = leafZh(item);
+    if (status) li.dataset.status = status;
 
     const handle = document.createElement('span');
     handle.className = 'drag-handle';
     handle.textContent = '⠇';
     li.appendChild(handle);
 
-    if (item.status) {
+    if (status) {
       const tag = document.createElement('span');
-      styleVersionEl(tag, 'tag', item.status);
+      styleVersionEl(tag, 'tag', status);
       tag.setAttribute('contenteditable', 'false');
-      tag.textContent = item.status;
+      tag.textContent = status;
       tag.addEventListener('click', (e) => toggleStatus(tag, e));
       li.appendChild(tag);
     }
 
     const textSpan = document.createElement('span');
     textSpan.className = 'li-text';
-    appendLinkedText(textSpan, ' ' + (item.text || ''));
-    if (item.zh) {
+    appendLinkedText(textSpan, ' ' + (text || ''));
+    if (zh) {
       const zhSpan = document.createElement('span');
       zhSpan.className = 'zh';
-      appendLinkedText(zhSpan, item.zh);
+      appendLinkedText(zhSpan, zh);
       textSpan.appendChild(document.createTextNode(' '));
       textSpan.appendChild(zhSpan);
     }
@@ -1039,7 +1059,7 @@
     const items = [];
     ul.querySelectorAll(':scope > li').forEach(li => {
       const item = {};
-      if (li.dataset.status) item.status = li.dataset.status;
+      if (li.dataset.status) item.stage = li.dataset.status;
       const textEl = li.querySelector(':scope > .li-text');
       if (textEl) {
         const zhEl = textEl.querySelector('.zh');
@@ -1049,10 +1069,10 @@
           if (n.nodeType === Node.TEXT_NODE) text += n.textContent;
           else if (n.nodeType === Node.ELEMENT_NODE && !n.classList.contains('zh')) text += n.textContent;
         });
-        item.text = text.trim();
-        if (zhEl) item.zh = zhEl.textContent.trim();
+        item.summary_en = text.trim();
+        if (zhEl) item.summary_zh = zhEl.textContent.trim();
       }
-      if (item.text !== undefined) items.push(item);
+      if (item.summary_en !== undefined) items.push(item);
     });
     return items;
   }
