@@ -506,6 +506,152 @@
           lbl.textContent = `${yyyy}-${mm}-${dd}`;
         }
       });
+
+      // ── Hover crosshair: vertical guide + per-series readout ─────────────
+      // Snaps to the NEAREST snapshot rather than interpolating along the
+      // segment under the cursor: the series are straight lines between real
+      // builds, so a value read off a segment's interior would be invented.
+      // Every readout is therefore a real (timestamp, lines, words) triple
+      // straight out of data-chart-points.
+      //
+      // Nothing positional is cached: redraw() rewrites each path's `d` on
+      // every scale change, so geometry is recomputed from live state (via
+      // SCALES[currentMode()]) on each move and on each toggle.
+      // The readout sits BELOW the chart in normal flow, never floating over
+      // the plot: the series are dense (thousands of builds on a mature log),
+      // so a box tracking the cursor would cover the very curve being read.
+      // Its height is reserved whether or not a point is active — it toggles
+      // visibility, not display — so hovering never reflows the page.
+      const wrap = document.createElement('div');
+      wrap.className = 'chart-hover-wrap';
+      svg.parentNode.insertBefore(wrap, svg);
+      wrap.appendChild(svg);
+      const readout = document.createElement('div');
+      readout.className = 'chart-readout';
+      wrap.appendChild(readout);
+
+      // Crosshair layer is APPENDED (not inserted first like .x-axis-layer):
+      // the guide and its markers read on top of the series, not behind them.
+      const chLayer = document.createElementNS(SVGNS, 'g');
+      chLayer.setAttribute('class', 'crosshair-layer');
+      chLayer.style.display = 'none';
+      const chLine = document.createElementNS(SVGNS, 'line');
+      chLine.setAttribute('class', 'ch-line');
+      chLine.setAttribute('y1', padT);
+      chLine.setAttribute('y2', H - padB);
+      chLayer.appendChild(chLine);
+      const mkDot = cls => {
+        const c = document.createElementNS(SVGNS, 'circle');
+        c.setAttribute('class', `ch-dot ${cls}`);
+        c.setAttribute('r', '3.5');
+        chLayer.appendChild(c);
+        return c;
+      };
+      const chDotLines = mkDot('ch-dot-lines');
+      const chDotWords = mkDot('ch-dot-words');
+      svg.appendChild(chLayer);
+
+      // Readouts follow the series checkboxes — a hidden series contributes
+      // neither a marker nor a tooltip row.
+      const linesOn = () => !showLines || showLines.checked;
+      const wordsOn = () => !!wordsPath && (!showWords || showWords.checked);
+
+      const p2 = n => String(n).padStart(2, '0');
+      // Two labelling modes, set by the server:
+      //   • full  — snapshots are stored UTC and rendered in LOCAL time, which
+      //     is what "when was I working" means to the reader. Unlabelled.
+      //   • daily — the payload was collapsed to one point per day and stamped
+      //     midnight UTC, so it carries no real clock. Read the ISO date
+      //     straight off the string: passing it through Date would print an
+      //     invented 00:00 and, for any reader west of UTC, roll the date back
+      //     a day.
+      const dayGranular = svg.dataset.chartDaily === '1';
+      const fmtWhen = i => {
+        if (dayGranular) return points[i].ts.slice(0, 10);
+        const d = dates[i];
+        return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ` +
+               `${p2(d.getHours())}:${p2(d.getMinutes())}`;
+      };
+
+      function nearestIndex(vbX) {
+        let best = 0, bestD = Infinity;
+        for (let i = 0; i < points.length; i++) {
+          const d = Math.abs(xs(dates[i]) - vbX);
+          if (d < bestD) { bestD = d; best = i; }
+        }
+        return best;
+      }
+
+      // Counts are always the raw values: the Log toggle changes the axis, not
+      // what the number is. A point predating word tracking has words == null —
+      // the lines value still reads out, the words field simply isn't there.
+      function renderReadout(i) {
+        const p = points[i];
+        const field = (cls, key, val) =>
+          `<span class="ch-field ${cls}"><span class="ch-key">${key}</span>` +
+          `<span class="ch-val">${val.toLocaleString()}</span></span>`;
+        readout.innerHTML =
+          `<span class="ch-when">${fmtWhen(i)}</span>` +
+          (linesOn() ? field('ch-f-lines', 'Lines', p.total) : '') +
+          (wordsOn() && p.words != null ? field('ch-f-words', 'Words', p.words) : '');
+      }
+
+      let activeIdx = -1;
+      function showAt(i) {
+        activeIdx = i;
+        const s = SCALES[currentMode()] || SCALES.linear;
+        const p = points[i];
+        const x = xs(dates[i]);
+        chLine.setAttribute('x1', x.toFixed(1));
+        chLine.setAttribute('x2', x.toFixed(1));
+        const lOn = linesOn(), wOn = wordsOn() && p.words != null;
+        if (lOn) {
+          chDotLines.setAttribute('cx', x.toFixed(1));
+          chDotLines.setAttribute('cy', s.yl(p.total).toFixed(1));
+        }
+        if (wOn) {
+          chDotWords.setAttribute('cx', x.toFixed(1));
+          chDotWords.setAttribute('cy', s.yw(p.words).toFixed(1));
+        }
+        chDotLines.style.display = lOn ? '' : 'none';
+        chDotWords.style.display = wOn ? '' : 'none';
+        chLayer.style.display = '';
+        renderReadout(i);
+      }
+
+      // Resting state: no guide (nothing is being pointed at), but the line
+      // still reports the most recent build rather than going blank — the
+      // number a visitor most likely wants is the current one.
+      function restCrosshair() {
+        activeIdx = -1;
+        chLayer.style.display = 'none';
+        renderReadout(points.length - 1);
+      }
+
+      svg.addEventListener('pointermove', evt => {
+        const ctm = svg.getScreenCTM();
+        if (!ctm) return;
+        const q = svg.createSVGPoint();
+        q.x = evt.clientX; q.y = evt.clientY;
+        // Screen → viewBox units: the SVG is width:100% with a fixed viewBox,
+        // so the CTM is the only reliable way to undo the responsive scaling.
+        const v = q.matrixTransform(ctm.inverse());
+        if (v.x < padL - 8 || v.x > W - padR + 8) { restCrosshair(); return; }
+        showAt(nearestIndex(v.x));
+      });
+      svg.addEventListener('pointerleave', restCrosshair);
+      restCrosshair();
+
+      // Re-render whatever the line is currently showing when a toggle moves
+      // the geometry or changes which series count. Registered after the
+      // redraw()/applyVisibility() listeners above, so the paths and visibility
+      // are already settled by the time this runs.
+      const refreshCrosshair = () =>
+        activeIdx >= 0 ? showAt(activeIdx) : restCrosshair();
+      document.querySelectorAll('input[name="chart-scale"]').forEach(radio => {
+        radio.addEventListener('change', refreshCrosshair);
+      });
+      [showLines, showWords].forEach(cb => cb && cb.addEventListener('change', refreshCrosshair));
     }
   }
 })();

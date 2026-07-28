@@ -250,6 +250,47 @@ body:has(#group-categories:not(:checked)) #project-outline .section-bar { displa
   border-radius: 8px;
   padding: 12px 16px;
 }
+/* ── Chart hover crosshair ──────────────────────────────────────────────────
+   Progressive enhancement assembled at runtime by stats-table.js: it wraps
+   .line-history-svg in .chart-hover-wrap, appends the .chart-readout beneath
+   it and a .crosshair-layer inside the SVG. None of this markup is
+   server-rendered, so with JS off the chart is untouched. */
+/* The layer must never eat its own pointer events — the guide sits under the
+   cursor by construction, and a hit there would fight the pointermove. */
+.crosshair-layer { pointer-events: none; }
+.crosshair-layer .ch-line {
+  stroke: currentColor;
+  stroke-opacity: 0.35;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+/* Markers carry a surface-coloured rim so they stay legible where the two
+   series cross each other or a gridline. */
+.crosshair-layer .ch-dot { stroke: var(--surface); stroke-width: 1.5; }
+.crosshair-layer .ch-dot-lines { fill: var(--accent, #7c9ef5); }
+.crosshair-layer .ch-dot-words { fill: #d4a574; }
+/* Hover readout — a single line UNDER the chart, never over it. Always
+   populated: it reports the hovered snapshot while the pointer is on the plot
+   and the most recent build the rest of the time, so it never blinks out.
+   min-height holds the row steady across the one/two-field states. Left
+   padding matches the SVG's own inner padding so the text lines up with the
+   plot. */
+.chart-readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 1.1rem;
+  min-height: 1.5em;
+  margin-top: 0.4rem;
+  padding: 0 16px;
+  font-size: 0.75rem;
+}
+.chart-readout .ch-when { color: var(--muted); }
+.chart-readout .ch-field { display: inline-flex; align-items: baseline; gap: 0.4rem; }
+.chart-readout .ch-when, .chart-readout .ch-val { font-variant-numeric: tabular-nums; }
+.chart-readout .ch-f-lines .ch-key { color: var(--accent); }
+.chart-readout .ch-f-words .ch-key { color: #d4a574; }
+
 .touched-date, .touched-block, .touched-ago { min-width: 6em; }
 .touched-date { display: inline-block; }
 .touched-block, .touched-ago { display: none; }
