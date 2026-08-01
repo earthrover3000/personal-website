@@ -68,7 +68,9 @@
   </tbody>
 </table>
 <h2 class="section-heading">Site Log</h2>
-<p class="head-meta">Coming soon — a log/rings view of the site’s milestones, reusing Lifespan Atlas’s rings.</p>
+<div class="site-log-rings" data-ringlog-events="[[&quot;2024-12-21&quot;,&quot;Life Clock idea emerged&quot;,1],[&quot;2025-02-03&quot;,&quot;Prototype site went live (WordPress)&quot;,1],[&quot;2026-03-23&quot;,&quot;Prototype site went live (GitHub Pages)&quot;,1],[&quot;2026-05-08&quot;,&quot;Instagram bio repointed (GitHub Pages)&quot;,0],[&quot;2026-07-08&quot;,&quot;Lifespan Atlas content scope confirmed&quot;,1]]" data-ringlog-phases="[[&quot;2024-12-21&quot;,0,1],[&quot;2025-02-03&quot;,0,2],[&quot;2026-03-23&quot;,0,3],[&quot;2026-07-08&quot;,0,4]]" data-ringlog-today="2026-08-01" data-ringlog-size="320">
+  <p class="head-meta">A tree-ring view of the milestones above — one growth ring per year of the site’s life. (Needs JavaScript to draw.)</p>
+</div>
 </div>
 <div class="mode-view mode-view-whatsnew" id="mode-whatsnew-view">
 <table class="stats-table site-milestones">
@@ -88,6 +90,10 @@
 </div>
   </div>
   <script src="../../../../界面 UI/page-widgets/stats-table.js"></script>
+  <!-- Site Log rings: draws the tree-log view into the .site-log-rings mount
+       (dynamic-imports the shared ring-log engine, like stats-table.js does
+       event-marks). Plain progressive enhancement — no-JS keeps the note. -->
+  <script src="../../../../界面 UI/page-widgets/site-log-rings.js"></script>
   <script>
     // Deep-link: /site-roadmap/#whats-new lands the page in What's New mode —
     // the home page's "What's New" link points here. Checking the radio drives
