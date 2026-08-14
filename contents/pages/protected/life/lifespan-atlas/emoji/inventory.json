@@ -1,0 +1,794 @@
+[
+ {
+  "glyph": "🔄",
+  "cps": "1f504",
+  "count": 8,
+  "asset": true
+ },
+ {
+  "glyph": "📍",
+  "cps": "1f4cd",
+  "count": 6,
+  "asset": true
+ },
+ {
+  "glyph": "⏭️",
+  "cps": "23ed-fe0f",
+  "count": 4,
+  "asset": true
+ },
+ {
+  "glyph": "⏮️",
+  "cps": "23ee-fe0f",
+  "count": 4,
+  "asset": true
+ },
+ {
+  "glyph": "🎚️",
+  "cps": "1f39a-fe0f",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "👀",
+  "cps": "1f440",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "📊",
+  "cps": "1f4ca",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "📏",
+  "cps": "1f4cf",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "📚",
+  "cps": "1f4da",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "📱",
+  "cps": "1f4f1",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "🔍",
+  "cps": "1f50d",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "🧬",
+  "cps": "1f9ec",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "🧭",
+  "cps": "1f9ed",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "🪜",
+  "cps": "1fa9c",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "⚙️",
+  "cps": "2699-fe0f",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "🌀",
+  "cps": "1f300",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🌅",
+  "cps": "1f305",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🌊",
+  "cps": "1f30a",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🌡️",
+  "cps": "1f321-fe0f",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🌳",
+  "cps": "1f333",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🎁",
+  "cps": "1f381",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🎂",
+  "cps": "1f382",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🎞️",
+  "cps": "1f39e-fe0f",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🎡",
+  "cps": "1f3a1",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🎯",
+  "cps": "1f3af",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🎼",
+  "cps": "1f3bc",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🏞️",
+  "cps": "1f3de-fe0f",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "👤",
+  "cps": "1f464",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "💿",
+  "cps": "1f4bf",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "📅",
+  "cps": "1f4c5",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "📑",
+  "cps": "1f4d1",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "📶",
+  "cps": "1f4f6",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "📻",
+  "cps": "1f4fb",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🔳",
+  "cps": "1f533",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🕒",
+  "cps": "1f552",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🕕",
+  "cps": "1f555",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🕛",
+  "cps": "1f55b",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🗑️",
+  "cps": "1f5d1-fe0f",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🛠️",
+  "cps": "1f6e0-fe0f",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🛣️",
+  "cps": "1f6e3-fe0f",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🥚",
+  "cps": "1f95a",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🧧",
+  "cps": "1f9e7",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🪟",
+  "cps": "1fa9f",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🪧",
+  "cps": "1faa7",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🪵",
+  "cps": "1fab5",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🫘",
+  "cps": "1fad8",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "1️⃣",
+  "cps": "0031-fe0f-20e3",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "7️⃣",
+  "cps": "0037-fe0f-20e3",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🌄",
+  "cps": "1f304",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🌌",
+  "cps": "1f30c",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🌐",
+  "cps": "1f310",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🌟",
+  "cps": "1f31f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🌱",
+  "cps": "1f331",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🌿",
+  "cps": "1f33f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🍂",
+  "cps": "1f342",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🎛️",
+  "cps": "1f39b-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🎢",
+  "cps": "1f3a2",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🎨",
+  "cps": "1f3a8",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🏆",
+  "cps": "1f3c6",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🏛️",
+  "cps": "1f3db-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🏠",
+  "cps": "1f3e0",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🏳️‍⚧️",
+  "cps": "1f3f3-fe0f-200d-26a7-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🐀",
+  "cps": "1f400",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🐂",
+  "cps": "1f402",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🐅",
+  "cps": "1f405",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🐇",
+  "cps": "1f407",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🐉",
+  "cps": "1f409",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🐍",
+  "cps": "1f40d",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🐎",
+  "cps": "1f40e",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🐐",
+  "cps": "1f410",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🐒",
+  "cps": "1f412",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🐓",
+  "cps": "1f413",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🐕",
+  "cps": "1f415",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🐖",
+  "cps": "1f416",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "💘",
+  "cps": "1f498",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "📀",
+  "cps": "1f4c0",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "📈",
+  "cps": "1f4c8",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "📉",
+  "cps": "1f4c9",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "📋",
+  "cps": "1f4cb",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "📌",
+  "cps": "1f4cc",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "📐",
+  "cps": "1f4d0",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "📖",
+  "cps": "1f4d6",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "📜",
+  "cps": "1f4dc",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "📤",
+  "cps": "1f4e4",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "📸",
+  "cps": "1f4f8",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "📼",
+  "cps": "1f4fc",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "📽️",
+  "cps": "1f4fd-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🔆",
+  "cps": "1f506",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🔢",
+  "cps": "1f522",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🔧",
+  "cps": "1f527",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🔮",
+  "cps": "1f52e",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🔵",
+  "cps": "1f535",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🕐",
+  "cps": "1f550",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🕑",
+  "cps": "1f551",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🕓",
+  "cps": "1f553",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🕔",
+  "cps": "1f554",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🕖",
+  "cps": "1f556",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🕗",
+  "cps": "1f557",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🕘",
+  "cps": "1f558",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🕙",
+  "cps": "1f559",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🕚",
+  "cps": "1f55a",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🕯️",
+  "cps": "1f56f-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🕰️",
+  "cps": "1f570-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🗂️",
+  "cps": "1f5c2-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🗄️",
+  "cps": "1f5c4-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🗓️",
+  "cps": "1f5d3-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🗿",
+  "cps": "1f5ff",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🛞",
+  "cps": "1f6de",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🛤️",
+  "cps": "1f6e4-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🧠",
+  "cps": "1f9e0",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🧩",
+  "cps": "1f9e9",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🧪",
+  "cps": "1f9ea",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🧮",
+  "cps": "1f9ee",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🧱",
+  "cps": "1f9f1",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🧹",
+  "cps": "1f9f9",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🧽",
+  "cps": "1f9fd",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🩹",
+  "cps": "1fa79",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🩺",
+  "cps": "1fa7a",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🪴",
+  "cps": "1fab4",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🪶",
+  "cps": "1fab6",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "ℹ️",
+  "cps": "2139-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "⏱️",
+  "cps": "23f1-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "☄️",
+  "cps": "2604-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "⚱️",
+  "cps": "26b1-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "⛏️",
+  "cps": "26cf-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "⛓️",
+  "cps": "26d3-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "✂️",
+  "cps": "2702-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "✏️",
+  "cps": "270f-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "✖️",
+  "cps": "2716-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "❄️",
+  "cps": "2744-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "➡️",
+  "cps": "27a1-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "⬅️",
+  "cps": "2b05-fe0f",
+  "count": 1,
+  "asset": true
+ }
+]
