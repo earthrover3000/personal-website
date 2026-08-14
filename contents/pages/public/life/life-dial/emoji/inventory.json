@@ -90,20 +90,8 @@
   "asset": true
  },
  {
-  "glyph": "📱",
-  "cps": "1f4f1",
-  "count": 3,
-  "asset": true
- },
- {
   "glyph": "🔍",
   "cps": "1f50d",
-  "count": 3,
-  "asset": true
- },
- {
-  "glyph": "🔢",
-  "cps": "1f522",
   "count": 3,
   "asset": true
  },
@@ -234,8 +222,20 @@
   "asset": true
  },
  {
+  "glyph": "📱",
+  "cps": "1f4f1",
+  "count": 2,
+  "asset": true
+ },
+ {
   "glyph": "📻",
   "cps": "1f4fb",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🔢",
+  "cps": "1f522",
   "count": 2,
   "asset": true
  },
