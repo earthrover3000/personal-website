@@ -349,6 +349,18 @@ table { width: 100%; border-collapse: collapse; }
 }
 .entry-links a.primary .entry-hint { color: #1a1a1a; opacity: 0.65; }
 
+/* ---- Appendix sections ---- */
+/* h2.appendix (emitted by render_external_links_html for the {{EXTERNAL_
+   LINKS}} link sections — reference material, not works; user decision
+   2026-08-15): lettered A. B. … instead of numbered. The .appendix::before
+   rule out-specifies the pages' generic `.container > h2::before` numeric
+   prefix, so it wins without !important; pages should still scope their
+   numeric counter-increment to `h2:not(.appendix)` so the numbers don't
+   silently skip values. page-nav.js letters the matching Contents rows. */
+.container { counter-reset: appendix-section; }
+.container > h2.appendix { counter-increment: appendix-section; }
+.container > h2.appendix::before { content: counter(appendix-section, upper-alpha) ". "; }
+
 /* ---- Table of contents ---- */
 /* Used by site-map, lifespan-atlas plan, workflow. Boxed surface card with a
    nested ordered list; folders render as <details>/<summary> for collapse. */
@@ -791,18 +803,19 @@ a.app-card:hover {
 <p class="head-meta">Phase 0.4 (2026-07-08) 🛣️</p>
 <div class="matrix-scroll">
 <table class="cat-matrix">
-<tr><th>Project</th><th class="cat-col" title="Geography" aria-label="Geography">🗺️</th><th class="cat-col" title="Linguistics" aria-label="Linguistics">🔤</th><th class="cat-col" title="Maths" aria-label="Maths">📐</th><th class="cat-col" title="Music" aria-label="Music">🎵</th><th class="cat-col" title="Personal" aria-label="Personal">👤</th><th class="cat-col" title="Philosophy" aria-label="Philosophy">🕯️</th><th class="cat-col" title="Practical" aria-label="Practical">🪪</th><th class="cat-col" title="Transport" aria-label="Transport">🚦</th></tr>
-<tr><td><a href="../../public/guides/chinese-languages/">Chinese Language(s)</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../../public/hobbies/maps-projections/">Maps &amp; Projections</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../../public/hobbies/linguistics-dissertation/">Linguistics Dissertation</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../../public/hobbies/cities-transport/">Cities &amp; Transport</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td></tr>
-<tr><td><a href="../../public/life/chromatic-camelot/">Chromatic Camelot</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../../public/life/personal-info/">Personal Info</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../../protected/life/lifespan-atlas/">Lifespan Atlas</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../../protected/info/itinerary-calendar/">Itinerary Calendar</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td></tr>
-<tr class="totals"><td>Total</td><td class="mark-cell">2</td><td class="mark-cell">2</td><td class="mark-cell">2</td><td class="mark-cell">1</td><td class="mark-cell">3</td><td class="mark-cell">1</td><td class="mark-cell">1</td><td class="mark-cell">1</td></tr>
+<tr><th>Project</th><th class="cat-col" title="Geography" aria-label="Geography">🗺️</th><th class="cat-col" title="Linguistics" aria-label="Linguistics">🔤</th><th class="cat-col" title="Maths" aria-label="Maths">📐</th><th class="cat-col" title="Music" aria-label="Music">🎵</th><th class="cat-col" title="Personal" aria-label="Personal">👤</th><th class="cat-col" title="Philosophy" aria-label="Philosophy">🕯️</th><th class="cat-col" title="Politics" aria-label="Politics">🏛️</th><th class="cat-col" title="Practical" aria-label="Practical">🪪</th><th class="cat-col" title="Transport" aria-label="Transport">🚦</th></tr>
+<tr><td><a href="../../public/guides/chinese-languages/">Chinese Language(s)</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr><td><a href="../../public/hobbies/maps-projections/">Maps &amp; Projections</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr><td><a href="../../public/hobbies/linguistics-dissertation/">Linguistics Dissertation</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr><td><a href="../../public/hobbies/cities-transport/">Cities &amp; Transport</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td></tr>
+<tr><td><a href="../../public/life/chromatic-camelot/">Chromatic Camelot</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr><td><a href="../../public/life/personal-info/">Personal Info</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr><td><a href="../../protected/life/lifespan-atlas/">Lifespan Atlas</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr><td><a href="../../protected/info/itinerary-calendar/">Itinerary Calendar</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td></tr>
+<tr class="totals"><td>Total</td><td class="mark-cell">2</td><td class="mark-cell">2</td><td class="mark-cell">3</td><td class="mark-cell">1</td><td class="mark-cell">3</td><td class="mark-cell">1</td><td class="mark-cell">1</td><td class="mark-cell">1</td><td class="mark-cell">1</td></tr>
 </table>
 </div>
 </div>
+<script src="../../../../界面 UI/page-widgets/version-check.js" defer></script>
 </body>
 </html>

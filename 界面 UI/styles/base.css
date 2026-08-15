@@ -280,6 +280,18 @@ table { width: 100%; border-collapse: collapse; }
 }
 .entry-links a.primary .entry-hint { color: #1a1a1a; opacity: 0.65; }
 
+/* ---- Appendix sections ---- */
+/* h2.appendix (emitted by render_external_links_html for the {{EXTERNAL_
+   LINKS}} link sections — reference material, not works; user decision
+   2026-08-15): lettered A. B. … instead of numbered. The .appendix::before
+   rule out-specifies the pages' generic `.container > h2::before` numeric
+   prefix, so it wins without !important; pages should still scope their
+   numeric counter-increment to `h2:not(.appendix)` so the numbers don't
+   silently skip values. page-nav.js letters the matching Contents rows. */
+.container { counter-reset: appendix-section; }
+.container > h2.appendix { counter-increment: appendix-section; }
+.container > h2.appendix::before { content: counter(appendix-section, upper-alpha) ". "; }
+
 /* ---- Table of contents ---- */
 /* Used by site-map, lifespan-atlas plan, workflow. Boxed surface card with a
    nested ordered list; folders render as <details>/<summary> for collapse. */

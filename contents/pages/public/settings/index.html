@@ -349,6 +349,18 @@ table { width: 100%; border-collapse: collapse; }
 }
 .entry-links a.primary .entry-hint { color: #1a1a1a; opacity: 0.65; }
 
+/* ---- Appendix sections ---- */
+/* h2.appendix (emitted by render_external_links_html for the {{EXTERNAL_
+   LINKS}} link sections — reference material, not works; user decision
+   2026-08-15): lettered A. B. … instead of numbered. The .appendix::before
+   rule out-specifies the pages' generic `.container > h2::before` numeric
+   prefix, so it wins without !important; pages should still scope their
+   numeric counter-increment to `h2:not(.appendix)` so the numbers don't
+   silently skip values. page-nav.js letters the matching Contents rows. */
+.container { counter-reset: appendix-section; }
+.container > h2.appendix { counter-increment: appendix-section; }
+.container > h2.appendix::before { content: counter(appendix-section, upper-alpha) ". "; }
+
 /* ---- Table of contents ---- */
 /* Used by site-map, lifespan-atlas plan, workflow. Boxed surface card with a
    nested ordered list; folders render as <details>/<summary> for collapse. */
@@ -784,6 +796,22 @@ a.app-card:hover {
       margin-top: 1rem; color: var(--text); font-size: 0.9rem; cursor: pointer;
     }
     .badge-toggle input { accent-color: var(--accent); }
+
+    /* Developer rows — label + muted value, mirroring the lifespan-atlas
+       Settings Status design (uppercase mini-label column, monospace
+       select-all identifiers). */
+    .dev-row {
+      display: flex; align-items: baseline; gap: 0.6rem; margin: 0.45rem 0;
+    }
+    .dev-label {
+      flex: 0 0 7rem; color: var(--muted); font-size: 0.8rem;
+      text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .dev-value { color: var(--muted); font-size: 0.9rem; }
+    .dev-mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      user-select: all;
+    }
 </style>
 </head>
 <body>
@@ -814,6 +842,15 @@ a.app-card:hover {
     <label class="badge-toggle"><input type="checkbox" id="local-badge-toggle"> Show the <strong>LOCAL</strong> badge on pages</label>
   </div>
 </section>
+<section class="setting">
+  <h2>Developer 🛠️</h2>
+  <p class="setting-desc">Which build this site is serving. The build ID matches the one <code>build.py</code> printed when these bytes were built; the fingerprint is the deploy checksum the push pipeline compares.</p>
+  <div class="dev-row"><span class="dev-label">Built</span><span class="dev-value" id="dev-built">—</span></div>
+  <div class="dev-row"><span class="dev-label">Build ID</span><span class="dev-value dev-mono" id="dev-build-id">—</span></div>
+  <div class="dev-row"><span class="dev-label">Fingerprint</span><span class="dev-value dev-mono" id="dev-fp">—</span></div>
+  <div class="dev-row"><span class="dev-label">Lines</span><span class="dev-value" id="dev-lines">—</span></div>
+  <div class="dev-row"><span class="dev-label">Location</span><span class="dev-value" id="dev-location">—</span></div>
+</section>
 <script>
 (function () {
   var group = document.querySelector('.theme-toggle');
@@ -831,6 +868,46 @@ a.app-card:hover {
   });
   reflect(window.getSiteTheme ? window.getSiteTheme() : 'auto');
   if (window.onSiteThemeChange) window.onSiteThemeChange(reflect);
+})();
+</script>
+<script>
+(function () {
+  function el(id) { return document.getElementById(id); }
+  var host = location.hostname;
+  var isLocal = location.protocol === 'file:' || host === 'localhost' ||
+    host === '127.0.0.1' || /^192\.168\./.test(host) || /^10\./.test(host) ||
+    /\.local$/.test(host);
+  el('dev-location').textContent = isLocal ? 'Local (dev server)' : 'Online';
+  function unit(n, u) { return n + ' ' + u + (n === 1 ? '' : 's') + ' ago'; }
+  function ago(secs) {
+    if (secs < 60) return 'just now';
+    if (secs < 3600) return unit(Math.floor(secs / 60), 'minute');
+    if (secs < 86400) return unit(Math.floor(secs / 3600), 'hour');
+    if (secs < 1209600) return unit(Math.floor(secs / 86400), 'day');
+    if (secs < 5443200) return unit(Math.floor(secs / 604800), 'week');
+    if (secs < 31557600) return unit(Math.floor(secs / 2629800), 'month');
+    return unit(Math.floor(secs / 31557600), 'year');
+  }
+  fetch('../../../../version.json', { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (v) {
+      if (!v) return;
+      if (v.ts) {
+        var d = new Date(v.ts);
+        if (!isNaN(d)) {
+          var label = d.toLocaleString(undefined, {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          });
+          var secs = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+          el('dev-built').textContent = label + ' \u00b7 ' + ago(secs);
+        }
+      }
+      if (v.build_id) el('dev-build-id').textContent = v.build_id;
+      if (v.fp) el('dev-fp').textContent = v.fp.slice(0, 12);
+      if (v.lines) el('dev-lines').textContent = Number(v.lines).toLocaleString() + ' lines';
+    })
+    .catch(function () {});
 })();
 </script>
 <script>
@@ -884,5 +961,6 @@ a.app-card:hover {
 })();
 </script>
 </div>
+<script src="../../../../界面 UI/page-widgets/version-check.js" defer></script>
 </body>
 </html>
