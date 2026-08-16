@@ -780,14 +780,60 @@ a.app-card:hover {
     .mark-cell { color: var(--accent); }
     .row-planned td, .row-planned td a { color: var(--muted); }
     .dim-cell { color: var(--muted); font-size: 0.85rem; }
-    /* Per-category totals row — one number, always equal to the rows
-       visible right now: the live count normally, the live+planned count
-       while the Settings toggle reveals planned rows. Same attribute drives
-       both, so they can never disagree. */
+    /* Counts that track the Settings toggle — the per-category totals row and
+       the category tally on the head-meta line. One number, always equal to
+       what is visible right now: the live figure normally, the live+planned
+       figure while the toggle reveals planned rows. Selector is class-only so
+       both sites share the one mechanism and can never disagree. */
     .totals td { border-bottom: none; color: var(--muted); font-size: 0.85rem; }
-    .totals .t-all { display: none; }
-    html[data-show-planned] .totals .t-all { display: inline; }
-    html[data-show-planned] .totals .t-live { display: none; }
+    .t-all { display: none; }
+    html[data-show-planned] .t-all { display: inline; }
+    html[data-show-planned] .t-live { display: none; }
+    /* The repeated heads and the totals float against the BOTTOM of the
+       scrollport, mirroring the real header at the top — so the legend and the
+       figures it labels stay together AND stay on screen wherever you are in
+       the table, instead of only meeting once you reach the end.
+
+       Two stacked sticky rows need explicit offsets: the totals pin at 0 and
+       the repeated heads pin one totals-row-height above them. That height is
+       deterministic rather than guessed — 0.85rem text at 1.4 line-height plus
+       0.4rem padding top and bottom, with no bottom border — but it is declared
+       once as a variable so the two rules cannot drift apart.
+
+       top: auto matters. These cells inherit `position: sticky; top: 0` from
+       the real header's rule, and an element given both offsets sticks to
+       whichever edge it reaches first — so without clearing top they would
+       also pin themselves under the header on the way up. */
+    .cat-matrix { --totals-h: 2rem; }
+    tr.repeat-head th {
+      position: sticky; top: auto; bottom: var(--totals-h); z-index: 1;
+      background: var(--bg); box-shadow: 0 -1px 0 var(--border);
+    }
+    .totals td {
+      position: sticky; bottom: 0; z-index: 1; background: var(--bg);
+    }
+    /* Shown only when planned rows are, i.e. only when their appearance is what
+       made the table long. Same toggle that governs the rows themselves. */
+    tr.repeat-head-planned { display: none; }
+    html[data-show-planned] tr.repeat-head-planned { display: table-row; }
+    /* Breadcrumb left, planned switch right, on one line; the switch drops
+       beneath on narrow screens rather than crowding the trail. */
+    .page-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 0.75rem 1rem; flex-wrap: wrap;
+    }
+    /* The switch itself is the tier indexes' control, reused verbatim: same
+       markup, same .planned-switch styles out of the shared index.css this
+       page already inlines. Nothing is redefined here — one switch, one
+       definition, identical on both surfaces.
+
+       These two rules are the only addition. index.css drives the knob off
+       [aria-pressed], which the footer script sets AFTER first paint; the
+       head snippet has already stamped html[data-show-planned] by then, so
+       keying the same appearance off the attribute too means the knob is
+       correct in the very first frame instead of visibly sliding across. */
+    html[data-show-planned] .planned-switch__track { background: var(--accent); }
+    html[data-show-planned] .planned-switch__knob { transform: translateX(0.8rem); }
     /* Planned rows — and columns whose only members are planned — obey the
        same Settings preference as the index teaser rows: hidden unless the
        head snippet stamped <html data-show-planned>. */
@@ -800,19 +846,19 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../">Home</a> <span class="sep">›</span> <a href="../">Protected Index</a> <span class="sep">›</span> <span aria-current="page">Category Matrix</span></nav>
 <h1>Category Matrix</h1>
-<p class="head-meta">Phase 0.4 (2026-07-08) 🛣️</p>
+<p class="head-meta">Phase 0.4 (2026-07-08) 🛣️ · 10 categories · 8 projects</p>
 <div class="matrix-scroll">
 <table class="cat-matrix">
-<tr><th>Project</th><th class="cat-col" title="Geography" aria-label="Geography">🗺️</th><th class="cat-col" title="Linguistics" aria-label="Linguistics">🔤</th><th class="cat-col" title="Maths" aria-label="Maths">📐</th><th class="cat-col" title="Music" aria-label="Music">🎵</th><th class="cat-col" title="Personal" aria-label="Personal">👤</th><th class="cat-col" title="Philosophy" aria-label="Philosophy">🕯️</th><th class="cat-col" title="Politics" aria-label="Politics">🏛️</th><th class="cat-col" title="Practical" aria-label="Practical">🪪</th><th class="cat-col" title="Transport" aria-label="Transport">🚦</th></tr>
-<tr><td><a href="../../public/guides/chinese-languages/">Chinese Language(s)</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../../public/hobbies/maps-projections/">Maps &amp; Projections</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../../public/hobbies/linguistics-dissertation/">Linguistics Dissertation</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../../public/hobbies/cities-transport/">Cities &amp; Transport</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td></tr>
-<tr><td><a href="../../public/life/chromatic-camelot/">Chromatic Camelot</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../../public/life/personal-info/">Personal Info</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../../protected/life/lifespan-atlas/">Lifespan Atlas</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../../protected/info/itinerary-calendar/">Itinerary Calendar</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td></tr>
-<tr class="totals"><td>Total</td><td class="mark-cell">2</td><td class="mark-cell">2</td><td class="mark-cell">3</td><td class="mark-cell">1</td><td class="mark-cell">3</td><td class="mark-cell">1</td><td class="mark-cell">1</td><td class="mark-cell">1</td><td class="mark-cell">1</td></tr>
+<tr><th>Project</th><th class="cat-col" title="Art" aria-label="Art">🪅</th><th class="cat-col" title="Geography" aria-label="Geography">🗺️</th><th class="cat-col" title="Linguistics" aria-label="Linguistics">🔤</th><th class="cat-col" title="Maths" aria-label="Maths">📐</th><th class="cat-col" title="Music" aria-label="Music">🎵</th><th class="cat-col" title="Personal" aria-label="Personal">👤</th><th class="cat-col" title="Philosophy" aria-label="Philosophy">🕯️</th><th class="cat-col" title="Politics" aria-label="Politics">🏛️</th><th class="cat-col" title="Practical" aria-label="Practical">🪪</th><th class="cat-col" title="Transport" aria-label="Transport">🚦</th></tr>
+<tr><td><a href="../../public/guides/chinese-languages/">Chinese Language(s)</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr><td><a href="../../public/hobbies/maps-projections/">Maps &amp; Projections</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr><td><a href="../../public/hobbies/linguistics-dissertation/">Linguistics Dissertation</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr><td><a href="../../public/hobbies/cities-transport/">Cities &amp; Transport</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td></tr>
+<tr><td><a href="../../public/life/chromatic-camelot/">Chromatic Camelot</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr><td><a href="../../public/life/personal-info/">Personal Info</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr><td><a href="../../protected/life/lifespan-atlas/">Lifespan Atlas</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr><td><a href="../../protected/info/itinerary-calendar/">Itinerary Calendar</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td></tr>
+<tr class="totals"><td>Total</td><td class="mark-cell">1</td><td class="mark-cell">2</td><td class="mark-cell">2</td><td class="mark-cell">3</td><td class="mark-cell">1</td><td class="mark-cell">3</td><td class="mark-cell">1</td><td class="mark-cell">1</td><td class="mark-cell">1</td><td class="mark-cell">1</td></tr>
 </table>
 </div>
 </div>
