@@ -187,6 +187,41 @@ h1 {
   margin-bottom: 1.2rem;
 }
 
+/* Category glyphs injected into a content page's own h1 at build time from
+   site-structure.yaml's `categories:` (same emoji SSOT as the tier-index
+   chips and the category-matrix column heads). Sit INLINE right after the
+   title rather than floated to the container edge (user decision
+   2026-08-17): at 800px a short title leaves the far right so distant that
+   the glyphs read as a stray corner widget instead of an attribute of the
+   title. Inline also follows a wrapped title's last line and stays beside
+   the title on phones. Emoji-only with a title/aria-label tooltip, matching
+   the matrix column-head convention; slightly muted so they don't compete
+   with the title text. */
+.page-cats {
+  display: inline-block;
+  font-size: 0.75em;
+  letter-spacing: 0.12em;
+  margin-left: 0.5em;
+  opacity: 0.85;
+  vertical-align: 0.1em;
+}
+/* Each glyph links to the page's own tier category-matrix (unfiltered — user
+   decision 2026-08-17), so the taxonomy is traversable: page → the grid →
+   whatever you want to narrow to once you're looking at it. Styling
+   is neutralised the same way .head-meta a is, because index-style sheets
+   turn a bare `a` into a block-level button; the hover scale is the only
+   affordance an emoji can really carry. Pages on a tier with no matrix keep
+   an inert <span>, which is why the cursor differs by element. */
+a.page-cat {
+  display: inline-block; color: inherit; text-decoration: none;
+  font-size: inherit; line-height: inherit; padding: 0; border-radius: 0;
+  background: none; cursor: pointer; transition: transform 0.12s ease;
+}
+a.page-cat:hover, a.page-cat:focus-visible {
+  background: none; text-decoration: none; transform: scale(1.18);
+}
+span.page-cat { cursor: help; }
+
 /* Stats / metadata line directly under the h1. Used for build info,
    tier label, line counts, page-progress, etc. The negative top margin
    pulls it up close to the h1 so they read as one heading unit. */
@@ -776,7 +811,36 @@ a.app-card:hover {
       border-bottom: none;
       box-shadow: 0 1px 0 var(--border);
     }
-    .cat-matrix th.cat-col, .cat-matrix td.mark-cell { text-align: center; }
+    /* Project names stay on ONE line (user request 2026-08-17): a wrapped
+       name doubles its row's height and breaks the eye-line you follow across
+       to the ✓ marks. The header cells were already nowrap; this extends it to
+       the name column, which then claims its natural width while the mark
+       columns — single glyphs — shrink to fit. */
+    /* `width: 0` resolves to the column's MIN-CONTENT under auto table layout
+       — i.e. exactly the sizer's width — and sends all the table's slack to
+       the mark columns instead. Without it the name column also absorbs the
+       space freed when planned-only columns hide, so the Planned switch would
+       re-width it even though the filter no longer does. */
+    .cat-matrix tr > :first-child { white-space: nowrap; width: 0; }
+    /* The invisible width anchor described at `sizer`. visibility:hidden keeps
+       it in layout (so it still sizes the column) while painting nothing; the
+       zero height plus overflow clip means it costs no vertical space. Its
+       typography is reset to the BODY cells' — the header's own uppercase,
+       0.75rem and letter-spacing would measure a string the rows never
+       render. */
+    .col-sizer {
+      display: block; height: 0; overflow: hidden; visibility: hidden;
+      font-size: 1rem; font-weight: 400; text-transform: none;
+      letter-spacing: normal;
+    }
+    .col-sizer > span { display: block; }
+    /* Paying for that width out of the mark columns: each holds a single
+       glyph, so the 0.6rem text padding is pure air. Trimming it keeps the
+       15-column private grid inside the 800px container instead of pushing
+       the page into a horizontal scroll. */
+    .cat-matrix th.cat-col, .cat-matrix td.mark-cell {
+      text-align: center; padding-left: 0.25rem; padding-right: 0.25rem;
+    }
     .mark-cell { color: var(--accent); }
     .row-planned td, .row-planned td a { color: var(--muted); }
     .dim-cell { color: var(--muted); font-size: 0.85rem; }
@@ -840,27 +904,174 @@ a.app-card:hover {
     tr.row-planned, .col-planned-only { display: none; }
     html[data-show-planned] tr.row-planned { display: table-row; }
     html[data-show-planned] .col-planned-only { display: table-cell; }
+    /* Column heads double as the grid's category filter (user decision
+       2026-08-17): click to keep only rows carrying that category,
+       multi-select with OR/union semantics — the same behaviour and the same
+       aria-pressed contract as the tier indexes' .cat-chip filter, so one
+       interaction model covers both surfaces. Rows only: every column stays
+       on screen, because seeing what ELSE a matching project is tagged with
+       is the whole reason this page is a grid and not a list. */
+    .cat-head {
+      border: 0; background: none; color: inherit; font: inherit;
+      line-height: 1; padding: 0.15rem 0.3rem; border-radius: 6px;
+      cursor: pointer;
+    }
+    .cat-head:hover { background: var(--border); }
+    .cat-head[aria-pressed="true"] { background: var(--accent); }
+    /* A row excluded by the filter stays hidden whether or not planned rows
+       are revealed — and `html[data-show-planned] tr.row-planned` outranks a
+       bare class, so this one needs !important to win. */
+    tr.cat-hidden { display: none !important; }
+    /* Clear sits LEFT of the planned switch, so the switch keeps the far-right
+       position it has always had and only the transient control moves in and
+       out beside it. */
+    .page-head__controls { display: flex; align-items: center; gap: 0.75rem; }
+    .filter-clear {
+      border: 1px solid var(--border); background: none; color: var(--muted);
+      font: inherit; font-size: 0.85em; padding: 0.1rem 0.55rem;
+      border-radius: 999px; cursor: pointer;
+    }
+    .filter-clear:hover { border-color: var(--text); color: var(--text); }
+    /* Hidden by visibility, not display: the button keeps its box, so the
+       header row's height never changes and selecting a column shifts the
+       grid by exactly nothing. (visibility:hidden also takes it out of the
+       a11y tree and tab order, so it isn't a phantom control.) */
+    .filter-clear.is-off { visibility: hidden; }
 </style>
 </head>
 <body>
 <div class="container">
-<nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../">Home</a> <span class="sep">›</span> <a href="../">Index</a> <span class="sep">›</span> <span aria-current="page">Category Matrix</span></nav>
+<div class="page-head"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../">Home</a> <span class="sep">›</span> <a href="../">Index</a> <span class="sep">›</span> <span aria-current="page">Category Matrix</span></nav><span class="page-head__controls"><button type="button" class="filter-clear is-off">Clear filter</button></span></div>
 <h1>Category Matrix</h1>
-<p class="head-meta">Phase 0.4 (2026-07-08) 🛣️ · 9 categories · 7 projects</p>
+<p class="head-meta">9 categories · <span class="proj-tally">7 projects</span></p>
 <div class="matrix-scroll">
 <table class="cat-matrix">
-<tr><th>Project</th><th class="cat-col" title="Art" aria-label="Art">🪅</th><th class="cat-col" title="Geography" aria-label="Geography">🗺️</th><th class="cat-col" title="Linguistics" aria-label="Linguistics">🔤</th><th class="cat-col" title="Maths" aria-label="Maths">📐</th><th class="cat-col" title="Music" aria-label="Music">🎵</th><th class="cat-col" title="Personal" aria-label="Personal">👤</th><th class="cat-col" title="Philosophy" aria-label="Philosophy">🕯️</th><th class="cat-col" title="Politics" aria-label="Politics">🏛️</th><th class="cat-col" title="Transport" aria-label="Transport">🚦</th></tr>
-<tr><td><a href="../guides/chinese-languages/">Chinese Language(s)</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td></tr>
-<tr><td><a href="../hobbies/maps-projections/">Maps &amp; Projections</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../hobbies/linguistics-dissertation/">Linguistics Dissertation</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../hobbies/cities-transport/">Cities &amp; Transport</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td></tr>
-<tr><td><a href="../life/chromatic-camelot/">Chromatic Camelot</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../life/life-dial/">Life Dial</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr><td><a href="../life/personal-info/">Personal Info</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr class="totals"><td>Total</td><td class="mark-cell">1</td><td class="mark-cell">2</td><td class="mark-cell">2</td><td class="mark-cell">3</td><td class="mark-cell">1</td><td class="mark-cell">3</td><td class="mark-cell">1</td><td class="mark-cell">1</td><td class="mark-cell">1</td></tr>
+<tr><th>Project<span class="col-sizer" aria-hidden="true"><span>Linguistics Dissertation</span><span>Chinese Language(s)</span><span>Maps &amp; Projections</span></span></th><th class="cat-col"><button type="button" class="cat-head" data-cat="art" aria-pressed="false" title="Art" aria-label="Art">🪅</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="geography" aria-pressed="false" title="Geography" aria-label="Geography">🗺️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="linguistics" aria-pressed="false" title="Linguistics" aria-label="Linguistics">🔤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="maths" aria-pressed="false" title="Maths" aria-label="Maths">📐</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="music" aria-pressed="false" title="Music" aria-label="Music">🎵</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="personal" aria-pressed="false" title="Personal" aria-label="Personal">👤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="philosophy" aria-pressed="false" title="Philosophy" aria-label="Philosophy">🕯️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="politics" aria-pressed="false" title="Politics" aria-label="Politics">🏛️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="transport" aria-pressed="false" title="Transport" aria-label="Transport">🚦</button></th></tr>
+<tr data-categories="linguistics politics"><td><a href="../guides/chinese-languages/">Chinese Language(s)</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td></tr>
+<tr data-categories="geography maths"><td><a href="../hobbies/maps-projections/">Maps &amp; Projections</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr data-categories="linguistics maths"><td><a href="../hobbies/linguistics-dissertation/">Linguistics Dissertation</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr data-categories="geography transport"><td><a href="../hobbies/cities-transport/">Cities &amp; Transport</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td></tr>
+<tr data-categories="music personal"><td><a href="../life/chromatic-camelot/">Chromatic Camelot</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr data-categories="art maths personal philosophy"><td><a href="../life/life-dial/">Life Dial</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr data-categories="personal"><td><a href="../life/personal-info/">Personal Info</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr class="totals"><td>Total</td><td class="mark-cell" data-cat="art">1</td><td class="mark-cell" data-cat="geography">2</td><td class="mark-cell" data-cat="linguistics">2</td><td class="mark-cell" data-cat="maths">3</td><td class="mark-cell" data-cat="music">1</td><td class="mark-cell" data-cat="personal">3</td><td class="mark-cell" data-cat="philosophy">1</td><td class="mark-cell" data-cat="politics">1</td><td class="mark-cell" data-cat="transport">1</td></tr>
 </table>
 </div>
 </div>
+<script>
+(function () {
+  var heads = Array.prototype.slice.call(document.querySelectorAll('.cat-head'));
+  var table = document.querySelector('.cat-matrix');
+  if (!heads.length || !table) return;
+  var rows = Array.prototype.slice.call(table.querySelectorAll('tr[data-categories]'));
+  var totalCells = Array.prototype.slice.call(table.querySelectorAll('.totals td[data-cat]'));
+  var clearBtn = document.querySelector('.filter-clear');
+  var tally = document.querySelector('.proj-tally');
+  var original = totalCells.map(function (td) { return td.innerHTML; });
+  var tallyOriginal = tally ? tally.innerHTML : '';
+
+  function plannedShown() {
+    return document.documentElement.hasAttribute('data-show-planned');
+  }
+  // Rows this tier is willing to show right now, filter aside — the
+  // denominator of the count line and the population the totals count over.
+  function eligible(tr) {
+    return plannedShown() || !tr.classList.contains('row-planned');
+  }
+  function active() {
+    return heads.filter(function (h) {
+      return h.getAttribute('aria-pressed') === 'true';
+    }).map(function (h) { return h.dataset.cat; })
+      .filter(function (c, i, a) { return a.indexOf(c) === i; });
+  }
+
+  // URL <-> filter. The hash is a comma-separated category list
+  // (…/category-matrix/#chemistry,pharmacology) — the form the category
+  // glyphs beside each page's title link to, and shareable/bookmarkable in
+  // its own right. Written with replaceState rather than by assigning
+  // location.hash: assigning pushes a history entry per click, so a handful
+  // of toggles would bury the page you came from under Back presses.
+  function readHash() {
+    var raw = (location.hash || '').replace(/^#/, '');
+    if (!raw) return [];
+    return raw.split(',').map(function (s) {
+      try { return decodeURIComponent(s.trim()); } catch (e) { return s.trim(); }
+    }).filter(Boolean);
+  }
+  function writeHash(sel) {
+    if (!history.replaceState) return;
+    var want = sel.length
+      ? '#' + sel.map(encodeURIComponent).join(',')
+      : location.pathname + location.search;
+    if (sel.length && location.hash === want) return;
+    history.replaceState(null, '', want);
+  }
+  // Press exactly the columns the URL names; unknown names (a category this
+  // tier has no column for) are simply ignored.
+  function pressFromHash() {
+    var want = readHash();
+    heads.forEach(function (h) {
+      h.setAttribute('aria-pressed',
+        want.indexOf(h.dataset.cat) >= 0 ? 'true' : 'false');
+    });
+  }
+
+  function apply() {
+    var sel = active();
+    var shown = 0, total = 0;
+    rows.forEach(function (tr) {
+      var cats = (tr.dataset.categories || '').split(' ').filter(Boolean);
+      var hit = !sel.length || sel.some(function (c) { return cats.indexOf(c) >= 0; });
+      tr.classList.toggle('cat-hidden', !hit);
+      if (eligible(tr)) { total++; if (hit) shown++; }
+    });
+    totalCells.forEach(function (td, i) {
+      if (!sel.length) { td.innerHTML = original[i]; return; }
+      var c = td.dataset.cat, n = 0;
+      rows.forEach(function (tr) {
+        if (tr.classList.contains('cat-hidden') || !eligible(tr)) return;
+        if ((tr.dataset.categories || '').split(' ').indexOf(c) >= 0) n++;
+      });
+      td.textContent = String(n);
+    });
+    if (clearBtn) clearBtn.classList.toggle('is-off', !sel.length);
+    writeHash(sel);
+    if (tally) {
+      if (sel.length) {
+        tally.textContent = shown + ' of ' + total +
+          (total === 1 ? ' project' : ' projects');
+      } else {
+        tally.innerHTML = tallyOriginal;
+      }
+    }
+  }
+
+  heads.forEach(function (h) {
+    h.addEventListener('click', function () {
+      var on = h.getAttribute('aria-pressed') !== 'true';
+      // The repeated header above the totals carries a second button per
+      // category — keep every copy of a column's state in step.
+      heads.forEach(function (o) {
+        if (o.dataset.cat === h.dataset.cat) {
+          o.setAttribute('aria-pressed', on ? 'true' : 'false');
+        }
+      });
+      apply();
+    });
+  });
+  if (clearBtn) clearBtn.addEventListener('click', function () {
+    heads.forEach(function (h) { h.setAttribute('aria-pressed', 'false'); });
+    apply();
+  });
+  new MutationObserver(apply).observe(document.documentElement,
+    { attributes: true, attributeFilter: ['data-show-planned'] });
+  // A hash arriving after load — a pasted URL, or a second click on the same
+  // category glyph from another page — re-presses the columns.
+  window.addEventListener('hashchange', function () { pressFromHash(); apply(); });
+  pressFromHash();
+  apply();
+})();
+</script>
 <script src="../../../../界面 UI/page-widgets/version-check.js" defer></script>
 </body>
 </html>
