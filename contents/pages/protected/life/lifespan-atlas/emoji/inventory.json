@@ -138,6 +138,12 @@
   "asset": true
  },
  {
+  "glyph": "🌊",
+  "cps": "1f30a",
+  "count": 2,
+  "asset": true
+ },
+ {
   "glyph": "🌡️",
   "cps": "1f321-fe0f",
   "count": 2,
@@ -188,6 +194,12 @@
  {
   "glyph": "👤",
   "cps": "1f464",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "👥",
+  "cps": "1f465",
   "count": 2,
   "asset": true
  },
@@ -282,6 +294,12 @@
   "asset": true
  },
  {
+  "glyph": "🧓",
+  "cps": "1f9d3",
+  "count": 2,
+  "asset": true
+ },
+ {
   "glyph": "🧧",
   "cps": "1f9e7",
   "count": 2,
@@ -338,12 +356,6 @@
  {
   "glyph": "🌄",
   "cps": "1f304",
-  "count": 1,
-  "asset": true
- },
- {
-  "glyph": "🌊",
-  "cps": "1f30a",
   "count": 1,
   "asset": true
  },
