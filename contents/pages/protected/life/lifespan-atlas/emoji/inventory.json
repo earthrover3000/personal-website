@@ -582,6 +582,12 @@
   "asset": true
  },
  {
+  "glyph": "📲",
+  "cps": "1f4f2",
+  "count": 1,
+  "asset": true
+ },
+ {
   "glyph": "📶",
   "cps": "1f4f6",
   "count": 1,

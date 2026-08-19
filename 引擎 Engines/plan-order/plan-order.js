@@ -217,6 +217,27 @@
   }
 
   // ---- the model -----------------------------------------------------------
+  // Which entries-doc key holds a page's entries. SUBVIEWS — third-level
+  // nodes (section › page › subview, e.g. compass › wheel › orbiter) — are
+  // keyed `<parentPageId>.<subviewId>` per the entries yaml's documented
+  // namespacing (the dotted form disambiguates duplicate subview ids across
+  // pages); levels 1–2 key bare. Prefer whichever key the doc actually
+  // contains (dotted first at subview depth) so legacy bare keys keep
+  // resolving; a NEW subview list is created under the dotted key. This is
+  // THE lookup both consumers use (buildModel below + plan-renderer.js) —
+  // it regressed silently when the structure emitter moved to bare node ids
+  // (dotted keys stopped matching anything; restored 2026-08-19).
+  // `pageDepth`: 1 = a section's direct page, 2 = its child, 3+ = subviews.
+  function entriesKeyFor(entriesDoc, pageId, parentPageId, pageDepth) {
+    var dotted = parentPageId ? parentPageId + '.' + pageId : null;
+    if (pageDepth >= 3 && dotted) {
+      if (entriesDoc && entriesDoc[dotted] !== undefined) return dotted;
+      if (entriesDoc && entriesDoc[pageId] !== undefined) return pageId;
+      return dotted;
+    }
+    return pageId;
+  }
+
   function buildModel(opts) {
     opts = opts || {};
     var structure = opts.structure || {};
@@ -291,25 +312,29 @@
       return false;
     }
 
-    function walkPage(page, ctx, level) {
+    function walkPage(page, ctx, level, parentPageId, pageDepth) {
       // site-map.html drives the heading tag from each page's explicit `level`
       // field; app plans (no `level`) use positional depth. Honoring `level`
       // when present matches both renderers exactly.
       var L = clamp(page.level != null ? page.level : level);
       var hn = headingNumber(ctx.counters, L);
       ctx.activeDepth = hn.activeDepth;
+      // The RESOLVED entries key (bare, or dotted for subviews — see
+      // entriesKeyFor above) is what ownerKey carries, so the launchpad's
+      // add/edit/delete/move write to the same list this walk read.
+      var key = entriesKeyFor(entries, page.id, parentPageId, pageDepth);
       var row = {
         type: 'page', level: L, number: hn.number,
         id: page.id, title: String(page.title != null ? page.title : page.id),
         label: page.label || null, depth: hn.activeDepth,
-        doc: 'entries', ownerKind: 'node', ownerKey: page.id,
+        doc: 'entries', ownerKind: 'node', ownerKey: key,
         description: enOf(page, 'desc', 'description'), description_zh: zhOf(page, 'desc', 'description_zh'),
         status: pick(page.stage, page.status), subgroupParent: false,
       };
       rows.push(row);
-      emitEntriesFor(page.id, ctx, L, row);
+      emitEntriesFor(key, ctx, L, row);
       var kids = doLeafSort ? leafSorted(page.pages) : (page.pages || []);
-      kids.forEach(function (c) { walkPage(c, ctx, L + 1); });
+      kids.forEach(function (c) { walkPage(c, ctx, L + 1, page.id, pageDepth + 1); });
     }
 
     // ---- Development section (first) ----------------------------------------
@@ -347,7 +372,7 @@
       rows.push(row);
       emitEntriesFor(sec.id, ctx, 2, row);          // section-level entries (activeDepth 0)
       var pages = doLeafSort ? leafSorted(sec.pages) : (sec.pages || []);
-      pages.forEach(function (p) { walkPage(p, ctx, 3); });
+      pages.forEach(function (p) { walkPage(p, ctx, 3, null, 1); });
     });
 
     // Stamp the canonical display name on every heading row (single source for
@@ -366,6 +391,7 @@
     sortedEntries: sortedEntries,
     leafSorted: leafSorted,
     isSubgroup: isSubgroup,
+    entriesKeyFor: entriesKeyFor,
     displayName: displayName,
     sectionLetter: sectionLetter,
     slugify: slugify,

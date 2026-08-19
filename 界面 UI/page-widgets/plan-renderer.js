@@ -394,7 +394,7 @@
     });
   }
 
-  function renderPage(parent, page, level) {
+  function renderPage(parent, page, level, parentPageId, pageDepth) {
     const lvl = Math.max(3, Math.min(level, 6));
     const heading = document.createElement('h' + lvl);
     heading.id = page.id;
@@ -417,9 +417,14 @@
       parent.appendChild(p);
     }
 
-    renderEntriesFor(parent, page.id, lvl + 1);
+    // Entries key resolved by the shared PlanOrder.entriesKeyFor — subviews
+    // (third-level nodes) key `<parentPageId>.<id>`, levels 1-2 bare — so
+    // this renderer and the launchpad tree read/write the same lists.
+    renderEntriesFor(parent,
+      PlanOrder.entriesKeyFor(entriesData, page.id, parentPageId || null, pageDepth || 1),
+      lvl + 1);
 
-    (page.pages || []).forEach(child => renderPage(parent, child, lvl + 1));
+    (page.pages || []).forEach(child => renderPage(parent, child, lvl + 1, page.id, (pageDepth || 1) + 1));
   }
 
   // Render a page's entries.yaml content. Items are either leaf entries
