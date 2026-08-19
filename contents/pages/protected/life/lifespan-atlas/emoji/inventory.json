@@ -36,6 +36,12 @@
   "asset": true
  },
  {
+  "glyph": "🔍",
+  "cps": "1f50d",
+  "count": 4,
+  "asset": true
+ },
+ {
   "glyph": "↕️",
   "cps": "2195-fe0f",
   "count": 4,
@@ -96,14 +102,14 @@
   "asset": true
  },
  {
-  "glyph": "📚",
-  "cps": "1f4da",
+  "glyph": "📖",
+  "cps": "1f4d6",
   "count": 3,
   "asset": true
  },
  {
-  "glyph": "🔍",
-  "cps": "1f50d",
+  "glyph": "📚",
+  "cps": "1f4da",
   "count": 3,
   "asset": true
  },
@@ -210,8 +216,20 @@
   "asset": true
  },
  {
+  "glyph": "🏠",
+  "cps": "1f3e0",
+  "count": 2,
+  "asset": true
+ },
+ {
   "glyph": "👤",
   "cps": "1f464",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "💡",
+  "cps": "1f4a1",
   "count": 2,
   "asset": true
  },
@@ -234,14 +252,14 @@
   "asset": true
  },
  {
-  "glyph": "📑",
-  "cps": "1f4d1",
+  "glyph": "📎",
+  "cps": "1f4ce",
   "count": 2,
   "asset": true
  },
  {
-  "glyph": "📖",
-  "cps": "1f4d6",
+  "glyph": "📑",
+  "cps": "1f4d1",
   "count": 2,
   "asset": true
  },
@@ -264,8 +282,8 @@
   "asset": true
  },
  {
-  "glyph": "🔳",
-  "cps": "1f533",
+  "glyph": "🔬",
+  "cps": "1f52c",
   "count": 2,
   "asset": true
  },
@@ -290,6 +308,18 @@
  {
   "glyph": "🕰️",
   "cps": "1f570-fe0f",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🕹️",
+  "cps": "1f579-fe0f",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🖋️",
+  "cps": "1f58b-fe0f",
   "count": 2,
   "asset": true
  },
@@ -440,12 +470,6 @@
  {
   "glyph": "🏛️",
   "cps": "1f3db-fe0f",
-  "count": 1,
-  "asset": true
- },
- {
-  "glyph": "🏠",
-  "cps": "1f3e0",
   "count": 1,
   "asset": true
  },
@@ -624,14 +648,14 @@
   "asset": true
  },
  {
-  "glyph": "🔬",
-  "cps": "1f52c",
+  "glyph": "🔮",
+  "cps": "1f52e",
   "count": 1,
   "asset": true
  },
  {
-  "glyph": "🔮",
-  "cps": "1f52e",
+  "glyph": "🔳",
+  "cps": "1f533",
   "count": 1,
   "asset": true
  },
@@ -852,12 +876,6 @@
   "asset": true
  },
  {
-  "glyph": "⚖️",
-  "cps": "2696-fe0f",
-  "count": 1,
-  "asset": true
- },
- {
   "glyph": "⚱️",
   "cps": "26b1-fe0f",
   "count": 1,
@@ -896,6 +914,12 @@
  {
   "glyph": "✖️",
   "cps": "2716-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "✨",
+  "cps": "2728",
   "count": 1,
   "asset": true
  },
