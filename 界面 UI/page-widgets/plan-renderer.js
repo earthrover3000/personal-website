@@ -642,9 +642,16 @@
       bar.parentNode.insertBefore(el, bar);
     }
     el.innerHTML = '';
-    const label = document.createElement('span');
+    // The label links to the site-roadmap page — the legend's tokens ARE that
+    // page's stages (plan-versions.json is build-emitted from site-roadmap.yaml).
+    // Deployed-relative from /contents/docs/<id>/index.html, same convention as
+    // the breadcrumb hrefs (site_facade/render.py DOC_BREADCRUMBS).
+    const label = document.createElement('a');
     label.className = 'plan-legend-label';
     label.textContent = 'Roadmap:';
+    label.href = '../../pages/public/site-roadmap/';
+    label.target = '_blank';
+    label.rel = 'noopener';
     el.appendChild(label);
     _legend.forEach((v) => {
       const item = document.createElement('span');

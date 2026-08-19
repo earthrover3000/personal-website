@@ -170,6 +170,10 @@ ul.drop-child { outline: 1px dashed var(--accent); border-radius: 4px; min-heigh
    capped at 18rem so it doesn't over-stretch on ultrawide screens. */
 .plan-legend { position: fixed; top: 4.5rem; right: 1rem; z-index: 40; display: flex; flex-direction: column; gap: 0.35rem; max-width: min(18rem, calc((100vw - 800px) / 2 - 2rem)); padding: 0.6rem 0.75rem; font-size: 0.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
 .plan-legend-label { color: var(--muted); font-weight: 600; margin-bottom: 0.15rem; }
+/* The label is a link to /site-roadmap (the legend's source page) — keep the
+   muted legend look over the global anchor blue; underline only on hover. */
+a.plan-legend-label { text-decoration: none; }
+a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
 .plan-legend-item { display: flex; align-items: center; gap: 0.45rem; }
 .plan-legend-item .tag { cursor: default; flex-shrink: 0; }
 .plan-legend-title { color: var(--muted); }

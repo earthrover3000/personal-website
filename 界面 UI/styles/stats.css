@@ -281,6 +281,12 @@ body:has(#group-categories:not(:checked)) #project-outline .section-bar { displa
   align-items: baseline;
   gap: 0.15rem 1.1rem;
   min-height: 1.5em;
+  /* Own line-height pinned to the min-height reservation: the page body's
+     inherited line-height is taller (docs pages: 1.7), so a readout that
+     starts EMPTY (the site-log rings) would grow by the difference on first
+     hover and wobble the page. With the two equal, empty and populated
+     render at the same height everywhere. */
+  line-height: 1.5;
   margin-top: 0.4rem;
   padding: 0 16px;
   font-size: 0.75rem;

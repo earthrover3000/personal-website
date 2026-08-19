@@ -1,14 +1,21 @@
-// Site Log rings — the roadmap page's tree-log view: one growth ring per
-// year of the site's life, the ring spans shaded by the site's version
-// PHASES, and one tick per dated milestone (a "log" both as a record and as
-// the trunk where growth rings live). Pairs with the mount div rendered by
+// Site Log rings — the roadmap page's Life Log view: the dense growth-ring
+// SPIRAL from the lifespan-atlas Log page's 🌀 Rings subview (its dense
+// window frozen at build-time today), one revolution per year with enough
+// revolutions to reach the site's earliest dated milestone (user call
+// 2026-08-19: dense/Life Log mode, not the sparse Waterwheel — the log
+// covers the whole number of years that covers every website event). The
+// band's span is shaded by the site's version PHASES; one tick per dated
+// milestone. Pairs with the mount div rendered by
 // site_roadmap/roadmap_page.py::_render_site_log() (data-ringlog-events /
 // -phases / -today / -size) and draws on the shared ring-log engine
-// (引擎 Engines/ring-log/) — the SAME spiral geometry AND the same
-// deterministic phase colours as the lifespan-atlas app — loaded via dynamic
-// import by relative path, exactly like stats-table.js loads the event-marks
-// engine. Progressive enhancement throughout: with JS off, or if the engine
-// fails to load, the server-rendered muted note simply stays.
+// (引擎 Engines/ring-log/) — the SAME dense-window geometry AND the same
+// deterministic phase colours as the lifespan-atlas app (the app's
+// denseWindow policy delegates to the very same engine function) — loaded
+// via dynamic import by relative path, exactly like stats-table.js. The
+// app's label tiers (engine placeLabelMarks) are deliberately NOT drawn
+// here — labelsMode "none", a bare wheel (user call 2026-08-19). Progressive
+// enhancement throughout: with JS off, or if an engine fails to load, the
+// server-rendered muted note simply stays.
 (function () {
   const mount = document.querySelector('.site-log-rings[data-ringlog-events]');
   if (!mount) return;
@@ -24,7 +31,7 @@
     import('../../引擎 Engines/ring-log/phase-color.js'),
   ]).then(([rings, phasePalette]) => {
     // Frame: the atlas Rings view's proportions — band 0.02·size, rim inset
-    // 0.07·size, gap = one band width, no extra revolutions.
+    // 0.07·size, gap = one band width; sparse rimExtraRevs 0.
     const frame = rings.makeRingFrame({
       size,
       bandWidth: 0.02 * size,
@@ -33,13 +40,14 @@
       rimExtraRevs: 0,
     });
 
-    // Calendar-fixed rim orientation (the engine's pinned convention): the
-    // reference December solstice sits at 12 o'clock and the rim lands
-    // RIM_LEAD_FRAC (120 days) later. originMs is an arbitrary December
-    // solstice — whole fracs are its anniversaries — and refFrac is the NEXT
-    // solstice after the build-time today (+ half a day so the day's middle,
-    // not its start, sits on the axis — the atlas's HALF_DAY_FRAC), which
-    // puts the current year on the outermost ring.
+    // Calendar-fixed rim orientation (the engine's drifting convention, the
+    // dense policy's rimYearOffset 0): the reference December solstice sits
+    // at 12 o'clock and the rim lands RIM_LEAD_FRAC (120 days) later.
+    // originMs is an arbitrary December solstice — whole fracs are its
+    // anniversaries — and refFrac is the NEXT solstice after the build-time
+    // today (+ half a day so the day's middle, not its start, sits on the
+    // axis — the atlas's HALF_DAY_FRAC), which puts the current year on the
+    // outermost ring.
     const DAY_FRAC = 1 / rings.DAYS_PER_YEAR;
     const HALF_DAY_FRAC = 0.5 * DAY_FRAC;
     const originMs = Date.parse('2000-12-21T00:00:00Z');
@@ -51,19 +59,31 @@
       PHASE_DIFF: frame.PHASE_DIFF, PHASE_ABS: frame.PHASE_ABS,
       t_ref: frame.t_ref, refFrac, originMs,
     };
+    const proj = rings.makeSpiralProjection(cfg);
 
-    // Place every dated event ([iso, label, definingFlag] triples from the
-    // server), then size the log: enough rings to reach the earliest
-    // milestone, and at least the current year's ring — a young site shows
-    // few rings; that IS the concept. Anything beyond the rim (ring < 0, a
-    // far-future date) can't sit on the log yet and is dropped.
-    const placed = rings.placeEvents(
+    // The dense window, pinned to the rim (the app's denseWindow policy:
+    // tSolidS1 = t_ref) and reaching N whole revolutions inward — N sized so
+    // the spiral covers every dated milestone: an event's ring is its whole
+    // years inward from the rim (floor(refFrac − frac)), so the deepest
+    // ring + 1 is the whole number of years that covers all events. At
+    // least the current year's ring — a young site shows few rings; that IS
+    // the concept. SSOT window math (engine visibleRingWindow), shared with
+    // the app's policy. Anything beyond the rim (ring < 0, a far-future
+    // date) can't sit on the log yet and is dropped below.
+    const allPlaced = rings.placeEvents(
       items.map(it => ({ iso: it[0], label: it[1], kind: it[2] ? 'defining' : 'minor' })),
       cfg,
     ).filter(ev => ev.ring >= 0);
-    const numRings = Math.max(1, ...placed.map(ev => ev.ring + 1));
+    const N = Math.max(1, ...allPlaced.map(ev => ev.ring + 1));
+    const win = Object.assign(
+      { tSolidS1: frame.t_ref },
+      rings.visibleRingWindow({ tSolidS1: frame.t_ref, refFrac, N }),
+    );
+    // Fade tails past each cap, the scene's FADE_DT.
+    const FADE_DT = (rings.FADE_DAYS / rings.DAYS_PER_YEAR) * 2 * Math.PI;
+    const tOuterEndS1 = win.tSolidS1 + FADE_DT;
+    const tInnerEndS1 = win.tInnerS1 - FADE_DT;
 
-    const proj = rings.makeSpiralProjection(cfg);
     const SVGNS = 'http://www.w3.org/2000/svg';
     const el = (tag, attrs) => {
       // Everything in this SVG is created with createElementNS — an
@@ -85,52 +105,122 @@
       style: 'width:100%;height:auto;display:block;max-height:340px;margin-top:0.5rem;color:var(--text);',
     });
 
-    // ── Layer 1 (bottom): website-phase shading ─────────────────────────
-    // The website's analog of the Atlas rings' epoch shading: each version
-    // phase's [start → next start) span painted along the spiral band with
-    // the engine's buildSegmentPath, in the SHARED deterministic phase
+    // ── Layers 1+2: the band's shading segments ─────────────────────────
+    // The app's website-shading recipe EXACTLY (ringSegments.ts projects
+    // branch + projectPhases.phaseBandSegments), so the two wheels read the
+    // same colours: a muted grey base at LOCATION_GAP_OPACITY (0.2) across
+    // the whole window (regions no version covers — before the first phase,
+    // and the far future — read as "no info" grey), then each version
+    // phase's [start → next start) span in the SHARED deterministic phase
     // colour (ring-log/phase-color.js — the exact function the app's
-    // Projects shading uses, relocated there as the SSOT). Phases come as
-    // [startIso, major, minor] triples; the LAST reached phase runs to
-    // build-time today; a phase dated in the future isn't reached yet and
-    // stays unpainted, as does the span before the first phase. Absolute
-    // hexes at low opacity so both themes read; drawn FIRST so the ring
-    // strokes and event ticks stay crisp on top.
-    const winLo = refFrac - numRings;
+    // Projects shading uses) at shadingFillOpacity("projects") (0.5). The
+    // CURRENT phase runs solid to build-time today and then FADES FORWARD
+    // over FADE_YEARS (0.25y) in PHASE_FADE_STEPS staircase sub-segments
+    // (fadeOpacityMul) — the app's forward fade into the future. Base grey
+    // uses var(--muted) (theme-aware, the site's analog of the app's
+    // t.labelMuted) — set via style: CSS var() doesn't resolve in a bare
+    // fill attribute.
+    const PROJECTS_OPACITY = 0.5;   // eventManifoldSpec SHADING_FILL_OPACITY.projects
+    const BASE_OPACITY = 0.2;       // eventManifoldSpec LOCATION_GAP_OPACITY
+    const PHASE_FADE_STEPS = 20;    // projectPhases.PHASE_FADE_STEPS
+    const FADE_YEARS = 0.25;        // projectPhases.FADE_YEARS
+    // Segments in paint order (base first); fLo/fHi in frac space, clipped
+    // to the window. `varColor` fills via style so var(--muted) resolves.
+    const segments = [{
+      fLo: win.winLoFrac, fHi: win.winHiFrac,
+      color: 'var(--muted)', opacity: BASE_OPACITY, varColor: true,
+    }];
     const reached = phases
       .map(p => ({ frac: rings.msToFrac(Date.parse(p[0] + 'T00:00:00Z'), originMs), major: p[1], minor: p[2] }))
       .filter(p => Number.isFinite(p.frac) && p.frac <= todayFrac)
       .sort((a, b) => a.frac - b.frac);
+    const pushSeg = (fLo, fHi, color, opacity) => {
+      const lo = Math.max(fLo, win.winLoFrac);
+      const hi = Math.min(fHi, win.winHiFrac);
+      if (hi > lo) segments.push({ fLo: lo, fHi: hi, color, opacity });
+    };
     reached.forEach((p, i) => {
-      const lo = Math.max(p.frac, winLo);
-      const hi = Math.min(i + 1 < reached.length ? reached[i + 1].frac : todayFrac, refFrac);
-      if (hi <= lo) return;
-      svg.appendChild(el('path', {
-        d: proj.buildSegmentPath(proj.fracToT(lo), proj.fracToT(hi)),
-        fill: phasePalette.phaseColor(p.major, p.minor),
-        'fill-opacity': '0.22',
-        stroke: 'none',
-      }));
+      const color = phasePalette.phaseColor(p.major, p.minor);
+      if (i + 1 < reached.length) {
+        pushSeg(p.frac, reached[i + 1].frac, color, PROJECTS_OPACITY);
+        return;
+      }
+      // Current phase: solid through today, then the forward staircase fade.
+      const bodyEnd = Math.max(p.frac, todayFrac);
+      pushSeg(p.frac, bodyEnd, color, PROJECTS_OPACITY);
+      for (let k = 0; k < PHASE_FADE_STEPS; k++) {
+        pushSeg(bodyEnd + (k / PHASE_FADE_STEPS) * FADE_YEARS,
+                bodyEnd + ((k + 1) / PHASE_FADE_STEPS) * FADE_YEARS,
+                color, PROJECTS_OPACITY * (1 - (k + 0.5) / PHASE_FADE_STEPS));
+      }
     });
-
-    // ── Layer 2: the year rings ─────────────────────────────────────────
-    // One full-year band per ring, current year at the rim — ring k's band
-    // spans spiral parameters [t_ref − (k+1)·2π, t_ref − k·2π]. Muted
-    // currentColor fill + hairline edges give the tree-ring read in both
-    // themes; the faint fill doubles as a wash over the phase shading.
-    const TWO_PI = 2 * Math.PI;
-    for (let k = numRings - 1; k >= 0; k--) {
-      svg.appendChild(el('path', {
-        d: proj.buildSegmentPath(frame.t_ref - (k + 1) * TWO_PI, frame.t_ref - k * TWO_PI),
-        fill: 'currentColor',
-        'fill-opacity': '0.06',
-        stroke: 'currentColor',
-        'stroke-opacity': '0.3',
-        'stroke-width': '1',
-      }));
+    for (const s of segments) {
+      const attrs = {
+        d: proj.buildSegmentPath(proj.fracToT(s.fLo), proj.fracToT(s.fHi)),
+        'fill-opacity': String(s.opacity),
+        stroke: 'none',
+      };
+      if (s.varColor) attrs.style = `fill:${s.color}`;
+      else attrs.fill = s.color;
+      svg.appendChild(el('path', attrs));
     }
 
-    // ── Layer 3 (top): event ticks — the Atlas event-mark shape ─────────
+    // ── Layer 3: cap fades ──────────────────────────────────────────────
+    // The band fades in/out over FADE_DAYS past each cap, exactly the
+    // app's treatment: a fade wedge filled with a userSpaceOnUse linear
+    // gradient from the cap's mid-band point — in the colour of the TOPMOST
+    // segment containing the cap (the app's findEdgeSeg rule) — to the
+    // tail's mid-band end at opacity 0. Drawn AFTER the shading so the
+    // tail continues visually from the segment that abuts the cap.
+    const capFill = (frac) => {
+      for (let i = segments.length - 1; i >= 0; i--) {
+        const s = segments[i];
+        if (s.fLo <= frac + 1e-9 && s.fHi >= frac - 1e-9) {
+          return { color: s.color, opacity: String(s.opacity), varColor: !!s.varColor };
+        }
+      }
+      return { color: 'var(--muted)', opacity: String(BASE_OPACITY), varColor: true };
+    };
+    const defsEl = el('defs', {});
+    svg.appendChild(defsEl);
+    const fadeWedge = (name, tCapS1, tEndS1, capFrac) => {
+      const tCapS2 = tCapS1 - frame.PHASE_DIFF;
+      const tEndS2 = tEndS1 - frame.PHASE_DIFF;
+      const start = proj.polarPt(
+        (frame.b * tCapS1 + frame.b * tCapS2) / 2, tCapS1 + frame.PHASE_ABS);
+      const end = proj.polarPt(
+        (frame.b * tEndS1 + frame.b * tEndS2) / 2, tEndS1 + frame.PHASE_ABS);
+      const fill = capFill(capFrac);
+      const grad = el('linearGradient', {
+        id: `slr-fade-${name}`, gradientUnits: 'userSpaceOnUse',
+        x1: start.x.toFixed(2), y1: start.y.toFixed(2),
+        x2: end.x.toFixed(2), y2: end.y.toFixed(2),
+      });
+      const stop = (offset, opacity) => {
+        const s = el('stop', { offset, 'stop-opacity': opacity });
+        // var(--muted) resolves only as CSS, not as a bare stop-color attribute.
+        if (fill.varColor) s.setAttribute('style', `stop-color:${fill.color}`);
+        else s.setAttribute('stop-color', fill.color);
+        return s;
+      };
+      grad.appendChild(stop('0%', fill.opacity));
+      grad.appendChild(stop('100%', '0'));
+      defsEl.appendChild(grad);
+      svg.appendChild(el('path', {
+        d: proj.buildFadeWedge(tCapS1, tEndS1, tCapS2, tEndS2,
+                               frame.b * tCapS1, tCapS1 + frame.PHASE_ABS),
+        fill: `url(#slr-fade-${name})`,
+        stroke: 'none',
+      }));
+    };
+    fadeWedge('outer', win.tSolidS1, tOuterEndS1, win.winHiFrac);
+    fadeWedge('inner', win.tInnerS1, tInnerEndS1, win.winLoFrac);
+
+    // Every dated event, already placed above (the dense window is sized to
+    // cover them all, so no further filtering is needed).
+    const placed = allPlaced;
+
+    // ── Layer 4 (top): event ticks — the Atlas event-mark shape ─────────
     // The SAME mark the app's Rings view draws for a single-day event:
     // a concave "dart" arrowhead below the band's inner edge (its two sides
     // quarter ellipses carved inward) plus one straight-sided triangle
@@ -208,9 +298,14 @@
     // centred mid-band on the event's day) — the visible mark alone is only
     // a few px wide, far too small a hover target; the circle mirrors how
     // the app gives its marks a generous continuous hit zone separate from
-    // the visible shape. Defining (version-launch) milestones fill in the
-    // accent colour with the full-band triangle; minors muted currentColor
-    // with the half-band one.
+    // the visible shape. Colour + opacity follow the app's canonical mark
+    // spec (eventManifoldSpec defaultEventMarkSpecs): BOTH tiers draw in
+    // the text colour at spec opacity 1.0, dimmed at rest by
+    // EVENT_MARK_REST_OPACITY (0.4) with the hovered mark restored to full
+    // — a defining (version-launch) milestone differs by SHAPE alone (the
+    // full-band triangle vs the minors' half-band one), exactly as the
+    // app's majors do.
+    const REST_OPACITY = 0.4;   // eventManifoldSpec EVENT_MARK_REST_OPACITY
     const rw = proj.ringWidth;
     for (const ev of placed) {
       const defining = ev.kind === 'defining';
@@ -218,12 +313,13 @@
         role: 'img',
         'aria-label': `${ev.label} — ${ev.iso}`,
       });
-      g.appendChild(el('path', {
+      const mark = el('path', {
         d: singleDayMarkPath(ev.frac, rw / 2, defining ? rw : rw / 2),
-        fill: defining ? 'var(--accent)' : 'currentColor',
-        'fill-opacity': defining ? '0.95' : '0.55',
+        fill: 'currentColor',
+        'fill-opacity': String(REST_OPACITY),
         stroke: 'none',
-      }));
+      });
+      g.appendChild(mark);
       const mid = proj.project(ev.frac + HALF_DAY_FRAC, rw / 2);
       g.appendChild(el('circle', {
         cx: mid.x.toFixed(2),
@@ -232,8 +328,14 @@
         fill: 'transparent',
         'pointer-events': 'all',
       }));
-      g.addEventListener('mouseover', () => showReadout(ev, defining));
-      g.addEventListener('mouseout', clearReadout);
+      g.addEventListener('mouseover', () => {
+        mark.setAttribute('fill-opacity', '1');
+        showReadout(ev, defining);
+      });
+      g.addEventListener('mouseout', () => {
+        mark.setAttribute('fill-opacity', String(REST_OPACITY));
+        clearReadout();
+      });
       svg.appendChild(g);
     }
 

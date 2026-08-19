@@ -100,6 +100,75 @@ export declare function visibleRingWindow(input: {
   winHiFrac: number;
 };
 
+/** Sparse solid-window length in days (the Waterwheel's sliding circle). */
+export declare const SPARSE_WINDOW_DAYS: number;
+/** Drifting-mode slide clamp: revolutions inward the window may reach. */
+export declare const SPARSE_SLIDE_REVS: number;
+/** 6-day fade past each solid cap; the atlas's windowPolicy re-exports it. */
+export declare const FADE_DAYS: number;
+
+export declare function sparseRingWindow(input: {
+  t_ref: number;
+  refFrac: number;
+  /** The (possibly animated) anchor's year-fraction. */
+  anchorFrac: number;
+  /** Days of future the window reaches past the anchor. */
+  futureOffsetDays: number;
+}): {
+  tSolidS1: number;
+  tInnerS1: number;
+  winLoFrac: number;
+  winHiFrac: number;
+  anchorClampLo: number;
+  anchorClampHi: number;
+};
+
+/** Tier-agnostic label mark (blocks / months / weeks all normalise here). */
+export type RingLabelMarkInput = {
+  fraction: number;
+  midFraction: number;
+  endFraction: number;
+  text: string;
+  blockIndex?: number;
+};
+
+export type PlacedLabelMarks = {
+  boundaryTicks: { index: number; outer: string | null; inner: string | null }[];
+  labels: {
+    index: number;
+    text: string;
+    outer: { x: number; y: number } | null;
+    inner: { x: number; y: number } | null;
+  }[];
+};
+
+export declare function placeLabelMarks(
+  marks: readonly RingLabelMarkInput[],
+  cfg: {
+    fracToT: (frac: number) => number;
+    polarPt: (r: number, theta: number) => { x: number; y: number };
+    b: number;
+    PHASE_DIFF: number;
+    PHASE_ABS: number;
+    tSolidS1: number;
+    tInnerS1: number;
+    /** Fade-tail end parameters (solid caps ± FADE_DAYS). */
+    tOuterEndS1: number;
+    tInnerEndS1: number;
+    /** One day as a year-fraction (1 / DAYS_PER_YEAR). */
+    dayFrac: number;
+    tickLen: number;
+    labelGap: number;
+    innerSide: boolean;
+    /** Tick width as a fraction of one day (default 0.5). */
+    boundaryTickDayWidth?: number;
+    /** Also tick the last mark's END boundary (blocks). */
+    closeFinalBoundary?: boolean;
+    /** Per-boundary veto, keyed by the boundary's blockIndex. */
+    skipBoundary?: (blockIndex: number) => boolean;
+  },
+): PlacedLabelMarks;
+
 /** Dated input item — label/kind pass through untouched. */
 export type RingLogItem = { iso: string; label: string; kind?: string };
 
