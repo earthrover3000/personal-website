@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cities & Transport</title>
+  <!-- Site-wide theme (manual dark/light/auto): stamps <html data-theme>
+       before paint so navigation never flashes the wrong theme. -->
+  <script src="../../../../../界面 UI/page-widgets/theme-init.js"></script>
+  <link rel="stylesheet" href="../../../../../界面 UI/styles/base.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <!-- Shared map widget (markup + Leaflet wiring) and the lossless-PNG
+       exporter it depends on. Single source of truth in 界面 UI/map-widgets/;
+       the maps-projections page uses the same two files. -->
+  <script src="../../../../../界面 UI/map-widgets/map-export.js"></script>
+  <script src="../../../../../界面 UI/map-widgets/map-explorer.js"></script>
+  <!-- Curated-GeoJSON viewer for the three map sections (legend, schematic/
+       base toggle, hover labels, PNG export, lazy data loading) — SSOT in
+       界面 UI/map-widgets/, distilled from the research previews in
+       创作 Works/cities-transport/. road-palette.js is the page-local synced
+       copy of that project's style SSOT (colours/weights + roadStyle). -->
+  <script src="../../../../../界面 UI/map-widgets/roadmap-viewer.js"></script>
+  <script src="road-palette.js"></script>
+  <!-- Shared city reference data — single source of truth in
+       引擎 Engines/map-projection/cities.js (the maps-projections Great Circle
+       Mapper loads the same file). Exposes window.URBANISM_DATA = { gawcList, livedList }. -->
+  <script src="../../../../../引擎 Engines/map-projection/cities.js"></script>
+  <!-- page-nav.js auto-injects a search bar + Contents nav whenever the
+       page has 2+ <h2> direct children — live here since the section
+       stubs took the page to three. -->
+  <script src="../../../../../界面 UI/page-widgets/page-nav.js" defer></script>
+  <style>
+    /* Page-specific element rules — scoped to .container > * per the
+       css-leak-defense rule so they don't leak into shared components.
+       Section numbering mirrors personal-info: CSS counter on .container,
+       incremented per <h2>, prefix rendered via ::before. Trailing dot
+       follows the site-wide section-numbering convention. */
+    /* counter-reset is not additive across rules — this declaration
+       replaces base.css's `.container { counter-reset: appendix-section }`
+       (the lettered   <h2 class="appendix">Cities</h2>
+  <ul>
+    <li><a href="https://luminocity3d.org/">LuminoCity3D</a> — interactive 3D atlas of urban density, height, and sprawl across world cities.</li>
+    <li><a href="https://gawc.lboro.ac.uk/gawc-worlds/the-world-according-to-gawc/">GaWC: The World According to GaWC</a> — the Globalization and World Cities ranking from Loughborough University; source for this page&#x27;s city list.</li>
+  </ul>
+  <h2 class="appendix">Transport</h2>
+  <ul>
+    <li><a href="https://cartometro.com/">Cartometro</a> — hand-drawn schematic maps of the world&#x27;s metro, tram, and suburban-rail networks at a common visual scale.</li>
+  </ul> sections), so both counters must be
+       reset here together. Numbering skips h2.appendix; its A./B. prefix
+       comes from base.css. */
+    .container { counter-reset: urb-section appendix-section; }
+    .container > h2 {
+      color: var(--text);
+      font-size: 1.2rem;
+      margin: 2rem 0 0.8rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .container > h2:not(.appendix) { counter-increment: urb-section; }
+    .container > h2:not(.appendix)::before { content: counter(urb-section) ". "; }
+
+    .lede {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 1.6rem;
+      max-width: 60ch;
+    }
+    /* "Include cities I've lived in" toggle — sits between the lede and
+       the widget. Same restrained sizing as the inline labels inside
+       .map-tester-controls so it doesn't visually outshout the rest. */
+    .city-list-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text);
+      margin: 0 0 1rem;
+    }
+    /* Planned-feature notes inside live sections (e.g. Lujiazui's
+       childhood-map layer, still to be digitized). */
+    .section-planned {
+      color: var(--muted);
+      font-style: italic;
+      font-size: 0.9rem;
+      margin-bottom: 1.6rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../">Home</a> <span class="sep">›</span> <a href="../">Index</a> <span class="sep">›</span> <span aria-current="page">Cities & Transport</span></nav>
+  <h1>Cities &amp; Transport<!--CATS-START--><span class="page-cats"><a class="page-cat" href="../category-matrix/" title="Geography" aria-label="Geography">🗺️</a><a class="page-cat" href="../category-matrix/" title="Transport" aria-label="Transport">🚦</a></span><!--CATS-END--></h1>
+  <p class="head-meta">&nbsp;</p>
+
+  <h2 id="cambridge-cycleways">Cambridge Cycleways</h2>
+  <p class="lede">
+    An interactive map of central Cambridge's cycle network — separated tracks, painted lanes, shared-use paths and permissive footways, drawn over the street grid. Schematic by default; toggle the base map for context, or hide the streets to see the cycle infrastructure alone.
+  </p>
+  <div id="cam-map"></div>
+
+  <h2 id="lujiazui-roads">Lujiazui Roads</h2>
+  <p class="lede">
+    A detailed road map of Little Lujiazui (小陆家嘴), Shanghai's financial district — the street grid I mapped by hand as a child, here in its as-built form. The district frame is the parallelogram tilted with the street grain; <strong>Rectify</strong> squares it up with an equal-area map that keeps the side ratio.
+  </p>
+  <p class="section-planned">The childhood hand-drawn map will join this section as its own layer once digitized.</p>
+  <div id="ljz-map"></div>
+
+  <h2 id="yangtze-delta-motorways">Yangtze Delta Motorways</h2>
+  <p class="lede">
+    The motorway network of the core 长三角 triangle — Shanghai, eastern Suzhou and eastern Jiaxing, enclosed by the Yangtze main channel, the Qiantang/Hangzhou Bay water lines and Lake Tai. All 高速 expressways alike in red, with trunk-grade 快速路 and expressway-grade 国道 as thin context; hover a way for its number.
+  </p>
+  <div id="yrd-map"></div>
+
+  <h2>Commuter Railway Explorer</h2>
+  <p class="lede">
+    Pick a city and edge length to render its map at exactly that pixel size, clipped to a circle. Toggle <strong>Railways</strong> to overlay <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> — useful for comparing the railway/metro footprint of cities at a common 17 km radius. Use <strong>Save PNG</strong> to export a lossless image of the visible circle.
+  </p>
+
+  <label class="city-list-toggle">
+    <input type="checkbox" id="include-lived"> Include cities I've lived in
+  </label>
+
+  <div id="city-explorer"></div>
+  <script>
+    // Data lists come from cities.js (loaded above): URBANISM_DATA holds
+    // {gawcList, livedList} — pure GaWC 2024 vs lived-in-prepended.
+    var widget = createMapExplorer({
+      mount: '#city-explorer',
+      locationLabel: 'City',
+      defaultRadiusKm: 17,
+      // Two quick presets + a free-form Custom input. 17 km is the
+      // dense-city default; 63 km roughly captures the surrounding metro
+      // footprint at the same map size.
+      radiusPresets: [17, 63],
+      filenamePrefix: 'map',
+      locations: URBANISM_DATA.gawcList  // default: checkbox unchecked
+    });
+    document.getElementById('include-lived').addEventListener('change', function () {
+      widget.setLocations(this.checked ? URBANISM_DATA.livedList : URBANISM_DATA.gawcList);
+    });
+  </script>
+
+  <script>
+    // ---- The three curated map sections -------------------------------
+    // Each lazy-inits on its section's first expand (page-nav.js collapses
+    // sections by default and fires 'section-expanded'), so a dataset only
+    // downloads when its section is opened. Styling comes from
+    // road-palette.js; the research previews in 创作 Works/cities-transport/
+    // keep the research tools (pins, bbox copy, full variants) that
+    // deliberately did NOT graduate here.
+
+    // Draw order inside one L.geoJSON layer follows FeatureCollection
+    // order, so each section sorts its data once: context under, subject
+    // on top. (The previews used stacked layers for the same effect.)
+    function sortFC(fc, rank) {
+      return { type: 'FeatureCollection',
+               features: fc.features.slice().sort(function (a, b) {
+                 return rank(a.properties) - rank(b.properties);
+               }) };
+    }
+    function filterFC(fc, pred) {
+      return { type: 'FeatureCollection',
+               features: fc.features.filter(function (f) {
+                 return pred(f.properties);
+               }) };
+    }
+    // Legend swatch spec from the palette — colour and dash always derive,
+    // never hand-written (same rule as the previews' applyPaletteSwatches).
+    function sw(group, key, text) {
+      var s = MAP_PALETTE[group][key];
+      return { color: s.color, dashed: !!s.dashArray, text: text };
+    }
+
+    // ---- 1. Cambridge Cycleways ----
+    createRoadmapViewer.lazy('cambridge-cycleways', ['cambridge-cycle-data.js'], function () {
+      var CAT_LABEL = {
+        track: 'cycle track', lane: 'cycle lane on road',
+        shared: 'shared-use path', permissive: 'footway · bikes allowed',
+        street: 'street'
+      };
+      var RANK = { street: 0, permissive: 1, shared: 2, lane: 3, track: 4 };
+      function rank(p) { return RANK[p.cat] || 0; }
+      var all = sortFC(CAMBRIDGE_CYCLEWAYS, rank);
+      var cycleOnly = filterFC(all, function (p) { return p.cat !== 'street'; });
+      createRoadmapViewer({
+        mount: '#cam-map',
+        fc: all,
+        // Streets (named yards/lanes included) via the road-hierarchy
+        // palette, cycle families via the cycle palette — lane is BLUE
+        // there for a reason (see the palette SSOT's header).
+        style: function (f) {
+          var p = f.properties;
+          if (p.cat === 'street' || p.cat === 'service') return roadStyle(p.highway, p);
+          return Object.assign({ opacity: 0.9 }, MAP_PALETTE.cycle[p.cat]);
+        },
+        label: function (p) {
+          var bits = [];
+          if (p.name) bits.push('<strong>' + p.name + '</strong>');
+          bits.push('<em>' + (CAT_LABEL[p.cat] || p.cat) +
+                    (p.detail && p.detail !== p.cat ? ' · ' + p.detail : '') + '</em>');
+          return bits.join('<br>');
+        },
+        legend: [
+          sw('cycle', 'track', 'cycle track'),
+          sw('cycle', 'lane', 'cycle lane on road'),
+          sw('cycle', 'shared', 'shared-use path'),
+          sw('cycle', 'permissive', 'footway, bikes allowed'),
+          sw('road', 'primary', 'primary road'),
+          sw('road', 'residential', 'residential & minor'),
+          sw('road', 'service', 'named yards & lanes')
+        ],
+        toggles: [{
+          id: 'hide-streets', label: 'Hide streets (cycle infrastructure only)',
+          onChange: function (on, api) {
+            api.setFC(on ? cycleOnly : all,
+                      { exportName: 'cambridge-cycleways' + (on ? '-cycle-only' : '') + '.png' });
+          }
+        }],
+        exportName: 'cambridge-cycleways.png',
+        exportSort: function (a, b) {
+          return rank(a.properties) - rank(b.properties);
+        }
+      });
+    });
+
+    // ---- 2. Lujiazui Roads ----
+    createRoadmapViewer.lazy('lujiazui-roads', ['lujiazui-roads-data.js'], function () {
+      // Equal-area rectification of the district frame (user's choice,
+      // 2026-07-24, ported from the research preview): the parallelogram
+      // P = O + s·u + t·v maps to an axis-aligned a×b rectangle with
+      // a·b = area(P) (equiaffine, det 1) and a/b = |u|/|v| — side RATIO
+      // preserved, both sides × √sin θ ≈ 0.990. Computed in local metric
+      // km, re-embedded north-up at the frame centroid.
+      function rectifyFC(fc) {
+        var d2r = Math.PI / 180, R = 6371;
+        var ky = R * d2r, kx = ky * Math.cos(31.239 * d2r);
+        var NW = [31.244, 121.487], NE = [31.248, 121.502], SW = [31.230, 121.496];
+        function metric(ll) {
+          return [(ll[1] - NW[1]) * kx, (ll[0] - NW[0]) * ky];
+        }
+        var u = metric(NE), v = metric(SW);
+        var det = u[0] * v[1] - u[1] * v[0];
+        var S = Math.abs(det);
+        var lu = Math.hypot(u[0], u[1]), lv = Math.hypot(v[0], v[1]);
+        var a = Math.sqrt(S * lu / lv), b = Math.sqrt(S * lv / lu);
+        var cLat = NW[0] + (u[1] + v[1]) / 2 / ky;
+        var cLng = NW[1] + (u[0] + v[0]) / 2 / kx;
+        function tf(c) {
+          var px = (c[0] - NW[1]) * kx, py = (c[1] - NW[0]) * ky;
+          var s = (px * v[1] - py * v[0]) / det;
+          var t = (u[0] * py - u[1] * px) / det;
+          return [cLng + (s - 0.5) * a / kx, cLat - (t - 0.5) * b / ky];
+        }
+        return { type: 'FeatureCollection', features: fc.features.map(function (f) {
+          return { type: 'Feature', properties: f.properties,
+                   geometry: { type: 'LineString',
+                               coordinates: f.geometry.coordinates.map(tf) } };
+        }) };
+      }
+      function styleOf(f) { return roadStyle(f.properties.highway, f.properties); }
+      function rank(p) { return styleOf({ properties: p }).weight; }
+      var frame = sortFC(LUJIAZUI_ROADS.frame, rank);
+      var rect = null;                    // built on first rectify
+      createRoadmapViewer({
+        mount: '#ljz-map',
+        fc: frame,
+        style: styleOf,
+        label: function (p) {
+          var bits = [];
+          if (p.name) bits.push('<strong>' + p.name + '</strong>');
+          if (p['name:en'] && p['name:en'] !== p.name) bits.push(p['name:en']);
+          bits.push('<em>' + p.highway + (p.tunnel ? ' · tunnel' : '') +
+                    (p.bridge ? ' · bridge' : '') + '</em>');
+          return bits.join('<br>');
+        },
+        legend: [
+          sw('road', 'trunk', 'trunk 快速路'),
+          sw('road', 'primary', 'primary 主干路'),
+          sw('road', 'secondary', 'secondary 次干路'),
+          sw('road', 'tertiary', 'tertiary 支路'),
+          sw('road', 'residential', 'residential 居住区')
+        ],
+        toggles: [{
+          id: 'rectify', label: 'Rectify frame (equal-area, side ratio kept)',
+          onChange: function (on, api) {
+            if (on && !rect) rect = rectifyFC(frame);
+            // Rectified coordinates no longer align with real-world tiles,
+            // so the base map is forced off while rectified.
+            api.setBaseAllowed(!on);
+            api.setFC(on ? rect : frame,
+                      { fit: true,
+                        exportName: 'lujiazui-roads' + (on ? '-rectified' : '') + '.png' });
+          }
+        }],
+        exportName: 'lujiazui-roads.png'
+      });
+    });
+
+    // ---- 3. Yangtze Delta Motorways ----
+    createRoadmapViewer.lazy('yangtze-delta-motorways', ['yrd-motorway-data.js'], function () {
+      var CAT_LABEL = { G: '高速公路', S: '高速公路', M: '高速公路',
+                        trunk: '快速路 / trunk' };
+      function rank(p) { return p.cat === 'trunk' ? 0 : 1; }   // trunk under 高速
+      var all = sortFC(YRD_MOTORWAYS.frame, rank);
+      var mwyOnly = filterFC(all, function (p) { return p.cat !== 'trunk'; });
+      createRoadmapViewer({
+        mount: '#yrd-map',
+        height: 520,
+        preferCanvas: true,               // thousands of paths — SVG crawls
+        fc: all,
+        // Two-way colour split (user 2026-07-24): all 高速 alike vs trunk;
+        // the G/S distinction survives in the hover label's ref.
+        style: function (f) {
+          var k = f.properties.cat === 'trunk' ? 'trunk' : 'mwy';
+          return Object.assign({ opacity: 0.9 }, MAP_PALETTE.expwy[k]);
+        },
+        label: function (p) {
+          var bits = [];
+          var head = (p.ref ? p.ref + ' ' : '') + (p.name || '');
+          if (head.trim()) bits.push('<strong>' + head + '</strong>');
+          bits.push('<em>' + CAT_LABEL[p.cat] + '</em>');
+          return bits.join('<br>');
+        },
+        legend: [
+          sw('expwy', 'mwy', '高速公路 motorway'),
+          sw('expwy', 'trunk', 'trunk 快速路 / 国道')
+        ],
+        toggles: [{
+          id: 'hide-trunk', label: 'Hide trunk (高速 only)',
+          onChange: function (on, api) {
+            api.setFC(on ? mwyOnly : all,
+                      { exportName: 'yrd-motorways' + (on ? '-no-trunk' : '') + '.png' });
+          }
+        }],
+        exportName: 'yrd-motorways.png',
+        exportLong: 3200, exportWeightScale: 1.6,
+        exportSort: function (a, b) { return rank(a.properties) - rank(b.properties); }
+      });
+    });
+  </script>
+
+    <h2 class="appendix">Cities</h2>
+  <ul>
+    <li><a href="https://luminocity3d.org/">LuminoCity3D</a> — interactive 3D atlas of urban density, height, and sprawl across world cities.</li>
+    <li><a href="https://gawc.lboro.ac.uk/gawc-worlds/the-world-according-to-gawc/">GaWC: The World According to GaWC</a> — the Globalization and World Cities ranking from Loughborough University; source for this page&#x27;s city list.</li>
+  </ul>
+  <h2 class="appendix">Transport</h2>
+  <ul>
+    <li><a href="https://cartometro.com/">Cartometro</a> — hand-drawn schematic maps of the world&#x27;s metro, tram, and suburban-rail networks at a common visual scale.</li>
+  </ul>
+</div>
+
+<script src="../../../../界面 UI/page-widgets/version-check.js" defer></script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB4PSI1MiIgeT0iNDkiIGZvbnQtc2l6ZT0iOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Charlie 丁志成 ✦ Category Matrix</title>
@@ -688,6 +688,12 @@ html[data-show-planned] .planned-row { display: block; }
   vertical-align: 0.12rem;
   letter-spacing: 0.02em;
 }
+/* A teaser row that links its placeholder page: the anchor takes over as the
+   block tap-target (it inherits .row a's block metrics), so the li sheds its
+   own padding to avoid doubling; colour stays muted — clickable, still a
+   teaser, not a live page. */
+.planned-row--linked { padding: 0; }
+.planned-row--linked > a { color: var(--muted); }
 
 .row { display: flex; gap: 2rem; align-items: flex-start; }
 /* Both columns flex:1 → they divide the row's available width evenly,
@@ -947,13 +953,13 @@ a.app-card:hover {
 <div class="matrix-scroll">
 <table class="cat-matrix">
 <tr><th>Project<span class="col-sizer" aria-hidden="true"><span>Linguistics Dissertation</span><span>Chinese Language(s)</span><span>Cities &amp; Transport</span></span></th><th class="cat-col"><button type="button" class="cat-head" data-cat="art" aria-pressed="false" title="Art" aria-label="Art">🪅</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="geography" aria-pressed="false" title="Geography" aria-label="Geography">🗺️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="linguistics" aria-pressed="false" title="Linguistics" aria-label="Linguistics">🔤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="maths" aria-pressed="false" title="Maths" aria-label="Maths">📐</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="music" aria-pressed="false" title="Music" aria-label="Music">🎵</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="personal" aria-pressed="false" title="Personal" aria-label="Personal">👤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="philosophy" aria-pressed="false" title="Philosophy" aria-label="Philosophy">🕯️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="politics" aria-pressed="false" title="Politics" aria-label="Politics">🏛️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="transport" aria-pressed="false" title="Transport" aria-label="Transport">🚦</button></th></tr>
-<tr data-categories="linguistics politics"><td><a href="../guides/chinese-languages/">Chinese Language(s)</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td></tr>
-<tr data-categories="geography maths"><td><a href="../hobbies/maps-projections/">Maps &amp; Projections</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr data-categories="linguistics maths"><td><a href="../hobbies/linguistics-dissertation/">Linguistics Dissertation</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr data-categories="geography transport"><td><a href="../hobbies/cities-transport/">Cities &amp; Transport</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td></tr>
-<tr data-categories="music personal"><td><a href="../life/chromatic-camelot/">Chromatic Camelot</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr data-categories="art maths personal philosophy"><td><a href="../life/life-dial/">Life Dial</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr data-categories="personal"><td><a href="../life/personal-info/">Personal Info</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr data-categories="linguistics politics"><td><a href="../chinese-languages/">Chinese Language(s)</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td></tr>
+<tr data-categories="music personal"><td><a href="../chromatic-camelot/">Chromatic Camelot</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr data-categories="geography transport"><td><a href="../cities-transport/">Cities &amp; Transport</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td></tr>
+<tr data-categories="art maths personal philosophy"><td><a href="../life-dial/">Life Dial</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr data-categories="linguistics maths"><td><a href="../linguistics-dissertation/">Linguistics Dissertation</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr data-categories="geography maths"><td><a href="../maps-projections/">Maps &amp; Projections</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr data-categories="personal"><td><a href="../personal-info/">Personal Info</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
 <tr class="totals"><td>Total</td><td class="mark-cell" data-cat="art">1</td><td class="mark-cell" data-cat="geography">2</td><td class="mark-cell" data-cat="linguistics">2</td><td class="mark-cell" data-cat="maths">3</td><td class="mark-cell" data-cat="music">1</td><td class="mark-cell" data-cat="personal">3</td><td class="mark-cell" data-cat="philosophy">1</td><td class="mark-cell" data-cat="politics">1</td><td class="mark-cell" data-cat="transport">1</td></tr>
 </table>
 </div>

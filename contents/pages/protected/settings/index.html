@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB4PSI1MiIgeT0iNDkiIGZvbnQtc2l6ZT0iOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Charlie 丁志成's Galaxy</title>
+<title>Charlie 丁志成 ✦ Settings</title>
 <script>/* Site-wide theme control — the single source of truth for manual dark/light.
 
    Loaded as a BLOCKING <script> (no defer/async) early in every page's and
@@ -791,499 +791,217 @@ a.app-card:hover {
   letter-spacing: 0.02em;
 }
 </style>
-<script>// page-nav.js — shared in-page search + navigation wiring (was auto-toc.js).
-//
-// Two responsibilities, dispatched from DOM structure (no per-page opt-in):
-//
-//  1. Content pages with ≥2 <h2> direct children of .container:
-//     - Auto-injects <input class="filter"> + <nav class="toc"> right
-//       after .head-meta (or h1 if no head-meta).
-//     - Builds the TOC as a numbered list of h2 anchors.
-//     - Wires the filter to hide TOC items whose text doesn't match.
-//     - Collapses every section by default (site convention, user decision
-//       2026-08-15: any page with a Contents nav starts with its sections
-//       closed; this file is the SSOT for that behaviour). The h2 headings
-//       become toggles, TOC links / URL hashes expand their target, and a
-//       Expand-all button sits in the TOC header. Collapsing is done by
-//       classing each element BETWEEN h2s (never re-parenting — pages
-//       style via `.container > ul` etc. and a wrapper div would orphan
-//       them) with height:0/overflow:hidden/visibility:hidden rather than
-//       display:none, so embedded widgets (Leaflet maps, canvas engines)
-//       still measure real layout widths while hidden. Expanding a section
-//       dispatches a bubbling 'section-expanded' event on its h2 (pages
-//       use it to lazy-init heavy widgets) plus a window resize (Leaflet's
-//       trackResize picks it up).
-//     If the page already includes the markup (e.g. chinese-languages
-//     used to inline it), it is reused rather than re-injected.
-//
-//  2. Index pages (.container > .row > .main, with the build's existing
-//     <input class="filter"> above the row):
-//     - Wires that input to filter the index entries (.app-card cards
-//       AND .main > ul > li bare-link rows).
-//
-// Activate by linking this file from a page's <head>; the script
-// auto-runs on DOMContentLoaded. No globals leaked beyond what was
-// already there.
-
-(function () {
-  function slugify(s) {
-    return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  }
-
-  // ---- Collapsed-by-default sections --------------------------------
-  // Styles are injected here (not base.css) so the whole convention —
-  // behaviour + look — lives in this one file.
-  var COLLAPSE_STYLE_ID = '__page-nav-collapse-styles';
-  function injectCollapseStyles() {
-    if (document.getElementById(COLLAPSE_STYLE_ID)) return;
-    var style = document.createElement('style');
-    style.id = COLLAPSE_STYLE_ID;
-    style.textContent =
-      // Collapsed section members: zero the box but keep layout widths
-      // measurable (see header comment). !important intentionally beats
-      // page-level margin/padding rules.
-      '.pn-collapsed { visibility:hidden !important; height:0 !important;' +
-      '  min-height:0 !important; margin:0 !important; padding:0 !important;' +
-      '  border-width:0 !important; overflow:hidden !important; }' +
-      // h2 toggles: pointer + a right-aligned ▸/▾ marker, mirroring the
-      // .toc summary markers in base.css.
-      'h2.pn-toggle { cursor:pointer; }' +
-      'h2.pn-toggle::after { content:"\\25B8"; float:right; color:var(--muted); font-size:0.8em; }' +
-      'h2.pn-toggle[aria-expanded="true"]::after { content:"\\25BE"; }';
-    document.head.appendChild(style);
-  }
-
-  // Elements belonging to a section: everything after its h2 up to the
-  // next direct-child h2 (or the end of the container).
-  function sectionMembers(h2) {
-    var els = [];
-    for (var el = h2.nextElementSibling; el && el.tagName !== 'H2'; el = el.nextElementSibling) {
-      els.push(el);
+<style>
+    /* Preferences list: one labelled setting per row. */
+    .setting { margin-top: 1.5rem; }
+    .setting > h2 {
+      font-size: 1rem; margin-bottom: 0.2rem; color: var(--text);
     }
-    return els;
-  }
+    .setting-desc { color: var(--muted); font-size: 0.9rem; margin-bottom: 0.8rem; }
 
-  function isCollapsed(h2) {
-    return h2.getAttribute('aria-expanded') !== 'true';
-  }
-
-  function setCollapsed(h2, collapsed) {
-    sectionMembers(h2).forEach(function (el) {
-      el.classList.toggle('pn-collapsed', collapsed);
-    });
-    h2.setAttribute('aria-expanded', String(!collapsed));
-    if (!collapsed) {
-      // Pages lazy-init heavy widgets on this; Leaflet maps built while
-      // hidden fix themselves via their window-resize listener.
-      h2.dispatchEvent(new CustomEvent('section-expanded', { bubbles: true }));
-      window.dispatchEvent(new Event('resize'));
+    /* Three-way segmented control. Buttons share one bordered surface; the
+       active option fills with the accent. */
+    .theme-toggle {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+      max-width: 520px;
     }
-  }
-
-  function buildToc(container) {
-    // Direct h2 children only — nested h2s (e.g. inside <details>) don't
-    // earn TOC entries; they belong to whatever section wraps them.
-    var h2s = container.querySelectorAll(':scope > h2');
-    // 2+ h2s warrants a TOC. A single-section page is its own TOC.
-    if (h2s.length < 2) return;
-
-    // Reuse existing markup if present (chinese-languages legacy pattern),
-    // otherwise inject. Pre-placed markup may be hidden via inline style;
-    // we clear it after populating.
-    var search = container.querySelector(':scope > input.filter');
-    var injectedSearch = false;
-    if (!search) {
-      search = document.createElement('input');
-      search.type = 'search';
-      search.className = 'filter';
-      search.placeholder = 'Search…';
-      search.setAttribute('aria-label', 'Filter sections');
-      injectedSearch = true;
+    .theme-opt {
+      display: flex; flex-direction: column; align-items: flex-start;
+      gap: 0.15rem; padding: 0.7rem 0.9rem; background: var(--surface);
+      border: 0; border-left: 1px solid var(--border);
+      color: var(--text); font: inherit; text-align: left; cursor: pointer;
+      transition: background 0.15s, color 0.15s;
     }
-    var toc = container.querySelector(':scope > nav.toc');
-    var injectedToc = false;
-    if (!toc) {
-      toc = document.createElement('nav');
-      toc.className = 'toc';
-      var header = document.createElement('div');
-      header.className = 'toc-header';
-      var h2c = document.createElement('h2');
-      h2c.textContent = 'Contents';
-      header.appendChild(h2c);
-      toc.appendChild(header);
-      var ol = document.createElement('ol');
-      toc.appendChild(ol);
-      injectedToc = true;
+    .theme-opt:first-child { border-left: 0; }
+    .theme-opt:hover { background: var(--border); }
+    .theme-opt.is-active { background: var(--accent); color: var(--bg); }
+    .theme-opt.is-active .theme-opt-desc { color: var(--bg); opacity: 0.8; }
+    .theme-opt-label { font-weight: 500; }
+    .theme-opt-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.35; }
+
+    /* Local-access URLs — populated live from local-access.json (see wiring). */
+    .local-line { margin: 0.45rem 0; }
+    .local-label {
+      display: inline-block; min-width: 4.5rem;
+      color: var(--muted); font-size: 0.8rem; text-transform: uppercase;
+      letter-spacing: 0.4px;
     }
-    var list = toc.querySelector('ol') || toc.querySelector('ul');
-    if (!list) return;
-
-    // Populate. textContent excludes ::before-rendered counters (e.g. the
-    // page-side .container > h2::before "1. " prefix) so we get just the
-    // heading words and prepend our own monotonic index. h2.appendix
-    // sections (the {{EXTERNAL_LINKS}} link lists) letter as A. B. …
-    // instead, mirroring base.css's on-page prefixes.
-    list.innerHTML = '';
-    var idx = 0, appendixIdx = 0;
-    h2s.forEach(function (h) {
-      var orig = h.textContent.trim();
-      if (!h.id) h.id = slugify(orig);
-      var label = h.classList.contains('appendix')
-        ? String.fromCharCode(65 + (appendixIdx++ % 26))
-        : String(++idx);
-      var li = document.createElement('li');
-      var a = document.createElement('a');
-      a.href = '#' + h.id;
-      a.textContent = label + '. ' + orig;
-      li.appendChild(a);
-      list.appendChild(li);
-    });
-
-    // Place injected nodes: head-meta → search → toc → first h2.
-    if (injectedSearch || injectedToc) {
-      var anchor = container.querySelector(':scope > p.head-meta')
-        || container.querySelector(':scope > h1');
-      if (anchor) {
-        if (injectedSearch) anchor.insertAdjacentElement('afterend', search);
-        var searchEnd = injectedSearch ? search : anchor;
-        if (injectedToc) searchEnd.insertAdjacentElement('afterend', toc);
-      }
+    .local-url {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 1rem; color: var(--accent); word-break: break-all;
     }
-    // Reveal anything that was pre-rendered hidden.
-    if (search.style.display === 'none') search.style.display = '';
-    if (toc.style.display === 'none') toc.style.display = '';
-
-    search.addEventListener('input', function () {
-      var q = this.value.trim().toLowerCase();
-      list.querySelectorAll('li').forEach(function (li) {
-        if (!q) { li.classList.remove('search-hidden'); return; }
-        li.classList.toggle('search-hidden', li.textContent.toLowerCase().indexOf(q) === -1);
-      });
-    });
-
-    // ---- Collapse sections by default -------------------------------
-    injectCollapseStyles();
-
-    // Expand-all / Collapse-all in the TOC header (styles for
-    // .toc-controls/.toc-toggle-btn already live in base.css). Pre-placed
-    // TOC markup may lack a header; skip the button there.
-    var headerEl = toc.querySelector('.toc-header');
-    var allBtn = null;
-    function syncAllBtn() {
-      if (!allBtn) return;
-      var anyCollapsed = false;
-      h2s.forEach(function (h) { if (isCollapsed(h)) anyCollapsed = true; });
-      allBtn.textContent = anyCollapsed ? 'Expand all' : 'Collapse all';
+    /* Show/hide-the-LOCAL-badge preference. */
+    .badge-toggle {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      margin-top: 1rem; color: var(--text); font-size: 0.9rem; cursor: pointer;
     }
-    if (headerEl && !headerEl.querySelector('.toc-toggle-btn')) {
-      var controls = document.createElement('div');
-      controls.className = 'toc-controls';
-      allBtn = document.createElement('button');
-      allBtn.type = 'button';
-      allBtn.className = 'toc-toggle-btn';
-      controls.appendChild(allBtn);
-      headerEl.appendChild(controls);
-      allBtn.addEventListener('click', function () {
-        var expand = allBtn.textContent === 'Expand all';
-        h2s.forEach(function (h) { setCollapsed(h, !expand); });
-        syncAllBtn();
-      });
+    .badge-toggle input { accent-color: var(--accent); }
+
+    /* Developer rows — label + muted value, mirroring the lifespan-atlas
+       Settings Status design (uppercase mini-label column, monospace
+       select-all identifiers). */
+    .dev-row {
+      display: flex; align-items: baseline; gap: 0.6rem; margin: 0.45rem 0;
     }
-
-    // Every h2 becomes a keyboard-reachable toggle, starting collapsed.
-    h2s.forEach(function (h) {
-      h.classList.add('pn-toggle');
-      h.tabIndex = 0;
-      function toggle() { setCollapsed(h, !isCollapsed(h)); syncAllBtn(); }
-      h.addEventListener('click', toggle);
-      h.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
-      });
-      setCollapsed(h, true);
-    });
-    syncAllBtn();
-
-    // Navigating to #some-section (TOC click, external link, page load
-    // with a hash) expands the target. The load-time call re-scrolls too:
-    // the browser's native hash scroll happened before we collapsed
-    // everything, so the position it picked is stale.
-    function expandHashTarget(scroll) {
-      var id = decodeURIComponent((location.hash || '').slice(1));
-      if (!id) return;
-      var h = document.getElementById(id);
-      if (!h || h.tagName !== 'H2' || h.parentElement !== container) return;
-      if (isCollapsed(h)) { setCollapsed(h, false); syncAllBtn(); }
-      if (scroll) h.scrollIntoView();
+    .dev-label {
+      flex: 0 0 7rem; color: var(--muted); font-size: 0.8rem;
+      text-transform: uppercase; letter-spacing: 0.4px;
     }
-    window.addEventListener('hashchange', function () { expandHashTarget(false); });
-    // Same-hash TOC clicks fire no hashchange — expand from the click too.
-    list.addEventListener('click', function (e) {
-      var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
-      if (!a) return;
-      var h = document.getElementById(decodeURIComponent(a.getAttribute('href').slice(1)));
-      if (h && isCollapsed(h)) { setCollapsed(h, false); syncAllBtn(); }
-    });
-    expandHashTarget(true);
-  }
-
-  function wireIndexSearch(container) {
-    // Build.py emits: <input class="filter" ...> above <div class="row">
-    // <div class="main"> with .app-card / <ul><li> entries.
-    var filter = container.querySelector(':scope > input.filter');
-    if (!filter) return;
-    var main = container.querySelector('.row > .main');
-    if (!main) return;
-    var targets = main.querySelectorAll('.app-card, ul > li');
-    if (!targets.length) return;
-    filter.addEventListener('input', function () {
-      var q = this.value.trim().toLowerCase();
-      targets.forEach(function (t) {
-        if (!q) { t.classList.remove('search-hidden'); return; }
-        t.classList.toggle('search-hidden', t.textContent.toLowerCase().indexOf(q) === -1);
-      });
-    });
-  }
-
-  function init() {
-    var container = document.querySelector('.container');
-    if (!container) return;
-    // Index pages have the row-and-main layout; content pages don't.
-    if (container.querySelector(':scope > .row > .main')) {
-      wireIndexSearch(container);
-    } else {
-      buildToc(container);
+    .dev-value { color: var(--muted); font-size: 0.9rem; }
+    .dev-mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      user-select: all;
     }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
-</script>
+</style>
 </head>
 <body>
 <div class="container">
-<nav class="breadcrumb" aria-label="Breadcrumb"><a href="home/">Home</a> <span class="sep">›</span> <span aria-current="page">Protected Index</span></nav>
-<h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">96,025 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-19) 🛣️</a> ✦ Last updated <time datetime="2026-08-20T15:48:44Z" title="2026-08-20 15:48 UTC" class="relative-time">2026-08-20</time></p>
-<input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
-<div class="cat-chips" role="group" aria-label="Filter by category">
-  <button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button>
-  <div class="cat-chips__body" hidden>
-  <button type="button" class="cat-chip" data-cat="art" aria-pressed="false">🪅 Art</button>
-  <button type="button" class="cat-chip" data-cat="geography" aria-pressed="false">🗺️ Geography</button>
-  <button type="button" class="cat-chip" data-cat="linguistics" aria-pressed="false">🔤 Linguistics</button>
-  <button type="button" class="cat-chip" data-cat="maths" aria-pressed="false">📐 Maths</button>
-  <button type="button" class="cat-chip" data-cat="music" aria-pressed="false">🎵 Music</button>
-  <button type="button" class="cat-chip" data-cat="personal" aria-pressed="false">👤 Personal</button>
-  <button type="button" class="cat-chip" data-cat="philosophy" aria-pressed="false">🕯️ Philosophy</button>
-  <button type="button" class="cat-chip" data-cat="politics" aria-pressed="false">🏛️ Politics</button>
-  <button type="button" class="cat-chip" data-cat="practical" aria-pressed="false">🪪 Practical</button>
-  <button type="button" class="cat-chip" data-cat="transport" aria-pressed="false">🚦 Transport</button>
-  <button type="button" class="cat-chips__clear" hidden>× Clear</button>
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="../home/">Home</a> <span class="sep">›</span> <a href="../">Protected Index</a> <span class="sep">›</span> <span aria-current="page">Settings</span></nav>
+<h1>Settings ⚙️</h1>
+<p class="head-meta">Phase 0.4 (2026-08-19) 🛣️</p>
+<section class="setting">
+  <h2>Theme</h2>
+  <p class="setting-desc">Choose how this site appears on this device. Your choice is remembered in this browser and applies across every page.</p>
+  <div class="theme-toggle" role="radiogroup" aria-label="Theme">
+    <button type="button" class="theme-opt" data-mode="auto" role="radio" aria-checked="false"><span class="theme-opt-label">Auto</span><span class="theme-opt-desc">Follow this device’s system setting</span></button>
+    <button type="button" class="theme-opt" data-mode="light" role="radio" aria-checked="false"><span class="theme-opt-label">Light</span><span class="theme-opt-desc">Always light, regardless of the system</span></button>
+    <button type="button" class="theme-opt" data-mode="dark" role="radio" aria-checked="false"><span class="theme-opt-label">Dark</span><span class="theme-opt-desc">Always dark, regardless of the system</span></button>
   </div>
-</div>
-<div class="row">
-<div class="main">
-<div class="apps">
-  <a class="app-card" href="../public/chromatic-camelot/" data-categories="personal music">
-    <img class="app-card__icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlApw1AAAAQlBMVEX7uKtAOjlnVVHYppgB0mo/X//vrqYvLy/3C42OZcWHamTCkoimf3dTR0X5ZZ23jsLWn7aRw49Iy32Kgt5abPOedZx5ETv/AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAFOElEQVR42u2ci5biIAyGA2gcabFV5/2fdXV2dsdpaQmQtHhO8gLN11y4/3B6cwMFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFaADAPO0NAYz1feccwj/Druu9DW8BEHz34/jE0PU+tAxgVpx/iYY3TQI8vAequT60BmDp3n8z8MahEsA6KLDONwLgi9z/qge2MMDWf/8/Qm/2BTA91BoLQimAR6g3jkQqAzAd8Bj6XQBs6vePw8NGWlcN2wP4xF8dzt82oHwpFAAkqnc8vxgpCs5uCZBK/1/+Ewmg3w7AuCz/qQTllQC8/sN5ZsR2ZLcBSLXPcQ4wUoe1LQCS7X/u/3kgT/GMOEBy9oARgDN9om2EAXzShTEGQJ90lJRyBoCFMoAxY2YRBAGMA+kIlBAAXwEv1UDWvDWbABgTKN6Fzpnz0yADYGj/cahoo2W9CLg66GIOZa988giIAIH69aGiB/0f0QQA6CuwoS6BsmcVUFHBiLi2nCn2H8BzA0QCcPn4a5e1wWCEwqVy4AWwi+4/DSNL4q+/X+r+s5B5Abo1/2NBqLeeE8Cs+y9DYBkB+oT/sSyqNscIMHVv5v+eSQT5JTwPgEgIIHAB9ASA/UIAHBkkA0ALAeQPApsBdDwAngLwIQFAaqWQP4rxRuBxgmyt9dGTzo4FAEGwiF9OXU3kxM0wAAQAsTbahUS2egaAyGYQVwDmfTJg9nAMBWtJpqlErM9PCWw9QKy4WCZzHaVp9/UA0e0sBv/RUCLu6gHin79UF4Cn7d8YIQDAS10DRUMrOl8LYFZ8uFwuyD9NCHlFAFwbQnz7DphVBMCyJco60/zV97BVAEMdeUyjAOShM7w7gG20iM27A1CLuFkAahutBjBCANSBrLqITygDQJ1KVLfR09rhKgrs+kwmcyiyHnja9XZ42s0xh6DPXNdD2eme++t+DQJpQVM/mYtfkLgeXu3Kl0TTJWV6TQklx2O//T8cHBfB7Dok1i9oIisad5haYTUnt1U41sSRKr7NAK4gs7HFsSsxr+J5AIpDkNhaZNkXmhfBNQJwhb12dyH/iO+2GQDP5u6sCCL+H24i043AA+D3AvBMR0yGkEK3vQ5oSMes3S414PjOiX26Czl+/w3jVYPJDHeLDCJf24KC+2ZX+QDQryGTAFJlzF0ByH7haRICvIkmUNYNZCi68/eLgPn/O3/a4tLf9Va5IFtKfitzczeyPYTXp+HCI6yS62ZFD46ZL74+vLh/Hr/snmLAn/fervzhOvPVYxiOP3Zfeoxrg9n+Oa4n+X8/vtonCr0ALbp+7zL/fzQGaE+nvQAI27zjcWpD4V1EkScoPjOBIknUnXZVNUglER6PiRD4fQEC5lXAvArszroSPjeDHjnUUgRSw1kM4Mj1anWLt5RpADS7S5O4qhQSyCHO98TpIk4fuMi/6F5rRck2KhCC/Df1weUMZLOxogF5nuUsws9UAPhDUCLLsEwwpiZzOa9jBIUxlgmGlP/so3GhtsriiDb+ZNHnwC3BwCoOs9xM79/uL7QrbESiak1fBcex+mmJvEBS6IQfWMlLVBVqDLUDUCgzFFqSaSsJgmlKZy5fasu1pvSXW8y+Pa3FLAQ0LYpFZugV+kblOqkIrmG90V5GPGVDxVeT1F7k959bc9euCqcK+M8vGrwi/tqbd1E9tr1jOP3aV3fa2If8sbDc7gbC2SY8rpOJqjar8rcCKIACKIACKIACKIACKIACKIACKIACKIACKIACKIACKEA+wB8bUQlg1rEn3gAAAABJRU5ErkJggg==" alt="" />
-    <div class="app-card__body">
-      <div class="app-card__name">Chromatic Camelot</div>
-      <div class="app-card__desc">Click a key, hear some songs, see the colour I see</div>
-    </div>
-    <div class="app-card__open">Open</div>
-  </a>
-  <a class="app-card" href="../protected/lifespan-atlas/" data-categories="art personal maths philosophy">
-    <img class="app-card__icon" src="data:image/png;base64,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" alt="" />
-    <div class="app-card__body">
-      <div class="app-card__name">Lifespan Atlas</div>
-      <div class="app-card__desc">An autobiographical chronoscope</div>
-    </div>
-    <div class="app-card__open">Open</div>
-  </a>
-</div>
-<ul>
-  <li data-categories="geography transport"><a href="../public/cities-transport/">Cities & Transport</a></li>
-  <li data-categories="linguistics maths"><a href="../public/linguistics-dissertation/">Linguistics Dissertation</a></li>
-  <li data-categories="geography maths"><a href="../public/maps-projections/">Maps & Projections</a></li>
-  <li data-categories="personal"><a href="../public/personal-info/">Personal Info</a></li>
-  <li data-categories="linguistics politics"><a href="../protected/chinese-languages/">Chinese Language(s)</a></li>
-  <li data-categories="practical"><a href="../protected/itinerary-calendar/">Itinerary Calendar</a></li>
-</ul>
-</div>
-<div class="side">
-<ul>
-  <li class="tier-nav-row">
-    <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
-      <option value="home/">Home</option>
-      <option value="highlights/">Highlights</option>
-      <option value="../public/">Public Index</option>
-      <option value="" selected>Protected Index</option>
-    </select>
-  </li>
-  <li aria-hidden="true"><a style="visibility:hidden">&nbsp;</a></li>
-  <li>
-    <a class="app-card" href="../protected/launchbolt/">
-      <img class="app-card__icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlApw1AAAAElBMVEUAAAD/gi3LZyMzGglqNhKjUxzabGxSAAAACXBIWXMAAAPoAAAD6AG1e1JrAAACCklEQVR42u2ci26DMBAEfXv2//9ym7ZSgsLDSFS5QTtfwIhdQ4J9rRljjDHGGGOMMcYYY4wxxhhj/ocudfT1xzdgg3xcf4grILjACLbAb4DAAoIL/AUIK9ADLhBwAcEFngFiCmTABQQXGMEWWASIKCC4wDJAPIEecIGACwgu8BYgmEAGXEBwgRFsgbUAoQQEF1gNEEigB1wg4AKCC2wFiCKQARcQXGAEW2AnQAwBwQX2AkQQ6AEXCLiA4AIHASovkAEXEFxgBFvgOEDFBQQXmAhQaYEecIGACwguMBegugIZcAHBBUawBaYDVFVA8wLBDlDNjaM9TpHQR/DLPUhuAbYYnACVM8hLrv+Dq6uuEeiIFbTgDbgoQJ9bWgc8QBcJjMZegz77fpcrDPq7RQv4292ph8NobAH8D5yECxQ9Fyd0AU4IlP2bTugCzAvUPRgqdAFmBSp/qxG6AJMCpU9GC12AG3zvnhBIuED10QBCF+BYoP6uLaELcCgAmI0hdAEOBBB7j4UuwL4AYziM0AW4wfmNbYGEC2CmIwldgBsc4tsQSLgAaTyY0AVYF2CdpRe6AKsCsPl4QhdgRQA3UEXoArwL8AZECl2AGwylWgokXAA5IVXoAiwEoKMVhS7AqwB1RLDQBXgK4AcEZ0OPyCbPyP65Begp5Y/dmM0YY4wxxhhjjDHGGGOMMWX5Asa6EEZ29joCAAAAAElFTkSuQmCC" alt="" />
-      <div class="app-card__body">
-        <div class="app-card__name">Launchbolt</div>
-        <div class="app-card__desc">A pocket launcher for curated webpages.</div>
-      </div>
-      <div class="app-card__open">Open</div>
-    </a>
-  </li>
-  <li aria-hidden="true"><a style="visibility:hidden">&nbsp;</a></li>
-  <li><a href="site-stats/">Site Stats</a></li>
-  <li><a href="site-roadmap/">Site Roadmap</a></li>
-  <li><a href="category-matrix/">Category Matrix</a></li>
-  <li><a href="settings/">Settings</a></li>
-</ul>
-</div>
-</div>
-</div>
+</section>
+<section class="setting">
+  <h2>Planned pages</h2>
+  <p class="setting-desc">The private index normally lists only pages that exist. Turn this on to also show upcoming pages there as greyed-out rows at the end of each list. The public and protected indexes never show planned pages. Remembered in this browser.</p>
+  <label class="badge-toggle"><input type="checkbox" id="show-planned-toggle"> Show planned pages on the indexes</label>
+</section>
+<section class="setting" id="local-access" hidden>
+  <h2>Local access</h2>
+  <p class="setting-desc">Open one of these on another device on the same Wi‑Fi (e.g. your phone) to view this site. Shown only while the local server is running. The <em>name</em> link is preferred — it keeps working even if this PC’s IP changes.</p>
+  <p class="local-line" id="local-line-host" hidden><span class="local-label">By name</span><a class="local-url" id="local-url-host" href="#" rel="noopener"></a></p>
+  <p class="local-line" id="local-line-ip" hidden><span class="local-label">By IP</span><a class="local-url" id="local-url" href="#" rel="noopener"></a></p>
+  <div>
+    <label class="badge-toggle"><input type="checkbox" id="local-badge-toggle"> Show the <strong>LOCAL</strong> badge on pages</label>
+  </div>
+</section>
+<section class="setting">
+  <h2>Developer 🛠️</h2>
+  <p class="setting-desc">Which build this site is serving. The build ID matches the one <code>build.py</code> printed when these bytes were built; the fingerprint is the deploy checksum the push pipeline compares.</p>
+  <div class="dev-row"><span class="dev-label">Built</span><span class="dev-value" id="dev-built">—</span></div>
+  <div class="dev-row"><span class="dev-label">Build ID</span><span class="dev-value dev-mono" id="dev-build-id">—</span></div>
+  <div class="dev-row"><span class="dev-label">Fingerprint</span><span class="dev-value dev-mono" id="dev-fp">—</span></div>
+  <div class="dev-row"><span class="dev-label">Lines</span><span class="dev-value" id="dev-lines">—</span></div>
+  <div class="dev-row"><span class="dev-label">Location</span><span class="dev-value" id="dev-location">—</span></div>
+</section>
 <script>
-(function() {
-  // Convert <time class="relative-time" datetime="..."> to "X ago" form.
-  // Fallback (no JS) is the absolute YYYY-MM-DD already in the element body.
-  const ago = (n, unit) => `${n} ${unit}${n === 1 ? '' : 's'} ago`;
-  const fmt = (s) => {
-    if (s < 5) return 'just now';
-    if (s < 60) return `${s} seconds ago`;
-    if (s < 3600) return ago(Math.floor(s / 60), 'minute');
-    if (s < 86400) return ago(Math.floor(s / 3600), 'hour');
-    if (s < 1209600) return ago(Math.floor(s / 86400), 'day');
-    if (s < 5443200) return ago(Math.floor(s / 604800), 'week');
-    if (s < 31557600) return ago(Math.floor(s / 2629800), 'month');
-    return ago(Math.floor(s / 31557600), 'year');
-  };
-  const fmtCoarse = (dt) => {
-    const now = new Date();
-    const e = Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
-    const r = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    const diffDays = Math.round((e - r) / 86400000);
-    if (diffDays === 0) return 'today';
-    if (diffDays === -1) return 'yesterday';
-    const future = diffDays > 0;
-    const absDays = Math.abs(diffDays);
-    if (absDays < 60) {
-      const body = `${absDays} day${absDays === 1 ? '' : 's'}`;
-      return future ? `in ${body}` : `${body} ago`;
-    }
-    const earlier = future ? new Date(r) : dt;
-    const later = future ? dt : new Date(r);
-    let years = later.getUTCFullYear() - earlier.getUTCFullYear();
-    let months = later.getUTCMonth() - earlier.getUTCMonth();
-    if (later.getUTCDate() < earlier.getUTCDate()) months -= 1;
-    if (months < 0) { years -= 1; months += 12; }
-    const body = years === 0 ? `${months}mo` : `${years}yr ${months}mo`;
-    return future ? `in ${body}` : `${body} ago`;
-  };
-  document.querySelectorAll('time.relative-time').forEach(t => {
-    const dt = new Date(t.getAttribute('datetime'));
-    if (isNaN(dt.getTime())) return;
-    if (t.classList.contains('relative-time-coarse')) {
-      t.textContent = fmtCoarse(dt);
-    } else {
-      const seconds = Math.max(0, Math.floor((Date.now() - dt.getTime()) / 1000));
-      t.textContent = fmt(seconds);
-    }
-  });
-})();
-(function() {
-  const f = document.querySelector('.filter');
-  if (!f) return;
-  const items = document.querySelectorAll('.main .app-card, .main > ul > li');
-  f.addEventListener('input', (e) => {
-    const q = e.target.value.toLowerCase().trim();
-    items.forEach(item => {
-      const name = (item.querySelector('.app-card__name') || item).textContent.toLowerCase();
-      item.classList.toggle('search-hidden', q.length > 0 && !name.includes(q));
+(function () {
+  var group = document.querySelector('.theme-toggle');
+  if (!group) return;
+  var opts = group.querySelectorAll('.theme-opt');
+  function reflect(mode) {
+    opts.forEach(function (b) {
+      var on = b.dataset.mode === mode;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
     });
+  }
+  opts.forEach(function (b) {
+    b.addEventListener('click', function () { window.setSiteTheme(b.dataset.mode); });
   });
-  f.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
-    const q = f.value.toLowerCase().trim();
-    if (!q) return;
-    const opt = Array.from(document.querySelectorAll('.tier-nav option'))
-      .find(o => o.value && o.textContent.toLowerCase().split(/\s+/).includes(q));
-    if (opt) { e.preventDefault(); location.href = opt.value; }
-  });
+  reflect(window.getSiteTheme ? window.getSiteTheme() : 'auto');
+  if (window.onSiteThemeChange) window.onSiteThemeChange(reflect);
 })();
-(function() {
-  // Category chips: multi-select, OR semantics — an entry stays visible
-  // while it carries ANY active category; no active chips means show all.
-  // Hides non-matching entries via .cat-hidden — a class deliberately
-  // separate from .search-hidden, so the text search and the category
-  // filter compose as AND without stomping each other's state.
-  const chips = document.querySelectorAll('.cat-chips .cat-chip');
-  if (!chips.length) return;
-  const items = document.querySelectorAll('.main .app-card, .main > ul > li');
-  const clear = document.querySelector('.cat-chips__clear');
-  const body = document.querySelector('.cat-chips__body');
-  const toggle = document.querySelector('.cat-chips__toggle');
-  const updateToggle = (activeCount) => {
-    if (!toggle || !body) return;
-    const open = !body.hidden;
-    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    toggle.textContent = open ? 'Filter ▾'
-      : (activeCount ? `Filter (${activeCount}) ▸` : 'Filter ▸');
-  };
-  const apply = () => {
-    const active = Array.from(chips)
-      .filter(c => c.getAttribute('aria-pressed') === 'true')
-      .map(c => c.dataset.cat);
-    items.forEach(item => {
-      const cats = (item.dataset.categories || '').split(' ').filter(Boolean);
-      item.classList.toggle('cat-hidden',
-        active.length > 0 && !active.some(c =>
-          c === '__none__' ? cats.length === 0 : cats.includes(c)));
-    });
-    if (clear) clear.hidden = active.length === 0;
-    updateToggle(active.length);
-  };
-  if (toggle && body) toggle.addEventListener('click', () => {
-    body.hidden = !body.hidden;
-    apply();
-  });
-  chips.forEach(chip => chip.addEventListener('click', () => {
-    const on = chip.getAttribute('aria-pressed') === 'true';
-    chip.setAttribute('aria-pressed', on ? 'false' : 'true');
-    apply();
-  }));
-  if (clear) clear.addEventListener('click', () => {
-    chips.forEach(c => c.setAttribute('aria-pressed', 'false'));
-    apply();
-  });
+</script>
+<script>
+(function () {
+  function el(id) { return document.getElementById(id); }
+  var host = location.hostname;
+  var isLocal = location.protocol === 'file:' || host === 'localhost' ||
+    host === '127.0.0.1' || /^192\.168\./.test(host) || /^10\./.test(host) ||
+    /\.local$/.test(host);
+  el('dev-location').textContent = isLocal ? 'Local (dev server)' : 'Online';
+  function unit(n, u) { return n + ' ' + u + (n === 1 ? '' : 's') + ' ago'; }
+  function ago(secs) {
+    if (secs < 60) return 'just now';
+    if (secs < 3600) return unit(Math.floor(secs / 60), 'minute');
+    if (secs < 86400) return unit(Math.floor(secs / 3600), 'hour');
+    if (secs < 1209600) return unit(Math.floor(secs / 86400), 'day');
+    if (secs < 5443200) return unit(Math.floor(secs / 604800), 'week');
+    if (secs < 31557600) return unit(Math.floor(secs / 2629800), 'month');
+    return unit(Math.floor(secs / 31557600), 'year');
+  }
+  fetch('../../../../version.json', { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (v) {
+      if (!v) return;
+      if (v.ts) {
+        var d = new Date(v.ts);
+        if (!isNaN(d)) {
+          var label = d.toLocaleString(undefined, {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          });
+          var secs = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+          el('dev-built').textContent = label + ' \u00b7 ' + ago(secs);
+        }
+      }
+      if (v.build_id) el('dev-build-id').textContent = v.build_id;
+      if (v.fp) el('dev-fp').textContent = v.fp.slice(0, 12);
+      if (v.lines) el('dev-lines').textContent = Number(v.lines).toLocaleString() + ' lines';
+    })
+    .catch(function () {});
 })();
-(function() {
-  // Planned-row reveal, live half. The head snippet stamps
-  // <html data-show-planned> once at load; this keeps the on-page switch,
-  // the attribute, and other pages in agreement — re-stamping on switch
-  // clicks, back/forward-cache restores, and cross-page storage changes
-  // (the Settings checkbox remains a synced second control).
-  if (!document.querySelector('.planned-row')) return;
-  const K = 'site-show-planned';
-  const sw = document.querySelector('.planned-switch');
-  const stamp = () => {
-    const on = localStorage.getItem(K) === 'on';
-    document.documentElement.toggleAttribute('data-show-planned', on);
-    if (sw) sw.setAttribute('aria-pressed', on ? 'true' : 'false');
-  };
-  if (sw) sw.addEventListener('click', () => {
-    if (localStorage.getItem(K) === 'on') localStorage.removeItem(K);
-    else localStorage.setItem(K, 'on');
-    stamp();
-  });
-  stamp();
-  window.addEventListener('pageshow', (e) => { if (e.persisted) stamp(); });
-  window.addEventListener('storage', (e) => {
-    if (e.key === K || e.key === null) stamp();
+</script>
+<script>
+(function () {
+  var cb = document.getElementById('show-planned-toggle');
+  if (!cb) return;
+  var K = 'site-show-planned';
+  cb.checked = localStorage.getItem(K) === 'on';
+  cb.addEventListener('change', function () {
+    if (cb.checked) localStorage.setItem(K, 'on'); else localStorage.removeItem(K);
   });
 })();
 </script>
-<script src="../../../界面 UI/page-widgets/version-check.js" defer></script>
+<script>
+(function () {
+  var sec = document.getElementById('local-access');
+  if (!sec) return;
+  function fill(lineId, linkId, url) {
+    if (!url) return false;
+    var line = document.getElementById(lineId);
+    var link = document.getElementById(linkId);
+    if (!line || !link) return false;
+    link.textContent = url;
+    link.href = url;
+    line.hidden = false;
+    return true;
+  }
+  fetch('../../local-access.json', { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (info) {
+      if (!info) return;
+      var ipUrl = info.url ||
+        (info.ip ? 'http://' + info.ip + ':' + info.port + '/' : null);
+      var shown = fill('local-line-host', 'local-url-host', info.hostname_url);
+      shown = fill('local-line-ip', 'local-url', ipUrl) || shown;
+      if (shown) sec.hidden = false;
+    })
+    .catch(function () {});
+})();
+</script>
+<script>
+(function () {
+  var cb = document.getElementById('local-badge-toggle');
+  if (!cb) return;
+  var K = 'site-local-badge';
+  cb.checked = localStorage.getItem(K) !== 'off';
+  cb.addEventListener('change', function () {
+    if (window.setLocalBadge) { window.setLocalBadge(cb.checked); return; }
+    if (cb.checked) localStorage.removeItem(K); else localStorage.setItem(K, 'off');
+  });
+})();
+</script>
+</div>
+<script src="../../../../界面 UI/page-widgets/version-check.js" defer></script>
 </body>
 </html>

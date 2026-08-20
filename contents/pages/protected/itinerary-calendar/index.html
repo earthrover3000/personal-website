@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Itinerary Calendar</title>
+  <!-- Site-wide theme (manual dark/light/auto): stamps <html data-theme>
+       before paint so navigation never flashes the wrong theme. -->
+  <script src="../../../../../界面 UI/page-widgets/theme-init.js"></script>
+  <link rel="stylesheet" href="../../../../../界面 UI/styles/base.css">
+  <link rel="stylesheet" href="../../../../../界面 UI/styles/docs.css">
+  <!-- Shared floating map popover (shell + flight-route renderer): shows a
+       flight's great-circle arc bottom-right — hover to preview, click to
+       pin. Leaflet is NOT loaded on this page — the popover's leaflet-point
+       renderer is never used. -->
+  <link rel="stylesheet" href="../../../../../界面 UI/map-widgets/map-popover.css">
+
+  <!-- FullCalendar -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.11/index.global.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.11/index.global.min.js"></script>
+
+  <!-- ical.js for parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
+
+  <style>
+    /* Itinerary Calendar overrides on top of docs.css.
+       Chrome (body, h1, .container, .back-link, .subtitle, table base)
+       comes from docs.css — same theme as site-stats + the dev docs.
+       Inline CSS here is just FullCalendar dark-mode + event-popup. */
+
+    #calendar-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      margin-top: 1.5rem;
+    }
+    #loading, #error-msg {
+      text-align: center;
+      padding: 60px 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    #error-msg { display: none; }
+    #error-msg strong {
+      color: var(--accent);
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+
+    /* FullCalendar overrides — keep its layout, replace its colors */
+    .fc {
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+    .fc .fc-toolbar-title {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .fc .fc-button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .fc .fc-button:hover {
+      background: var(--border);
+      border-color: var(--accent);
+    }
+    .fc .fc-button-primary:not(:disabled).fc-button-active,
+    .fc .fc-button-primary:not(:disabled):active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .fc .fc-button:focus { box-shadow: none; }
+    .fc th {
+      color: var(--muted);
+      font-weight: 500;
+      padding: 10px 0;
+      background: transparent;
+    }
+    .fc td, .fc th { border-color: var(--border) !important; }
+    /* light-dark() so the "today" highlight follows the manual theme toggle. */
+    .fc .fc-day-today { background: light-dark(rgba(58, 95, 217, 0.08), rgba(124, 158, 245, 0.08)) !important; }
+    /* The CHOSEN day (clicked; recorded as &sel= in the URL hash) — same
+       accent hues as the today wash but stronger, plus an inset ring so a
+       chosen today still reads as two distinct states. */
+    .fc .fc-day-chosen {
+      background: light-dark(rgba(58, 95, 217, 0.16), rgba(124, 158, 245, 0.16)) !important;
+      box-shadow: inset 0 0 0 2px var(--accent);
+    }
+    .fc .fc-daygrid-day-number {
+      color: var(--text);
+      padding: 6px 8px;
+    }
+    .fc .fc-day-today .fc-daygrid-day-number {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      margin: 4px;
+      font-size: 0.8rem;
+    }
+    .fc .fc-event {
+      border-radius: 3px;
+      border: none;
+      font-size: 0.78rem;
+      padding: 2px 6px;
+      cursor: pointer;
+    }
+    .fc .fc-event-title { font-weight: 500; }
+    /* PINNED flight event (clicked): accent ring in the same language as the
+       chosen-day ring — its route stays on the mini-map until unpinned. */
+    .fc .fc-event.fc-event-pinned { box-shadow: 0 0 0 2px var(--accent); }
+    .fc-list-event-dot { border-color: var(--accent) !important; }
+
+    /* Hover popup — dark surface card with subtle shadow */
+    .event-popup {
+      position: fixed;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      max-width: 280px;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .event-popup.visible { opacity: 1; }
+    .event-popup strong {
+      display: block;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+      color: var(--accent);
+    }
+    .event-popup .date-range {
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    /* Flight route mini-map — the SHARED map popover (界面 UI/map-widgets)
+       in bottom-right placement (body attr below) showing the hovered
+       flight's route while a flight event ("AAA → BBB") is hovered. No
+       card-width override: the popover's shared default (min(90vw, 90vh,
+       360px) — the home page's size) applies, so the two pages stay the
+       same size by construction. */
+  </style>
+</head>
+<!-- data-map-popover-placement: park the shared popover bottom-right — the
+     mini-map corner — instead of its default centered placement. -->
+<body data-map-popover-placement="bottom-right">
+  <div class="container">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../home/">Home</a> <span class="sep">›</span> <a href="../">Protected Index</a> <span class="sep">›</span> <span aria-current="page">Itinerary Calendar</span></nav>
+    <h1>Itinerary Calendar<!--CATS-START--><span class="page-cats"><a class="page-cat" href="../category-matrix/" title="Practical" aria-label="Practical">🪪</a></span><!--CATS-END--></h1>
+    <p class="head-meta">Calendar of significant booked events — trips, social activities, and other dated commitments</p>
+
+    <div id="calendar-container">
+      <div id="loading">Loading calendar…</div>
+      <div id="error-msg">
+        <strong>Couldn't load calendar</strong>
+        The calendar feed may be private or temporarily unavailable.<br>
+        Try opening the page from a browser that can reach iCloud.
+      </div>
+      <div id="calendar" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="event-popup" id="popup"></div>
+
+  <script>
+    const ICAL_URL = 'https://p155-caldav.icloud.com/published/2/MTgyNjcxMzg3MjExODI2N9aLU9CB8BONpC7t22mxbdHgSOf_5VPmrprIe6Xoj9kOqD4t-oTi7tzqPIOcNUp8x4fgz44XgPdmr1OjjbwFiMU';
+
+    // CORS proxy to fetch iCal data
+    const PROXY = 'https://corsproxy.io/?' + encodeURIComponent(ICAL_URL);
+
+    async function loadCalendar() {
+      let icsText;
+      try {
+        const res = await fetch(PROXY);
+        if (!res.ok) throw new Error('fetch failed');
+        icsText = await res.text();
+      } catch (e) {
+        console.error('Failed to fetch calendar:', e);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error-msg').style.display = 'block';
+        return;
+      }
+
+      // Parse iCal
+      const jcal = ICAL.parse(icsText);
+      const comp = new ICAL.Component(jcal);
+      const vevents = comp.getAllSubcomponents('vevent');
+
+      const events = vevents.map(vevent => {
+        const ev = new ICAL.Event(vevent);
+        const start = ev.startDate;
+        const end = ev.endDate;
+
+        return {
+          title: ev.summary || '(No title)',
+          start: start.toJSDate(),
+          end: end ? end.toJSDate() : undefined,
+          allDay: start.isDate,
+          extendedProps: {
+            description: ev.description || '',
+            location: ev.location || ''
+          }
+        };
+      });
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('calendar').style.display = 'block';
+
+      const calEl = document.getElementById('calendar');
+      const popup = document.getElementById('popup');
+
+      // ---- URL-recorded position: #date=YYYY-MM-DD[&view=list][&sel=YYYY-MM-DD] ----
+      // The visible month (and Month/List view) plus an optional CHOSEN DAY
+      // (clicked in the month grid — accent-ringed, click again to unchoose)
+      // round-trip through the URL hash, so a refresh — or a shared/
+      // bookmarked link — reopens the calendar where it was. Written with
+      // history.replaceState (never location.hash =) so prev/next taps don't
+      // flood browser history; the DEFAULT position (today's month, Month
+      // view, nothing chosen) strips the hash to keep the plain URL
+      // canonical. A pasted/edited hash applies live via the hashchange
+      // listener below the render call.
+      const readHash = () => {
+        const p = new URLSearchParams(location.hash.slice(1));
+        const d = p.get('date') || '';
+        const s = p.get('sel') || '';
+        return {
+          // Accept YYYY-MM-DD or bare YYYY-MM (normalised to the 1st);
+          // anything else falls back to today. sel must be a full day.
+          date: /^\d{4}-\d{2}(-\d{2})?$/.test(d) ? (d.length === 7 ? d + '-01' : d) : null,
+          sel: /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null,
+          view: p.get('view') === 'list' ? 'listMonth' : 'dayGridMonth',
+        };
+      };
+      const initPos = readHash();
+      let selDate = initPos.sel;   // the chosen day, or null
+
+      // Paint the chosen day's cell. Navigation rebuilds the day-grid DOM,
+      // so re-query and re-apply after every datesSet (and on each click);
+      // in List view there are no day cells and this is a no-op — the
+      // choice survives in selDate/the hash and repaints back in Month view.
+      const paintSel = () => {
+        document.querySelectorAll('.fc-day-chosen')
+          .forEach((el) => el.classList.remove('fc-day-chosen'));
+        if (!selDate) return;
+        const cell = document.querySelector('.fc-daygrid-day[data-date="' + selDate + '"]');
+        if (cell) cell.classList.add('fc-day-chosen');
+      };
+
+      // Ring every rendered instance of the pinned flight. The pin is the
+      // ROUTE (parsed from the title), so same-route events share the ring.
+      // Month navigation rebuilds event elements — eventDidMount restores
+      // the class per element; this sweep handles live toggles.
+      const paintPin = () => {
+        document.querySelectorAll('.fc-event[data-flight-title]').forEach((el) => {
+          el.classList.toggle('fc-event-pinned',
+            !!window.__flightMap && window.__flightMap.isPinned(el.dataset.flightTitle));
+        });
+      };
+
+      const syncUrl = (view) => {
+        const d = view.currentStart;
+        const iso = d.getFullYear() + '-'
+          + String(d.getMonth() + 1).padStart(2, '0') + '-'
+          + String(d.getDate()).padStart(2, '0');
+        const now = new Date();
+        const isDefault = view.type === 'dayGridMonth' && !selDate
+          && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        const hash = isDefault ? ''
+          : '#date=' + iso
+            + (view.type === 'listMonth' ? '&view=list' : '')
+            + (selDate ? '&sel=' + selDate : '');
+        if (hash !== location.hash) {
+          history.replaceState(null, '', location.pathname + location.search + hash);
+        }
+      };
+
+      const calendar = new FullCalendar.Calendar(calEl, {
+        initialView: initPos.view,
+        // A chosen day wins the opening month; else the recorded month.
+        initialDate: initPos.sel || initPos.date || undefined,
+        datesSet(info) {
+          // Mirror the position into the hash on every navigation (also fires
+          // once on first render, which harmlessly rewrites the same hash).
+          syncUrl(info.view);
+          // The new month's cells exist only after this tick completes.
+          requestAnimationFrame(paintSel);
+        },
+        dateClick(info) {
+          // Click a day to choose it; click the chosen day again to unchoose.
+          selDate = selDate === info.dateStr ? null : info.dateStr;
+          paintSel();
+          syncUrl(calendar.view);
+        },
+        eventClick(info) {
+          // Click a flight event to PIN its route on the mini-map; click it
+          // again to unpin (map fades out). While pinned, hovering another
+          // flight previews that route and the pinned one returns on
+          // mouseleave. Non-flight events don't react to clicks.
+          if (window.__flightMap) {
+            window.__flightMap.toggle(info.event.title);
+            paintPin();
+          }
+        },
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,listMonth'
+        },
+        buttonText: {
+          today: 'Today',
+          month: 'Month',
+          listMonth: 'List'
+        },
+        events: events,
+        height: 'auto',
+        eventMouseEnter(info) {
+          const ep = info.event.extendedProps;
+          const fmt = (d) => d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+          const start = info.event.start ? fmt(info.event.start) : '';
+          // iCal all-day DTEND is EXCLUSIVE (a 12 Aug all-day event ends 13 Aug),
+          // so step back a day for all-day events to show the inclusive last day
+          // — a true single-day event then reads as just its one date.
+          let endDate = info.event.end;
+          if (endDate && info.event.allDay) { endDate = new Date(endDate); endDate.setDate(endDate.getDate() - 1); }
+          const end = endDate ? fmt(endDate) : '';
+          popup.innerHTML = `
+            <strong>${info.event.title}</strong>
+            <div class="date-range">${start}${end && end !== start ? ' → ' + end : ''}</div>
+            ${ep.location ? `<div style="margin-top:6px;opacity:.8">📍 ${ep.location}</div>` : ''}
+            ${ep.description ? `<div style="margin-top:4px;opacity:.65;font-size:.68rem">${ep.description.slice(0,120)}${ep.description.length > 120 ? '…' : ''}</div>` : ''}
+          `;
+          popup.classList.add('visible');
+          // Plot the flight arc if this event's title is a route ("AAA → BBB").
+          if (window.__flightMap) window.__flightMap.enter(info.event.title);
+        },
+        eventMouseLeave() {
+          popup.classList.remove('visible');
+          if (window.__flightMap) window.__flightMap.leave();
+        },
+        eventDidMount(info) {
+          // Color events by hash of title for consistent per-trip colors.
+          // Palette tuned to read clearly against the dark-mode background
+          // and harmonise with the accent blue of the chrome.
+          const colors = ['#7c9ef5', '#5fa8a8', '#c08fed', '#e8956a', '#7ecb7e', '#f5857e'];
+          let hash = 0;
+          for (let c of info.event.title) hash = (hash * 31 + c.charCodeAt(0)) & 0xffff;
+          info.el.style.background = colors[hash % colors.length];
+          info.el.style.borderColor = 'transparent';
+          // Tag the element with its title so paintPin can sweep the DOM, and
+          // restore the pin ring on elements rebuilt by month navigation.
+          info.el.dataset.flightTitle = info.event.title;
+          if (window.__flightMap && window.__flightMap.isPinned(info.event.title)) {
+            info.el.classList.add('fc-event-pinned');
+          }
+        }
+      });
+
+      calendar.render();
+
+      // Apply a manually pasted/edited hash without a reload. No feedback
+      // loop: datesSet writes via replaceState, which never fires hashchange.
+      window.addEventListener('hashchange', () => {
+        const h = readHash();
+        selDate = h.sel;
+        calendar.changeView(h.view, h.sel || h.date || undefined);
+        // changeView only fires datesSet when the range actually moves —
+        // repaint unconditionally so a sel-only edit still lands.
+        requestAnimationFrame(paintSel);
+      });
+
+      // Move popup with mouse
+      document.addEventListener('mousemove', e => {
+        popup.style.left = (e.clientX + 14) + 'px';
+        popup.style.top = (e.clientY + 14) + 'px';
+      });
+    }
+
+    loadCalendar();
+  </script>
+
+  <!-- Shared floating map popover: shell first, then the flight-route renderer
+       (which registers itself into the shell). The map-projection engine
+       stays LAZY — map-route.js only fetches it on the first flight hover. -->
+  <script src="../../../../../界面 UI/map-widgets/map-popover.js"></script>
+  <script src="../../../../../界面 UI/map-widgets/map-route.js"></script>
+
+  <script type="module">
+    // Flight route mini-map glue. The heavy lifting now lives in the shared
+    // map popover (界面 UI/map-widgets: shell + flight-route renderer, which
+    // reuses the site's map-projection engine — the whole-world Northern Hǎo
+    // framing, or a close-up Web-Mercator region crop when both endpoints
+    // fall inside one WORLD_REGIONS region). This page only parses the
+    // hovered title via the shared flight-title SSOT — the SAME grammar the
+    // lifespan-atlas travel calendar uses (引擎 Engines/location-history/
+    // flight-title.js) — so a calendar event titled "LCY → DUB" plots its
+    // great-circle arc on hover.
+    import { parseFlightTitle } from '../../../../../引擎 Engines/location-history/flight-title.js';
+
+    // Two layers of map state: a PINNED route (clicked — sticks until
+    // unpinned) under a transient HOVER preview. `showing` tracks the route
+    // key currently on screen so restoring the pin after a same-route hover
+    // is a no-op (no arc re-animation), and duplicate show() calls are
+    // skipped. Unknown airport codes stay the renderer's call: it validates
+    // against WORLD_AIRPORTS after the engine loads and signals the shell to
+    // stay hidden. Stale-hover races (event A hovered, then quickly event B
+    // while the engine is still loading) are token-guarded inside the shell
+    // — the last show()/hide() always wins.
+    let pinned = null;    // {origin, dest} of the clicked flight, or null
+    let showing = null;   // route key currently displayed, or null when hidden
+
+    const routeKey = (r) => r.origin + '>' + r.dest;
+    const display = (route) => {
+      if (showing === routeKey(route)) return;
+      showing = routeKey(route);
+      window.mapPopover.show({
+        renderer: 'flight-route',
+        origin: route.origin,
+        dest: route.dest,
+        label: route.origin + ' → ' + route.dest,
+        dismiss: 'manual',   // we drive hide() ourselves — no 2 s timer, no X
+        shape: 'circle',     // round display area — matches the home page's popover look
+      });
+    };
+    const clear = () => {
+      if (showing === null) return;
+      showing = null;
+      window.mapPopover.hide();
+    };
+
+    const enter = (title) => {
+      const route = parseFlightTitle(title);
+      // Not a flight: fall back to the pinned route if there is one, else
+      // retract any preview left over from a previous hover.
+      if (route) display(route);
+      else if (pinned) display(pinned);
+      else clear();
+    };
+    const leave = () => { pinned ? display(pinned) : clear(); };
+
+    // Click-to-pin toggle: pin this flight's route, or unpin if it already
+    // is the pin. Non-flight titles are ignored.
+    const toggle = (title) => {
+      const route = parseFlightTitle(title);
+      if (!route) return;
+      if (pinned && routeKey(pinned) === routeKey(route)) { pinned = null; clear(); }
+      else { pinned = route; display(route); }
+    };
+    const isPinned = (title) => {
+      const route = parseFlightTitle(title);
+      return !!(route && pinned && routeKey(pinned) === routeKey(route));
+    };
+
+    window.__flightMap = { enter, leave, toggle, isPinned };
+  </script>
+<script src="../../../../界面 UI/page-widgets/version-check.js" defer></script>
+</body>
+</html>

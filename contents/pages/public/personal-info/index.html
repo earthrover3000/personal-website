@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Info</title>
+  <!-- Site-wide theme (manual dark/light/auto): stamps <html data-theme>
+       before paint so navigation never flashes the wrong theme. -->
+  <script src="../../../../../界面 UI/page-widgets/theme-init.js"></script>
+  <link rel="stylesheet" href="../../../../../界面 UI/styles/base.css">
+  <!-- Leaflet + shared map popover (single source of truth in 界面 UI/map-widgets/).
+       Same files inlined by site_facade/helpers.read_map_popover_assets() for the
+       bio root; the test page and this page link them directly. -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <link rel="stylesheet" href="../../../../../界面 UI/map-widgets/map-popover.css">
+  <script src="../../../../../界面 UI/map-widgets/map-popover.js" defer></script>
+  <style>
+    /* Page-specific element rules — scoped to .container > * per the
+       css-leak-defense rule so they don't leak into shared components
+       (.toc h2, .back-link, etc.). */
+    .container { counter-reset: pi-section; }
+
+    .container > h2 {
+      color: var(--text);
+      font-size: 1.2rem;
+      margin: 2rem 0 0.8rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--border);
+      counter-increment: pi-section;
+    }
+    .container > h2::before { content: counter(pi-section) ". "; }
+
+    /* Bio lines mirror the home page: one short fact per row, optional
+       muted hint in parentheses on the right. */
+    .bio p {
+      margin: 0.35rem 0;
+      display: flex;
+      gap: 0.6rem;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+    .bio .bio-content { color: var(--text); }
+    .bio .bio-hint {
+      color: var(--muted);
+      font-size: 0.85em;
+    }
+
+    /* Places-lived list: one clickable coordinate per row. City names
+       are intentionally not shown on the page — the data-name carried
+       by each .map-trigger surfaces on the popover label bar instead,
+       so the city reveals itself when the visitor clicks. */
+    .places { list-style: none; padding: 0; margin: 0.4rem 0 0; }
+    .places li { padding: 0.3rem 0; }
+    .places .coord {
+      /* Inherit body color (var(--text) per base.css) — solid white/black
+         to match the bio coordinate rows on the home page, not muted. */
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<!-- data-map-popover-persistent: the shared map-popover.js switches into
+     persistent mode here (no auto-fade; dismiss via the X button on the
+     card, Escape, or a click outside the card). -->
+<body data-map-popover-persistent>
+
+<div class="container">
+  <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../">Home</a> <span class="sep">›</span> <a href="../">Index</a> <span class="sep">›</span> <span aria-current="page">Personal Info</span></nav>
+  <h1>Personal Info<!--CATS-START--><span class="page-cats"><a class="page-cat" href="../category-matrix/" title="Personal" aria-label="Personal">👤</a></span><!--CATS-END--></h1>
+  <p class="head-meta">&nbsp;</p>
+
+  <h2>Places I've lived</h2>
+  <p>Click any coordinate to peek at it on a map.</p>
+  <ul class="places">
+    <!-- Rendered from the lived-places SSOT (Personal Data
+         life/places-lived.yaml) by build.py via
+         helpers.render_places_lived_html(), one row per place in file
+         order. lat/lon are each city's OSM place=city node
+         (openstreetmap.org/node/<id>); display strings stay rounded to
+         1 decimal. -->
+    <li><span class="coord map-trigger" data-lat="53.3493795" data-lon="-6.2605593" data-name="Dublin">(53.3° N, 6.3° W, 🌍)</span></li> <!-- node 3473474851 -->
+    <li><span class="coord map-trigger" data-lat="52.2055314" data-lon="0.1186637" data-name="Cambridge">(52.2° N, 0.1° E, 🌍)</span></li> <!-- node 20971094 -->
+    <li><span class="coord map-trigger" data-lat="51.5074456" data-lon="-0.1277653" data-name="London">(51.5° N, 0.1° W, 🌍)</span></li> <!-- node 107775 -->
+    <li><span class="coord map-trigger" data-lat="31.2323437" data-lon="121.4691024" data-name="Shanghai">(31.2° N, 121.5° E, 🌏)</span></li> <!-- node 778910398 -->
+  </ul>
+
+</div>
+
+<script src="../../../../界面 UI/page-widgets/version-check.js" defer></script>
+</body>
+</html>

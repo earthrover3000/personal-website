@@ -221,6 +221,12 @@ html[data-show-planned] .planned-row { display: block; }
   vertical-align: 0.12rem;
   letter-spacing: 0.02em;
 }
+/* A teaser row that links its placeholder page: the anchor takes over as the
+   block tap-target (it inherits .row a's block metrics), so the li sheds its
+   own padding to avoid doubling; colour stays muted — clickable, still a
+   teaser, not a live page. */
+.planned-row--linked { padding: 0; }
+.planned-row--linked > a { color: var(--muted); }
 
 .row { display: flex; gap: 2rem; align-items: flex-start; }
 /* Both columns flex:1 → they divide the row's available width evenly,
