@@ -1,13 +1,13 @@
 [
  {
-  "glyph": "🔄",
-  "cps": "1f504",
-  "count": 8,
+  "glyph": "⏳",
+  "cps": "23f3",
+  "count": 9,
   "asset": true
  },
  {
-  "glyph": "⏳",
-  "cps": "23f3",
+  "glyph": "🔄",
+  "cps": "1f504",
   "count": 8,
   "asset": true
  },
@@ -15,6 +15,12 @@
   "glyph": "📍",
   "cps": "1f4cd",
   "count": 7,
+  "asset": true
+ },
+ {
+  "glyph": "💭",
+  "cps": "1f4ad",
+  "count": 6,
   "asset": true
  },
  {
@@ -27,12 +33,6 @@
   "glyph": "♒️",
   "cps": "2652-fe0f",
   "count": 5,
-  "asset": true
- },
- {
-  "glyph": "💭",
-  "cps": "1f4ad",
-  "count": 4,
   "asset": true
  },
  {
@@ -276,6 +276,18 @@
   "asset": true
  },
  {
+  "glyph": "🔂",
+  "cps": "1f502",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🔒",
+  "cps": "1f512",
+  "count": 2,
+  "asset": true
+ },
+ {
   "glyph": "🔢",
   "cps": "1f522",
   "count": 2,
@@ -362,6 +374,12 @@
  {
   "glyph": "🫘",
   "cps": "1fad8",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "⏯️",
+  "cps": "23ef-fe0f",
   "count": 2,
   "asset": true
  },
