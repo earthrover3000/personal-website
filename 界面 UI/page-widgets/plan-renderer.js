@@ -520,6 +520,37 @@
     ctrl.setAttribute('contenteditable', 'false');
     li.appendChild(ctrl);
 
+    // Optional long-form body (detail_en/detail_zh) behind a disclosure — the
+    // leaf stays a one-liner until opened. View-only in the browser (edit via
+    // the YAML / terminal editor); the rendered divs are ALSO the save-path
+    // source (see extractItemsFromUl), so the DOM stays the one copy.
+    if (item.detail_en || item.detail_zh) {
+      const det = document.createElement('details');
+      det.className = 'li-detail';
+      det.setAttribute('contenteditable', 'false');
+      // The li is a flex row with ordered children (docs.css: num 0 → tag 4);
+      // order 5 + full basis drops the disclosure onto its own full-width row
+      // BELOW the entry line instead of defaulting into slot 0 before the title.
+      det.style.order = '5';
+      det.style.flexBasis = '100%';
+      det.style.whiteSpace = 'pre-wrap';
+      det.style.color = 'var(--muted)';
+      det.style.fontSize = '0.88rem';
+      det.style.margin = '0.15rem 0 0.3rem';
+      const sum = document.createElement('summary');
+      sum.textContent = 'detail';
+      sum.style.cursor = 'pointer';
+      det.appendChild(sum);
+      [['detail-en', item.detail_en], ['detail-zh', item.detail_zh]].forEach(([cls, val]) => {
+        if (!val) return;
+        const div = document.createElement('div');
+        div.className = cls;
+        appendLinkedText(div, String(val).replace(/\s+$/, ''));
+        det.appendChild(div);
+      });
+      li.appendChild(det);
+    }
+
     ul.appendChild(li);
   }
 
@@ -1083,6 +1114,15 @@
         });
         item.summary_en = text.trim();
         if (zhEl) item.summary_zh = zhEl.textContent.trim();
+      }
+      // detail_en/zh round-trip from their rendered (view-only) divs, so an
+      // in-browser edit+save never drops a leaf's long-form body.
+      const det = li.querySelector(':scope > details.li-detail');
+      if (det) {
+        const dEn = det.querySelector('.detail-en');
+        const dZh = det.querySelector('.detail-zh');
+        if (dEn) item.detail_en = dEn.textContent;
+        if (dZh) item.detail_zh = dZh.textContent;
       }
       if (item.summary_en !== undefined) items.push(item);
     });
