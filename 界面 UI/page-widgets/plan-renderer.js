@@ -111,16 +111,30 @@
   }
 
   // ---- Loading ----
+  // The two AUTHORED halves (entries + dev) may live somewhere other than the
+  // plans/ dir beside the page: console pages set window.PLAN_DATA_BASE to the
+  // loopback /plan-data/ mount over the one shared store, so they read exactly
+  // what the terminal Planner writes (user decision 2026-08-23). Structure and
+  // the generated JSON are always page-relative — they belong to the project
+  // whose page this is. The website leaves the base unset: its build copies the
+  // authored halves into the deployed plans/ dir, since a published site has no
+  // vault to reach.
+  const DATA_BASE = window.PLAN_DATA_BASE || 'plans/';
+
   async function fetchYamlFiles() {
     const [structRes, entriesRes, devRes, builtRes, pvRes] = await Promise.all([
       fetch(`plans/${APP_PLAN_ID}-structure.yaml`),
-      fetch(`plans/${APP_PLAN_ID}-entries.yaml`),
-      fetch(`plans/${APP_PLAN_ID}-dev.yaml`),
+      fetch(`${DATA_BASE}${APP_PLAN_ID}-entries.yaml`),
+      fetch(`${DATA_BASE}${APP_PLAN_ID}-dev.yaml`),
       fetch('plans/built-pages.json').catch(() => null),
       fetch('plans/plan-versions.json').catch(() => null),
     ]);
-    if (!structRes.ok || !entriesRes.ok || !devRes.ok) {
-      throw new Error(`Failed to load ${APP_PLAN_ID} YAML files from plans/`);
+    if (!structRes.ok) {
+      throw new Error(`Failed to load ${APP_PLAN_ID}-structure.yaml from plans/`);
+    }
+    if (!entriesRes.ok || !devRes.ok) {
+      throw new Error(`Failed to load ${APP_PLAN_ID} entries/dev YAML from ${DATA_BASE}`
+                      + (DATA_BASE === 'plans/' ? '' : ' — is 资料 Materials mounted?'));
     }
     let manifest = null;
     if (builtRes && builtRes.ok) {
@@ -1168,7 +1182,7 @@
       manifestMeta = data.manifest || manifestMeta;
       render();
     } catch (e) {
-      alert('Cannot reset: failed to reload YAML files from plans/. Are you serving the page?');
+      alert('Cannot reset: failed to reload the plan YAML. Are you serving the page?');
       console.error(e);
     }
   }
