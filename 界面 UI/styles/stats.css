@@ -111,8 +111,22 @@ body:has(#group-categories:not(:checked)) #project-outline .section-bar { displa
   user-select: none;
 }
 .stats-table .section-bar:hover td { background: var(--border); }
-.stats-table .section-bar td::before { content: '▾ '; opacity: 0.55; }
-.stats-table .section-bar.collapsed td::before { content: '▸ '; }
+/* The fold chevron belongs to the CAPTION cell only. Scoped to :first-child
+   since 2026-08-23, when section bars grew Lines/Files/Size cells carrying
+   the section's own sum (stats_page._section_bar) — unscoped, every one of
+   those numbers wore its own ▾. The pre-existing `.roadmap-bar
+   td:nth-child(2)::before { content: none }` below was the same fix done
+   one-off for the one bar that already had a second cell. */
+.stats-table .section-bar td:first-child::before { content: '▾ '; opacity: 0.55; }
+.stats-table .section-bar.collapsed td:first-child::before { content: '▸ '; }
+/* The sum cells read as data, not as caption: same grey-bar background and
+   weight as the label, but no letter-spacing/uppercase (they are numbers)
+   and tabular figures so the columns line up with the rows beneath. */
+.stats-table .section-bar td.num {
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
 /* Rows hidden by a folded section (class managed by stats-table.js; folds
    suspend while the table is flattened via the group toggle). */
 .stats-table tr.fold-hidden { display: none; }
