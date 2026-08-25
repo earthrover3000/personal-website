@@ -56,6 +56,12 @@
   // versions present in the data. Sorting always uses PlanOrder.compareVersion.
   let _versionOrder = [];
   let _legend = null;   // [{token, title}] from plan-versions.json, or null
+  // The legend's own heading: which vocabulary these tokens belong to, and
+  // where it is written down. Carried in the SAME file as the rows because the
+  // answer differs per build — the website's tokens are roadmap stages and the
+  // roadmap page is a real deployed URL; a console's are the named ladder,
+  // which has no page to point at. Hardcoding either here got the other wrong.
+  let _legendMeta = {};
 
   // ── AUTHORED FIELD NAMES (fixed 2026-07-27) ────────────────────────────────
   // Every leaf in every plans/*.yaml — 35 entries files and 301 dev entries — is
@@ -102,12 +108,21 @@
   // grouped by major, hue-stepped within each series), recomputed each render.
   let _versionColors = {};
 
-  // Apply a version's hue as an inline background to a tag / legend chip / filter
-  // button. A non-version status (or unset) gets the neutral 'unset' chrome.
+  // Chrome for a tag / legend chip / filter button, in three kinds:
+  //   version token  → 'planv' + the hue PlanOrder.versionColors computed for
+  //                    it, set inline (an open series, so it is generated)
+  //   ladder stage   → 'planstage stage-<token>', coloured by docs.css (a
+  //                    fixed set of words, so it is authored)
+  //   no stage       → 'unset', the neutral chrome
+  // Before 2026-08-25 there were only the first and last, so `now` / `next` /
+  // `later` all fell through to the same grey as no-stage-at-all — a priority
+  // axis whose three rungs were indistinguishable at a glance.
   function styleVersionEl(el, baseClass, token) {
     const c = _versionColors[token];
-    if (c) { el.className = baseClass + ' planv'; el.style.background = c; }
-    else { el.className = baseClass + ' unset'; el.style.background = ''; }
+    if (c) { el.className = baseClass + ' planv'; el.style.background = c; return; }
+    el.style.background = '';
+    const stage = PlanOrder.stageClass(token);
+    el.className = baseClass + (stage ? ' planstage ' + stage : ' unset');
   }
 
   // ---- Loading ----
@@ -140,9 +155,18 @@
     if (builtRes && builtRes.ok) {
       try { manifest = await builtRes.json(); } catch (_) { /* keep null */ }
     }
-    let versions = null;
+    let versions = null, legendMeta = null;
     if (pvRes && pvRes.ok) {
-      try { versions = (await pvRes.json()).versions || null; } catch (_) { /* keep null */ }
+      try {
+        const pv = await pvRes.json();
+        versions = pv.versions || null;
+        // Only keys the file actually carries — buildLegend distinguishes a
+        // payload that named its legend from one written before it could, and
+        // `{label: undefined}` would read as the former.
+        legendMeta = {};
+        if (pv.label !== undefined) legendMeta.label = pv.label;
+        if (pv.href !== undefined) legendMeta.href = pv.href;
+      } catch (_) { /* keep null */ }
     }
     return {
       structure: jsyaml.load(await structRes.text()),
@@ -150,6 +174,7 @@
       dev: jsyaml.load(await devRes.text()) || { sections: [] },
       manifest: manifest,
       versions: versions,
+      legendMeta: legendMeta,
     };
   }
 
@@ -161,6 +186,7 @@
       devData = data.dev;
       manifestMeta = data.manifest || manifestMeta;
       _legend = data.versions || null;
+      _legendMeta = data.legendMeta || {};
       render();
     } catch (e) {
       document.getElementById('loading-msg').textContent =
@@ -500,22 +526,30 @@
 
   function renderLeafItem(ul, item) {
     const li = document.createElement('li');
-    const status = leafStatus(item), text = leafText(item), zh = leafZh(item);
-    if (status) li.dataset.status = status;
+    // A stage-less entry is tagged `unset` rather than left bare (2026-08-25).
+    // It had been rendering as an untagged line, which cost it two things: the
+    // 'unset' filter button matched nothing, because the button filters on
+    // li.dataset.status and there was none to match; and there was no chip to
+    // click, so the one status you could not reach by cycling was the one every
+    // new entry starts in. The chip is the TOKEN in every case — `now`, `p0.4`,
+    // `unset` alike — and the legend is what decodes it (PlanOrder.UNSET.title,
+    // 'No stage'). Authored files still say it by OMITTING `stage:`; see
+    // extractItemsFromUl, which writes the absence back as an absence.
+    const text = leafText(item), zh = leafZh(item);
+    const status = leafStatus(item) || PlanOrder.UNSET.token;
+    li.dataset.status = status;
 
     const handle = document.createElement('span');
     handle.className = 'drag-handle';
     handle.textContent = '⠇';
     li.appendChild(handle);
 
-    if (status) {
-      const tag = document.createElement('span');
-      styleVersionEl(tag, 'tag', status);
-      tag.setAttribute('contenteditable', 'false');
-      tag.textContent = status;
-      tag.addEventListener('click', (e) => toggleStatus(tag, e));
-      li.appendChild(tag);
-    }
+    const tag = document.createElement('span');
+    styleVersionEl(tag, 'tag', status);
+    tag.setAttribute('contenteditable', 'false');
+    tag.textContent = PlanOrder.tokenLabel(status);
+    tag.addEventListener('click', (e) => toggleStatus(tag, e));
+    li.appendChild(tag);
 
     const textSpan = document.createElement('span');
     textSpan.className = 'li-text';
@@ -538,6 +572,7 @@
     // leaf stays a one-liner until opened. View-only in the browser (edit via
     // the YAML / terminal editor); the rendered divs are ALSO the save-path
     // source (see extractItemsFromUl), so the DOM stays the one copy.
+    // Opened by clicking the entry LINE — see toggleDetail.
     if (item.detail_en || item.detail_zh) {
       const det = document.createElement('details');
       det.className = 'li-detail';
@@ -551,9 +586,12 @@
       det.style.color = 'var(--muted)';
       det.style.fontSize = '0.88rem';
       det.style.margin = '0.15rem 0 0.3rem';
+      // The <summary> exists but shows nothing: a <details> WITHOUT one gets
+      // the UA's own 'Details' marker, so it cannot simply be dropped. Hidden
+      // by docs.css, which leaves <details>'s open/closed machinery — and the
+      // browser's find-in-page reveal — intact while the entry line becomes
+      // the only control (user decision 2026-08-25).
       const sum = document.createElement('summary');
-      sum.textContent = 'detail';
-      sum.style.cursor = 'pointer';
       det.appendChild(sum);
       [['detail-en', item.detail_en], ['detail-zh', item.detail_zh]].forEach(([cls, val]) => {
         if (!val) return;
@@ -562,6 +600,10 @@
         appendLinkedText(div, String(val).replace(/\s+$/, ''));
         det.appendChild(div);
       });
+      // Marks the row as openable: the sole hint that it is, since there is no
+      // marker (docs.css gives it a pointer cursor outside edit mode).
+      li.classList.add('has-detail');
+      li.addEventListener('click', (e) => toggleDetail(li, det, e));
       li.appendChild(det);
     }
 
@@ -667,20 +709,60 @@
     if (!isEditing()) return;
     const li = tag.closest('li');
     if (!li) return;
-    const ring = ['unset'].concat(_versionOrder);
-    let i = ring.indexOf(li.dataset.status || 'unset');
+    const ring = [PlanOrder.UNSET.token].concat(_versionOrder);
+    let i = ring.indexOf(li.dataset.status || PlanOrder.UNSET.token);
     if (i < 0) i = 0;
     const step = (e && e.shiftKey) ? -1 : 1;
     const next = ring[(i + step + ring.length) % ring.length];
     li.dataset.status = next;
     styleVersionEl(tag, 'tag', next);
-    tag.textContent = next === 'unset' ? 'Unset' : next;
+    tag.textContent = PlanOrder.tokenLabel(next);
   }
 
-  // Roadmap legend (token → meaning) so a compact tag like "p0.3" is decodable.
-  // Inserted above the filter bar; styled by .plan-legend in the shared docs.css.
+  // The entry line IS the disclosure control (user decision 2026-08-25): click
+  // anywhere on a leaf that HAS a long-form body to open or close it. There is
+  // no ▶ marker by that decision — the trade was made knowing that a row which
+  // can be opened looks exactly like one that cannot.
+  //
+  // Five things already claim a click inside a leaf, and each is handed back:
+  // the status chip cycles, .li-controls are the edit buttons, the drag handle
+  // is a grab target, summary text can carry links, and the opened body is
+  // prose you may want to select without it collapsing under you. Edit mode
+  // bows out completely — the text is contenteditable there, and a click is how
+  // you place the caret. A click that merely ENDS a drag-selection is not a
+  // click for this purpose either, or reading a long line would shut it.
+  function toggleDetail(li, det, e) {
+    if (isEditing()) return;
+    if (e.target.closest &&
+        e.target.closest('.tag, .li-controls, .drag-handle, a, .li-detail')) return;
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed) return;
+    det.open = !det.open;
+  }
+
+  // What a legend meant before it named itself: the website's roadmap, linked
+  // deployed-relative from /contents/docs/<id>/index.html — the same convention
+  // as the breadcrumb hrefs (site_facade/render.py DOC_BREADCRUMBS). Only ever
+  // reached by a payload predating both keys; see buildLegend.
+  const LEGACY_LEGEND = { label: 'Roadmap', href: '../../pages/public/site-roadmap/' };
+
+  // The legend's rows: whatever the build supplied, then ALWAYS the 'No stage'
+  // row (PlanOrder.UNSET). That last one is not part of either vocabulary — it
+  // is the absence of a stage, which every plan can have — so it is appended
+  // here rather than emitted into plan-versions.json by two separate builds.
+  function legendRows() {
+    const rows = (_legend || []).filter(v => !PlanOrder.isUnset(v.token));
+    return rows.concat([PlanOrder.UNSET]);
+  }
+
+  // Legend (token → meaning) so a compact tag like "p0.3" — or a bare grey chip
+  // — is decodable. Inserted above the filter bar; styled by .plan-legend in
+  // the shared docs.css, which floats it against the right margin on a wide
+  // viewport and drops it inline below 1200px.
+  //
   // Only shown when the build supplied plan-versions.json (the legend source);
-  // a page without it (e.g. a console plan) simply has no legend.
+  // a page without it has no vocabulary to explain and gets no legend, since a
+  // lone 'No stage' row would explain nothing.
   function buildLegend() {
     const bar = document.getElementById('filter-bar');
     let el = document.getElementById('plan-legend');
@@ -692,23 +774,38 @@
       bar.parentNode.insertBefore(el, bar);
     }
     el.innerHTML = '';
-    // The label links to the site-roadmap page — the legend's tokens ARE that
-    // page's stages (plan-versions.json is build-emitted from site-roadmap.yaml).
-    // Deployed-relative from /contents/docs/<id>/index.html, same convention as
-    // the breadcrumb hrefs (site_facade/render.py DOC_BREADCRUMBS).
-    const label = document.createElement('a');
+    // Label and link come from the legend's OWN payload (_legendMeta), not from
+    // here. The website emits 'Roadmap' + the deployed site-roadmap URL, since
+    // its tokens ARE that page's stages; a console emits 'Stage' and no href,
+    // because the named ladder lives in a JSON file with no page to open. This
+    // was hardcoded to the website's pair, which meant every console plan page
+    // would have offered a link that resolves to nothing.
+    //
+    // A payload carrying NEITHER key is a plan-versions.json written before
+    // those keys existed, and gets the old hardcoded pair back. This matters:
+    // the shared shelf reaches a deployed site the moment the vault syncs,
+    // while its plans/ files only change when the site is REBUILT, so for that
+    // window the website is serving new renderer + old payload. Falling back
+    // on 'href missing' alone would have been wrong in the other direction —
+    // a console legend legitimately has a label and no href.
+    const meta = ('label' in _legendMeta || 'href' in _legendMeta)
+      ? _legendMeta : LEGACY_LEGEND;
+    const href = meta.href;
+    const label = document.createElement(href ? 'a' : 'span');
     label.className = 'plan-legend-label';
-    label.textContent = 'Roadmap:';
-    label.href = '../../pages/public/site-roadmap/';
-    label.target = '_blank';
-    label.rel = 'noopener';
+    label.textContent = (meta.label || 'Roadmap') + ':';
+    if (href) {
+      label.href = href;
+      label.target = '_blank';
+      label.rel = 'noopener';
+    }
     el.appendChild(label);
-    _legend.forEach((v) => {
+    legendRows().forEach((v) => {
       const item = document.createElement('span');
       item.className = 'plan-legend-item';
       const chip = document.createElement('span');
       styleVersionEl(chip, 'tag', v.token);
-      chip.textContent = v.token;
+      chip.textContent = PlanOrder.tokenLabel(v.token);
       const title = document.createElement('span');
       title.className = 'plan-legend-title';
       title.textContent = v.title || '';
@@ -719,8 +816,8 @@
   }
 
   // Filter bar built from the canonical version order: All, one button per
-  // version (positional colour class), Unset. Replaces any static buttons in the
-  // page shell so the controls always match the roadmap.
+  // version (positional colour class), then unset. Replaces any static buttons
+  // in the page shell so the controls always match the roadmap.
   function buildFilterBar() {
     const bar = document.getElementById('filter-bar');
     if (!bar) return;
@@ -740,12 +837,15 @@
     };
     mk('all', 'All', '').classList.toggle('active', _activeFilter === 'all');
     _versionOrder.forEach(token => {
-      const b = mk(token, token, '');
+      const b = mk(token, PlanOrder.tokenLabel(token), '');
       styleVersionEl(b, 'filter-btn', token);   // overwrites className → set state after
       b.dataset.filter = token;
       if (token === _activeFilter) b.classList.add('active');
     });
-    mk('unset', 'Unset', 'unset').classList.toggle('active', _activeFilter === 'unset');
+    // Last button = the 'No stage' filter. Labelled with its TOKEN, like every
+    // other button here, so the legend row above decodes both alike.
+    mk(PlanOrder.UNSET.token, PlanOrder.tokenLabel(PlanOrder.UNSET.token), 'unset')
+      .classList.toggle('active', _activeFilter === PlanOrder.UNSET.token);
   }
 
   let _activeFilter = 'all';
@@ -921,12 +1021,12 @@
   function addBelow(btn) {
     const li = btn.closest('li');
     const newLi = document.createElement('li');
-    newLi.dataset.status = 'unset';
+    newLi.dataset.status = PlanOrder.UNSET.token;
     li.parentNode.insertBefore(newLi, li.nextSibling);
     addHandle(newLi);
     const tag = document.createElement('span');
     tag.className = 'tag unset';
-    tag.textContent = 'Unset';
+    tag.textContent = PlanOrder.tokenLabel(PlanOrder.UNSET.token);
     tag.addEventListener('click', (e) => toggleStatus(tag, e));
     newLi.querySelector('.drag-handle').after(tag);
     const textSpan = document.createElement('span');
@@ -954,12 +1054,12 @@
 
   function addItemToSection(ul) {
     const newLi = document.createElement('li');
-    newLi.dataset.status = 'unset';
+    newLi.dataset.status = PlanOrder.UNSET.token;
     ul.appendChild(newLi);
     addHandle(newLi);
     const tag = document.createElement('span');
     tag.className = 'tag unset';
-    tag.textContent = 'Unset';
+    tag.textContent = PlanOrder.tokenLabel(PlanOrder.UNSET.token);
     tag.addEventListener('click', (e) => toggleStatus(tag, e));
     newLi.querySelector('.drag-handle').after(tag);
     const textSpan = document.createElement('span');
@@ -1116,7 +1216,14 @@
     const items = [];
     ul.querySelectorAll(':scope > li').forEach(li => {
       const item = {};
-      if (li.dataset.status) item.stage = li.dataset.status;
+      // `unset` is the renderer's name for a MISSING stage, never an authored
+      // value: an entry with no stage saves with no `stage:` key, exactly as it
+      // was written. Every li carries dataset.status now (renderLeafItem tags
+      // the stage-less ones), so without this guard a Save would stamp
+      // `stage: unset` across every untagged entry in the file.
+      if (li.dataset.status && !PlanOrder.isUnset(li.dataset.status)) {
+        item.stage = li.dataset.status;
+      }
       const textEl = li.querySelector(':scope > .li-text');
       if (textEl) {
         const zhEl = textEl.querySelector('.zh');

@@ -115,9 +115,29 @@ li.hidden { display: none; }
    within a series so related versions stay one family yet read as distinct. The
    plan renderer sets that hue inline as the background; here we only carry the
    shared chrome (white text, fixed width). unset stays neutral. */
-.tag.planv, .tag.unset { width: 3.4rem; text-align: center; }
+.tag.planv, .tag.planstage, .tag.unset { width: 3.4rem; text-align: center; }
 .tag.planv, .filter-btn.planv { color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,.25); }
 .tag.unset { background: var(--border); color: var(--muted); }
+
+/* Named stage ladder (引擎 Engines/plan-order/stages.json) — the axis every
+   plan that is NOT the website's tags against. Authored here rather than
+   generated like the version hues above, because unlike versions these are a
+   fixed three with fixed meanings: they never arrive, retire or renumber, so
+   there is no series for a formula to walk.
+
+   The palette is the one the Personal Apps App List carried before the shared
+   skin went version-colours-only ("The shared docs.css now colours version
+   tags only, so restate the status tag + filter colours here" — it restated
+   them, and every other plan page went grey). `next` keeps that page's teal
+   exactly; green and yellow come off the same three-tag set, mapped onto the
+   ladder so the run green → teal → yellow → grey reads as attention cooling:
+   in progress, up next, not scheduled, no stage at all.
+
+   PlanOrder.stageClass builds the class name, so a fourth rung is one entry in
+   stages.json plus one line here. */
+.tag.stage-now,    .filter-btn.stage-now    { background: var(--tag-green);  color: var(--tag-green-text); }
+.tag.stage-next,   .filter-btn.stage-next   { background: var(--tag-teal);   color: var(--tag-teal-text); }
+.tag.stage-later,  .filter-btn.stage-later  { background: var(--tag-yellow); color: var(--tag-yellow-text); }
 .tag.growth { background: var(--tag-green); color: var(--tag-green-text); }
 .tag.stabilising { background: var(--tag-blue); color: var(--tag-blue-text); }
 .tag.festival { background: var(--tag-yellow); color: var(--tag-yellow-text); }
@@ -150,7 +170,8 @@ ul.drop-child { outline: 1px dashed var(--accent); border-radius: 4px; min-heigh
 .filter-btn { display: inline-block; font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600; cursor: pointer; border: none; }
 .filter-btn[data-filter="all"] { background: var(--border); color: var(--muted); }
 .filter-btn[data-filter="all"].active { background: var(--accent); color: #fff; }
-/* version filter buttons (.filter-btn.planv) get their hue inline + white text above */
+/* version filter buttons (.filter-btn.planv) get their hue inline + white text
+   above; ladder buttons (.filter-btn.stage-*) take the fixed palette above */
 .filter-btn[data-filter="unset"] { background: var(--border); color: var(--muted); }
 .filter-btn { transition: transform 0.1s, filter 0.1s; }
 .filter-btn:hover { filter: brightness(1.2); }
@@ -180,6 +201,18 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
 @media (max-width: 1200px) {
   .plan-legend { position: static; max-width: none; margin-bottom: 1.2rem; box-shadow: none; }
 }
+
+/* ---- Long-form bodies (li-detail) ---- */
+/* An entry's detail opens from the entry LINE, not from a marker (user decision
+   2026-08-25; plan-renderer.js toggleDetail). The <summary> still has to EXIST
+   — a <details> without one gets the UA's own 'Details' marker — so it is
+   hidden here rather than omitted there. The pointer cursor on a row that has a
+   body is the only hint that it opens, and only outside edit mode, where a
+   click places the caret instead. The opened prose takes the text cursor back,
+   since it is there to be read and selected. */
+.li-detail > summary { display: none; }
+.container:not(.editing) li.has-detail { cursor: pointer; }
+.li-detail { cursor: text; }
 
 /* ---- Item controls ---- */
 .li-controls { display: none; gap: 0.2rem; margin-left: 0.4rem; vertical-align: middle; }

@@ -39,5 +39,31 @@
     { "token": "now",   "title": "In progress" },
     { "token": "next",  "title": "Up next" },
     { "token": "later", "title": "Not scheduled" }
-  ]
+  ],
+
+  "_unset_comment": [
+    "`unset` IS NOT A RUNG OF THE LADDER ABOVE, and that is why it sits in its",
+    "own key. The three stages are DECISIONS about when; this is the absence of",
+    "one — an entry nobody has placed yet. It therefore applies to the website's",
+    "version axis too, which the ladder explicitly does not (see THE WEBSITE IS",
+    "NOT GOVERNED BY THIS): 'no stage chosen' is a state of the ENTRY, not a",
+    "property of whichever vocabulary that plan tags in. Both legend emitters",
+    "append it, so every plan page ends its legend with the same row.",
+    "",
+    "AUTHORED AS ABSENCE. You do not write `stage: unset` in a YAML — you leave",
+    "`stage:` off. The token is the RENDERER's name for that hole",
+    "(plan-renderer.js has carried it since the filter bar existed: the neutral",
+    "tag chrome, the 'unset' filter button, the first step of the click-cycle).",
+    "What was missing was only a NAME for it, so a stage-less entry rendered as",
+    "an untagged line and the filter button matched nothing. `stage: unset`",
+    "written out by hand is still accepted on read — plan_data_check does not",
+    "call it off-ladder — because the browser's Save path emits what the cycle",
+    "produced.",
+    "",
+    "WHY 'No stage' (user decision 2026-08-25). The alternatives all said more",
+    "than they knew: 'Unassigned' leans on a person, 'Undecided' claims you",
+    "weighed it, 'Unsorted' claims an order. This one names the empty field and",
+    "stops, which is the whole of what is true about such an entry."
+  ],
+  "unset": { "token": "unset", "title": "No stage" }
 }
