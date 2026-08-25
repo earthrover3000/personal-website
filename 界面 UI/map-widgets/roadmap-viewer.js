@@ -1,7 +1,7 @@
 // roadmap-viewer.js — shared "curated GeoJSON road map" viewer for the
 // Cities & Transport page's three map sections (Cambridge Cycleways,
 // Lujiazui Roads, Yangtze Delta Motorways). Distilled from the three
-// research previews in P:\资料 Materials\…\创作 Works\cities-transport\
+// research previews in P:\资料 Materials\…\创作 Creation\cities-transport\
 // (which keep the research tools: pins, bbox copy, cursor readout, full
 // variants); this widget is the clean public viewer:
 //

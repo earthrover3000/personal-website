@@ -1,0 +1,107 @@
+{
+  "_comment": [
+    "THE PLAN FIELD MODEL — what a plan entry and a plan folder may carry, what",
+    "kind each field is, and which of them owe a second language. The companion",
+    "to plan-order/stages.json: that file is the single source for a plan's",
+    "ORDER vocabulary, this one for its FIELD vocabulary.",
+    "",
+    "WHY IT EXISTS. The model was written down in four places and none of them",
+    "could see the others: the ENTRY_NOTES / FOLDER_NOTES maps inside the Field",
+    "Legend page (contents/docs/plan-fields.html), `_BILINGUAL_BASES` inside",
+    "plan_data_check, and a sentence naming the bases in each of the `bilingual`",
+    "shelf library and 日程 Agenda's plan/translate.py. Two independent misses",
+    "followed, both found on 2026-08-25:",
+    "",
+    "  · `detail` was undocumented on the tree side. The Legend page derives its",
+    "    field NAMES from live data and flags any it has no note for — a good",
+    "    design, but it reads ONE plan, site-entries.yaml, because a deployed",
+    "    site can only fetch the plans deployed beside it. `detail` is used by",
+    "    origin-entries.yaml, which is a console plan and never ships there. So",
+    "    the drift banner could not see the drift, and the field the plan pages",
+    "    render a whole disclosure for had no row in its own legend.",
+    "",
+    "  · plan_data_check's first bilingual audit required BOTH languages of",
+    "    `desc` and `detail`, which are mono by default — the Legend page had",
+    "    said so in prose since it was written. The check reported a settled",
+    "    choice as a gap because it could not read the rule it was enforcing.",
+    "",
+    "WHAT IS DERIVED AND WHAT IS DECLARED, unchanged by this file. Which fields",
+    "are PRESENT in a given plan is a fact, and the Legend page keeps deriving",
+    "it from the data. What a field MEANS, what kind it is, and whether it owes",
+    "a second language are decisions, and decisions live here. The page still",
+    "flags a live field with no entry in this file — the drift check now has",
+    "something cross-language to check against.",
+    "",
+    "both_languages: 'required' — an audit failure to write only one side;",
+    "'optional' — mono is a normal state (you may translate it, you are not owed",
+    "a second side). Absent on a field that is not bilingual at all.",
+    "",
+    "legacy_bases: older BASE names a reader still accepts, i.e. ones that also",
+    "take the _en / _zh / _raw suffixes. Not the same thing as the older",
+    "ASYMMETRIC pairs (bare `text`=English with bare `zh`=Chinese; bare",
+    "`description` with `description_zh`), which are not bases at all and are",
+    "named in the notes below instead — listing them here produced a scanner",
+    "hunting for `zh_en:`. The `bilingual` shelf library owns the trio model and",
+    "the dual-read rule; this only records which bases wore which older names.",
+    "",
+    "Array order IS display order — the Legend page renders rows in the order",
+    "they appear here, so there is no separate index to keep in step.",
+    "",
+    "JSON, and in 引擎 Engines with a .public marker, for stages.json's reasons:",
+    "readers in two languages (the Legend page fetches it in the browser;",
+    "plan_data_check json.loads it in Python), no dependency in either, and the",
+    "marker is what carries it to the deployed site beside the page that reads",
+    "it."
+  ],
+
+  "entry": [
+    {
+      "base": "stage",
+      "kind": "enum",
+      "note": "when the entry is due: a roadmap version token (v1.0, p0.3 — the website's plans) or a rung of the named ladder (see plan-order/stages.json). Absent means no stage chosen."
+    },
+    {
+      "base": "summary",
+      "kind": "bilingual",
+      "both_languages": "required",
+      "legacy_bases": ["text"],
+      "note": "the entry's descriptive line — its title. The one field owed both languages. Older asymmetric pair: bare `text` (English) with bare `zh` (Chinese)."
+    },
+    {
+      "base": "title",
+      "kind": "bilingual",
+      "both_languages": "optional",
+      "note": "optional short title, bold above the line (added incrementally)"
+    },
+    {
+      "base": "detail",
+      "kind": "bilingual",
+      "both_languages": "optional",
+      "note": "long body, hidden until the entry row is clicked (plan-renderer.js toggleDetail). Mono by default — only detail_en unless you translate it."
+    }
+  ],
+
+  "folder": [
+    {
+      "base": "id",
+      "kind": "label",
+      "note": "anchor (section only), e.g. dev-design — set once, never renamed"
+    },
+    {
+      "base": "title",
+      "kind": "label",
+      "note": "folder / subgroup heading (monolingual — a structural label, not prose)"
+    },
+    {
+      "base": "desc",
+      "kind": "bilingual",
+      "both_languages": "optional",
+      "note": "blurb under the folder heading. Mono by default. Older asymmetric pair: bare `description` (English) with `description_zh`."
+    },
+    {
+      "base": "entries",
+      "kind": "list",
+      "note": "leaves / subgroups"
+    }
+  ]
+}

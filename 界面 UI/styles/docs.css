@@ -95,6 +95,46 @@ section li > .tag { order: 4; margin-left: 0.5rem; }
 .li-title > .zh { font-weight: 400; }
 li.hidden { display: none; }
 
+/* Hover highlight on an entry row. Painted with a SPREAD SHADOW in the same
+   colour as the fill rather than with padding, so the band gets its breathing
+   room without any box growing — padding here would have loosened the line
+   spacing of every plan page to buy a hover state.
+
+   var(--surface) over the page's var(--bg) is a lift in both themes by
+   construction (#fff on #f5f5f5, #1a1a1a on #0f0f0f), so this needs no
+   light-dark() pair of its own.
+
+   EVERY entry, not just the ones that open: which row the cursor is on is a
+   reading aid, and scoping it to li.has-detail would quietly hand back the
+   marker that was deliberately dropped (see .li-detail above). A row mid-drag
+   is the exception — it is already at 0.25 opacity and being followed by the
+   drop indicators, so a highlight there is noise. */
+/* A row that is NOT a card: the lift is painted outward with a spread shadow
+   so the band gets breathing room without any box growing. */
+section li:not(.plan-mini):hover,
+section li:not(.plan-mini).selected { background: var(--surface); box-shadow: 0 0 0 0.35rem var(--surface); border-radius: 2px; }
+
+/* A row that IS a card already has its own surface, border and radius, so it
+   lifts the way a card lifts. The spread-shadow trick would paint a square
+   halo straight through the 8px corners. */
+section li.plan-mini:hover { border-color: var(--muted); box-shadow: 0 2px 8px rgba(0,0,0,0.10); }
+
+/* SELECTED persists after the pointer leaves, so you keep your place while
+   reading a long body (user decision 2026-08-25). One row at a time; the
+   accent border says which, and outlives the hover that a mouse-move erases. */
+section li.plan-mini.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+section li.plan-mini.selected:hover { box-shadow: 0 0 0 1px var(--accent), 0 2px 8px rgba(0,0,0,0.10); }
+
+/* The named stage ladder's colours on a card's left edge — the same three the
+   tags carry, in their saturated (text) form so a 3px edge still reads. A
+   version token gets its computed hue set inline instead; no stage at all
+   falls through to planner-cards.css's neutral border. */
+section li.stage-now   { --stage-color: var(--tag-green-text); }
+section li.stage-next  { --stage-color: var(--tag-teal-text); }
+section li.stage-later { --stage-color: var(--tag-yellow-text); }
+
+section li.dragging:hover { background: none; box-shadow: none; }
+
 /* Planner mini-cards come from the shared planner-cards.css (`.plan-mini`, added
    to entry <li>s by site-map.html) — the single source both the site map and the
    flat plan.html draw their card look from. Here we just map its `--pc-*` tokens
@@ -211,7 +251,9 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
    click places the caret instead. The opened prose takes the text cursor back,
    since it is there to be read and selected. */
 .li-detail > summary { display: none; }
-.container:not(.editing) li.has-detail { cursor: pointer; }
+/* EVERY entry is clickable now, not just the ones that open: a click selects,
+   and selection is the point (user decision 2026-08-25). */
+.container:not(.editing) section li { cursor: pointer; }
 .li-detail { cursor: text; }
 
 /* ---- Item controls ---- */

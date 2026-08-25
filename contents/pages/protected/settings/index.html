@@ -695,6 +695,35 @@ html[data-show-planned] .planned-row { display: block; }
 .planned-row--linked { padding: 0; }
 .planned-row--linked > a { color: var(--muted); }
 
+/* Per-row "open this folder on disk" affordance — an index_page entry
+   carrying `folder_href` (规划中心 Planning Hub's spoke rows, pointing at
+   origin://folder/<key>). The row's own anchor is a BLOCK tap-target filling
+   the li, so this second link is positioned over its right edge rather than
+   sharing a flex line; .has-folder supplies the containing block and the
+   z-index lifts it above the block anchor it overlaps.
+   MUTED, NOT HIDDEN-UNTIL-HOVER: an affordance nobody can see is one nobody
+   uses, and for 创作 Creation's benches this is the only route to the folder
+   from a browser at all — they sit in the data vault, which the local server
+   does not serve. */
+li.has-folder { position: relative; }
+.row-folder {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  line-height: 1;
+  text-decoration: none;
+  opacity: 0.4;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+li.has-folder:hover .row-folder { opacity: 0.75; }
+.row-folder:hover,
+.row-folder:focus-visible { opacity: 1; background: var(--surface); }
+
 .row { display: flex; gap: 2rem; align-items: flex-start; }
 /* Both columns flex:1 → they divide the row's available width evenly,
    minus the 2 rem gap. No hardcoded width on either side. */
