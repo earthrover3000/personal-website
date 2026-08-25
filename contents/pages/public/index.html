@@ -582,9 +582,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
 }
 .cat-chips__body[hidden] { display: none; }
 
-/* iOS-style Planned switch — right edge of the control row. Mirrors the
-   Settings "Show planned pages" checkbox via the same localStorage key. */
-.planned-switch {
+/* iOS-style teaser switches — right edge of the control row. Planned mirrors
+   the Settings "Show planned pages" checkbox via the same localStorage key;
+   Parked is the console-side twin for apps kept but not scheduled. Identical
+   chrome ON PURPOSE: they are the same gesture over two kinds of dimmed row,
+   and giving the second its own look would say they differ in kind rather
+   than in what they reveal. */
+.planned-switch, .parked-switch {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
@@ -599,7 +603,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
   cursor: pointer;
 }
 .planned-switch:hover { color: var(--text); }
-.planned-switch__track {
+.planned-switch__track, .parked-switch__track {
   width: 1.9rem;
   height: 1.1rem;
   border-radius: 999px;
@@ -607,7 +611,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
   position: relative;
   transition: background 0.15s;
 }
-.planned-switch__knob {
+.planned-switch__knob, .parked-switch__knob {
   position: absolute;
   top: 0.125rem;
   left: 0.125rem;
@@ -617,8 +621,15 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
   background: var(--bg);
   transition: transform 0.15s;
 }
-.planned-switch[aria-pressed="true"] .planned-switch__track { background: var(--accent); }
-.planned-switch[aria-pressed="true"] .planned-switch__knob { transform: translateX(0.8rem); }
+/* Both switches claim `margin-left: auto`, which on a row carrying BOTH puts
+   one in the middle and one at the edge. The adjacent-sibling rule pulls the
+   second up against the first, while either alone still right-aligns. */
+.planned-switch + .parked-switch { margin-left: 0.9rem; }
+
+.planned-switch[aria-pressed="true"] .planned-switch__track,
+.parked-switch[aria-pressed="true"] .parked-switch__track { background: var(--accent); }
+.planned-switch[aria-pressed="true"] .planned-switch__knob,
+.parked-switch[aria-pressed="true"] .parked-switch__knob { transform: translateX(0.8rem); }
 /* Contextual reset — hidden while no chip is active (an action, not a
    filter, so it doesn't join the pill state model). */
 .cat-chips__clear {
@@ -671,15 +682,23 @@ html:not([data-show-planned]) .cat-chip--planned-only { display: none; }
    localStorage['site-show-planned'] before first paint (theme-init
    pattern). Metrics mirror .row a (same font, line-height, padding) so
    revealed rows sit on the same grid as the link rows above them. */
-.planned-row {
+.planned-row, .parked-row {
   display: none;
   font-size: 1.1rem;
   line-height: 1.4;
   padding: 0.35rem 0.8rem;
   color: var(--muted);
 }
-html[data-show-planned] .planned-row { display: block; }
-.planned-tag {
+/* A row carries one class per KIND it belongs to, and needs EVERY one of them
+   revealed to show — AND, not OR. 时长计算器 Duration Calculator is a folder in
+   Others with nothing built in it, so it is parked AND planned, and appears
+   only with both switches on. Spelt as three explicit rules because that is
+   what says 'all of its kinds': the naive `.planned-row, .parked-row` pair
+   would show a both-kinds row as soon as EITHER switch went on. */
+html[data-show-planned] .planned-row:not(.parked-row) { display: block; }
+html[data-show-parked] .parked-row:not(.planned-row) { display: block; }
+html[data-show-planned][data-show-parked] .planned-row.parked-row { display: block; }
+.planned-tag, .parked-tag {
   font-size: 0.7rem;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -692,7 +711,18 @@ html[data-show-planned] .planned-row { display: block; }
    block tap-target (it inherits .row a's block metrics), so the li sheds its
    own padding to avoid doubling; colour stays muted — clickable, still a
    teaser, not a live page. */
-.planned-row--linked { padding: 0; }
+.planned-row--linked, .parked-row--linked { padding: 0; }
+/* COLOUR SAYS WHETHER THERE IS ANYTHING ON DISK (user decision 2026-08-25).
+   Grey for a row with no folder behind it — an idea, and the link only opens
+   its plan. Link-blue for a row that HAS a folder: parked is still real code
+   you could open, it is just not on the worklist. Both stay teasers by being
+   hidden until their switch; the colour distinguishes what they are, not how
+   prominent they are. */
+/* Grey means NOTHING IS BUILT — .planned-row is exactly that condition, so it
+   wins wherever it applies, including on a row that is also parked. Blue is
+   for a row with real source behind it: parked-and-built (Token Timeline) is
+   still code you could open, it is just off the worklist. */
+.parked-row--linked > a { color: var(--accent); }
 .planned-row--linked > a { color: var(--muted); }
 
 /* Per-row "open this folder on disk" affordance — an index_page entry
@@ -1106,7 +1136,7 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Home</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav>
 <h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">98,765 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-19) 🛣️</a> ✦ Last updated <time datetime="2026-08-25" class="relative-time relative-time-coarse">2026-08-25</time></p>
+<p class="head-meta"><a href="site-stats/">98,769 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-19) 🛣️</a> ✦ Last updated <time datetime="2026-08-25" class="relative-time relative-time-coarse">2026-08-25</time></p>
 <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
 <div class="cat-chips" role="group" aria-label="Filter by category">
   <button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button>
@@ -1284,29 +1314,39 @@ a.app-card:hover {
   });
 })();
 (function() {
-  // Planned-row reveal, live half. The head snippet stamps
-  // <html data-show-planned> once at load; this keeps the on-page switch,
-  // the attribute, and other pages in agreement — re-stamping on switch
-  // clicks, back/forward-cache restores, and cross-page storage changes
-  // (the Settings checkbox remains a synced second control).
-  if (!document.querySelector('.planned-row')) return;
-  const K = 'site-show-planned';
-  const sw = document.querySelector('.planned-switch');
-  const stamp = () => {
-    const on = localStorage.getItem(K) === 'on';
-    document.documentElement.toggleAttribute('data-show-planned', on);
-    if (sw) sw.setAttribute('aria-pressed', on ? 'true' : 'false');
-  };
-  if (sw) sw.addEventListener('click', () => {
-    if (localStorage.getItem(K) === 'on') localStorage.removeItem(K);
-    else localStorage.setItem(K, 'on');
+  // Teaser-row reveal. The head snippet stamps <html data-show-KIND> once at
+  // load; this keeps the on-page switch, the attribute, and other pages in
+  // agreement — re-stamping on switch clicks, back/forward-cache restores and
+  // cross-page storage changes (the website's Settings checkbox remains a
+  // synced second control for the planned half).
+  //
+  // ONE implementation, run per kind. Parked arrived in 2026-08 as a second
+  // switch over a second class with a second key and otherwise identical
+  // behaviour; a copy of this block would have been the fourth place the same
+  // six lines lived.
+  const wire = (kind) => {
+    if (!document.querySelector('.' + kind + '-row')) return;
+    const K = 'site-show-' + kind;
+    const ATTR = 'data-show-' + kind;
+    const sw = document.querySelector('.' + kind + '-switch');
+    const stamp = () => {
+      const on = localStorage.getItem(K) === 'on';
+      document.documentElement.toggleAttribute(ATTR, on);
+      if (sw) sw.setAttribute('aria-pressed', on ? 'true' : 'false');
+    };
+    if (sw) sw.addEventListener('click', () => {
+      if (localStorage.getItem(K) === 'on') localStorage.removeItem(K);
+      else localStorage.setItem(K, 'on');
+      stamp();
+    });
     stamp();
-  });
-  stamp();
-  window.addEventListener('pageshow', (e) => { if (e.persisted) stamp(); });
-  window.addEventListener('storage', (e) => {
-    if (e.key === K || e.key === null) stamp();
-  });
+    window.addEventListener('pageshow', (e) => { if (e.persisted) stamp(); });
+    window.addEventListener('storage', (e) => {
+      if (e.key === K || e.key === null) stamp();
+    });
+  };
+  wire('planned');
+  wire('parked');
 })();
 </script>
 <script src="../../../界面 UI/page-widgets/version-check.js" defer></script>

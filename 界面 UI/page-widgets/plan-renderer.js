@@ -336,8 +336,11 @@
 
     const h2 = document.createElement('h2');
     h2.className = 'section-title';
-    h2.innerHTML = '🔧 ' + escHtml(DEV_SECTION) +
-                   '<span class="page-status meta">non-page</span>';
+    // No status chip. The other headings carry one because their status is
+    // DATA that varies per section; this one carried a constant — 'non-page'
+    // on every plan page, forever — which is a label saying what the heading
+    // already says (user decision 2026-08-25).
+    h2.innerHTML = '🔧 ' + escHtml(DEV_SECTION);
     section.appendChild(h2);
 
     const details = document.createElement('details');

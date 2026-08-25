@@ -587,9 +587,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
 }
 .cat-chips__body[hidden] { display: none; }
 
-/* iOS-style Planned switch — right edge of the control row. Mirrors the
-   Settings "Show planned pages" checkbox via the same localStorage key. */
-.planned-switch {
+/* iOS-style teaser switches — right edge of the control row. Planned mirrors
+   the Settings "Show planned pages" checkbox via the same localStorage key;
+   Parked is the console-side twin for apps kept but not scheduled. Identical
+   chrome ON PURPOSE: they are the same gesture over two kinds of dimmed row,
+   and giving the second its own look would say they differ in kind rather
+   than in what they reveal. */
+.planned-switch, .parked-switch {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
@@ -604,7 +608,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
   cursor: pointer;
 }
 .planned-switch:hover { color: var(--text); }
-.planned-switch__track {
+.planned-switch__track, .parked-switch__track {
   width: 1.9rem;
   height: 1.1rem;
   border-radius: 999px;
@@ -612,7 +616,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
   position: relative;
   transition: background 0.15s;
 }
-.planned-switch__knob {
+.planned-switch__knob, .parked-switch__knob {
   position: absolute;
   top: 0.125rem;
   left: 0.125rem;
@@ -622,8 +626,15 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
   background: var(--bg);
   transition: transform 0.15s;
 }
-.planned-switch[aria-pressed="true"] .planned-switch__track { background: var(--accent); }
-.planned-switch[aria-pressed="true"] .planned-switch__knob { transform: translateX(0.8rem); }
+/* Both switches claim `margin-left: auto`, which on a row carrying BOTH puts
+   one in the middle and one at the edge. The adjacent-sibling rule pulls the
+   second up against the first, while either alone still right-aligns. */
+.planned-switch + .parked-switch { margin-left: 0.9rem; }
+
+.planned-switch[aria-pressed="true"] .planned-switch__track,
+.parked-switch[aria-pressed="true"] .parked-switch__track { background: var(--accent); }
+.planned-switch[aria-pressed="true"] .planned-switch__knob,
+.parked-switch[aria-pressed="true"] .parked-switch__knob { transform: translateX(0.8rem); }
 /* Contextual reset — hidden while no chip is active (an action, not a
    filter, so it doesn't join the pill state model). */
 .cat-chips__clear {
@@ -676,15 +687,23 @@ html:not([data-show-planned]) .cat-chip--planned-only { display: none; }
    localStorage['site-show-planned'] before first paint (theme-init
    pattern). Metrics mirror .row a (same font, line-height, padding) so
    revealed rows sit on the same grid as the link rows above them. */
-.planned-row {
+.planned-row, .parked-row {
   display: none;
   font-size: 1.1rem;
   line-height: 1.4;
   padding: 0.35rem 0.8rem;
   color: var(--muted);
 }
-html[data-show-planned] .planned-row { display: block; }
-.planned-tag {
+/* A row carries one class per KIND it belongs to, and needs EVERY one of them
+   revealed to show — AND, not OR. 时长计算器 Duration Calculator is a folder in
+   Others with nothing built in it, so it is parked AND planned, and appears
+   only with both switches on. Spelt as three explicit rules because that is
+   what says 'all of its kinds': the naive `.planned-row, .parked-row` pair
+   would show a both-kinds row as soon as EITHER switch went on. */
+html[data-show-planned] .planned-row:not(.parked-row) { display: block; }
+html[data-show-parked] .parked-row:not(.planned-row) { display: block; }
+html[data-show-planned][data-show-parked] .planned-row.parked-row { display: block; }
+.planned-tag, .parked-tag {
   font-size: 0.7rem;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -697,7 +716,18 @@ html[data-show-planned] .planned-row { display: block; }
    block tap-target (it inherits .row a's block metrics), so the li sheds its
    own padding to avoid doubling; colour stays muted — clickable, still a
    teaser, not a live page. */
-.planned-row--linked { padding: 0; }
+.planned-row--linked, .parked-row--linked { padding: 0; }
+/* COLOUR SAYS WHETHER THERE IS ANYTHING ON DISK (user decision 2026-08-25).
+   Grey for a row with no folder behind it — an idea, and the link only opens
+   its plan. Link-blue for a row that HAS a folder: parked is still real code
+   you could open, it is just not on the worklist. Both stay teasers by being
+   hidden until their switch; the colour distinguishes what they are, not how
+   prominent they are. */
+/* Grey means NOTHING IS BUILT — .planned-row is exactly that condition, so it
+   wins wherever it applies, including on a row that is also parked. Blue is
+   for a row with real source behind it: parked-and-built (Token Timeline) is
+   still code you could open, it is just off the worklist. */
+.parked-row--linked > a { color: var(--accent); }
 .planned-row--linked > a { color: var(--muted); }
 
 /* Per-row "open this folder on disk" affordance — an index_page entry
