@@ -53,6 +53,16 @@
   // <script> just before this one), so the page and the launchpad plan manager
   // stay in lockstep. Hard dependency, like js-yaml.
   const PlanOrder = window.PlanOrder;
+
+  // What this plan calls its non-page half — the sections built from
+  // <id>-dev.yaml, which always render first. Named by the PAGE because it
+  // names the plan's subject: an app plans its 'App Development', the site
+  // map its 'Infrastructure Development', and a plan whose subject is a set
+  // of authored works plans neither. It was hardcoded, and hardcoded three
+  // times over — the letter map, the TOC row and the section heading each
+  // spelt it — so a page that needed a different word had to be a different
+  // renderer. Set via window.PLAN_DEV_SECTION in the shell.
+  const DEV_SECTION = window.PLAN_DEV_SECTION || 'App Development';
   if (!PlanOrder) {
     console.error('plan-renderer.js: window.PlanOrder must be loaded first (引擎 Engines/plan-order/plan-order.js)');
     return;
@@ -62,7 +72,7 @@
   // launchpad (dev section first, then structure) so the two index identically.
   function secLetterMap() {
     const taken = [];
-    const m = { dev: PlanOrder.sectionLetter('App Development', taken) };
+    const m = { dev: PlanOrder.sectionLetter(DEV_SECTION, taken) };
     ((structureData && structureData.sections) || []).forEach(sec => {
       m[sec.id] = PlanOrder.sectionLetter(sec.title || sec.id, taken);
     });
@@ -255,7 +265,7 @@
       const li = document.createElement('li');
       const a = document.createElement('a');
       a.href = '#dev';
-      a.textContent = SL.dev + '. 🔧 App Development';
+      a.textContent = SL.dev + '. 🔧 ' + DEV_SECTION;
       const subs = (devData && devData.sections) || [];
       if (subs.length) {
         const details = document.createElement('details');
@@ -326,7 +336,8 @@
 
     const h2 = document.createElement('h2');
     h2.className = 'section-title';
-    h2.innerHTML = '🔧 App Development<span class="page-status meta">non-page</span>';
+    h2.innerHTML = '🔧 ' + escHtml(DEV_SECTION) +
+                   '<span class="page-status meta">non-page</span>';
     section.appendChild(h2);
 
     const details = document.createElement('details');

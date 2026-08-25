@@ -705,6 +705,16 @@ html[data-show-planned] .planned-row { display: block; }
    uses, and for 创作 Creation's benches this is the only route to the folder
    from a browser at all — they sit in the data vault, which the local server
    does not serve. */
+/* Group heading inside a row list — see index_page's `group` entry key. A
+   label, not a link: it names the run of rows beneath it. Muted and small so
+   the rows stay the thing being read; the first one loses its top margin so a
+   grouped list starts level with an ungrouped one. */
+.row-group {
+  margin: 1.1rem 0 0.3rem; color: var(--muted); font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;
+}
+.row-group:first-child { margin-top: 0; }
+
 li.has-folder { position: relative; }
 .row-folder {
   position: absolute;
@@ -1096,7 +1106,7 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Home</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav>
 <h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">98,720 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-19) 🛣️</a> ✦ Last updated <time datetime="2026-08-25" class="relative-time relative-time-coarse">2026-08-25</time></p>
+<p class="head-meta"><a href="site-stats/">98,765 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-19) 🛣️</a> ✦ Last updated <time datetime="2026-08-25" class="relative-time relative-time-coarse">2026-08-25</time></p>
 <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
 <div class="cat-chips" role="group" aria-label="Filter by category">
   <button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button>

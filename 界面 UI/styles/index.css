@@ -238,6 +238,16 @@ html[data-show-planned] .planned-row { display: block; }
    uses, and for 创作 Creation's benches this is the only route to the folder
    from a browser at all — they sit in the data vault, which the local server
    does not serve. */
+/* Group heading inside a row list — see index_page's `group` entry key. A
+   label, not a link: it names the run of rows beneath it. Muted and small so
+   the rows stay the thing being read; the first one loses its top margin so a
+   grouped list starts level with an ungrouped one. */
+.row-group {
+  margin: 1.1rem 0 0.3rem; color: var(--muted); font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;
+}
+.row-group:first-child { margin-top: 0; }
+
 li.has-folder { position: relative; }
 .row-folder {
   position: absolute;
