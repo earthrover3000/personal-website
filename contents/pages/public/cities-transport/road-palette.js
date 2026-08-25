@@ -1,4 +1,4 @@
-// SYNCED COPY (2026-08-15) of 创作 Works/cities-transport/map-style/
+// SYNCED COPY (2026-08-15) of 创作 Creation/cities-transport/map-style/
 // road-palette.js — that file stays the SSOT (the three research previews
 // load it by relative path and can't reach the website tree). After editing
 // the palette there, re-copy it over this file; do not edit here.
