@@ -47,17 +47,60 @@
     return { major: parseInt(m[1], 10), minor: m[2] === '+' ? Infinity : parseInt(m[2], 10) };
   }
 
-  // Compare two version statuses ascending (earlier milestone first); unset/
-  // unparseable sorts last. Intrinsic to the version, so it needs no rank table
-  // and stays correct as the roadmap gains or retires versions.
+  // The NAMED stage ladder, for the plans that are not the website's. The
+  // source is stages.json beside this file, which carries the reasoning; the
+  // ranks are mirrored here as a literal because this module is loaded as a
+  // bare <script> in the browser, with no fetch available at parse time.
+  // `planStages()` below returns the same list for callers that render it,
+  // and `plan_data_check` reads stages.json to keep the two honest.
+  //
+  // Ranked BELOW every version token deliberately: a plan tagged to a roadmap
+  // milestone is scheduled against a DATE, one tagged `now` against
+  // ATTENTION. Nothing mixes the two today; if a page ever does, dated work
+  // sorts first.
+  var STAGE_RANK = { now: 0, next: 1, later: 2 };
+
+  function stageRank(s) {
+    if (s == null) return null;
+    var k = String(s).trim().toLowerCase();
+    return Object.prototype.hasOwnProperty.call(STAGE_RANK, k) ? STAGE_RANK[k] : null;
+  }
+
+  // Compare two statuses ascending (earlier milestone first): version tokens
+  // among themselves, then the named ladder, then unset/unknown last. The
+  // version half is INTRINSIC — it parses the number, so it needs no table and
+  // stays correct as the roadmap advances. The named half needs one, because
+  // "now" only precedes "later" by fiat.
+  //
+  // Before 2026-08-24 there was no named half: every word parsed to null and
+  // sorted last, so `investigate` / `planned` / `on-hold` were priority labels
+  // that carried no priority. This arm is what fixes that.
   function compareVersion(a, b) {
     var va = parseVersion(a), vb = parseVersion(b);
-    if (!va && !vb) return 0;
-    if (!va) return 1;
-    if (!vb) return -1;
-    if (va.major !== vb.major) return va.major - vb.major;
-    if (va.minor === vb.minor) return 0;
-    return va.minor - vb.minor;
+    if (va && vb) {
+      if (va.major !== vb.major) return va.major - vb.major;
+      if (va.minor === vb.minor) return 0;
+      return va.minor - vb.minor;
+    }
+    if (va) return -1;             // any version outranks any named stage
+    if (vb) return 1;
+    var sa = stageRank(a), sb = stageRank(b);
+    if (sa != null && sb != null) return sa - sb;
+    if (sa != null) return -1;     // a known stage outranks unset/unknown
+    if (sb != null) return 1;
+    return 0;
+  }
+
+  // The ladder as [{token, title}] — the SAME shape the website's
+  // plans/plan-versions.json uses, so one legend renderer serves both. The
+  // console builds serialise this to that filename; the terminal plan
+  // manager offers it as the token picker's choices.
+  function planStages() {
+    return [
+      { token: 'now', title: 'In progress' },
+      { token: 'next', title: 'Up next' },
+      { token: 'later', title: 'Not scheduled' },
+    ];
   }
 
   // Stable version sort that remembers each entry's original index, so callers
@@ -387,6 +430,7 @@
   return {
     parseVersion: parseVersion,
     compareVersion: compareVersion,
+    planStages: planStages,
     versionColors: versionColors,
     sortedEntries: sortedEntries,
     leafSorted: leafSorted,

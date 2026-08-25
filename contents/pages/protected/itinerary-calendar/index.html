@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB4PSI1MiIgeT0iNDkiIGZvbnQtc2l6ZT0iOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Itinerary Calendar</title>
@@ -174,8 +174,11 @@
       <div id="loading">Loading calendar…</div>
       <div id="error-msg">
         <strong>Couldn't load calendar</strong>
-        The calendar feed may be private or temporarily unavailable.<br>
-        Try opening the page from a browser that can reach iCloud.
+        The <code>/ical/travel</code> feed didn't respond.<br>
+        The page fetches it from this site, not from iCloud directly — so this
+        usually means the server has no route for it (vault locked at startup,
+        or an older <code>serve.py</code>) rather than a problem with the
+        calendar itself. Check the console for the status code.
       </div>
       <div id="calendar" style="display:none"></div>
     </div>
@@ -184,16 +187,44 @@
   <div class="event-popup" id="popup"></div>
 
   <script>
-    const ICAL_URL = 'https://p155-caldav.icloud.com/published/2/MTgyNjcxMzg3MjExODI2N9aLU9CB8BONpC7t22mxbdHgSOf_5VPmrprIe6Xoj9kOqD4t-oTi7tzqPIOcNUp8x4fgz44XgPdmr1OjjbwFiMU';
+    // SAME-ORIGIN. The server proxies the published calendar at /ical/travel
+    // (see serve.py's write_caddyfile), so CORS never applies and the feed URL
+    // never reaches the browser.
+    //
+    // This used to be `https://corsproxy.io/?<the iCloud URL>`. That broke on
+    // 2026-08-24 when the free proxy began answering 403 — but the bigger
+    // problem was while it WORKED: the entire calendar, booking codes and seat
+    // numbers included, transited a third party on every page load. A proxy is
+    // needed at all only because CORS is a browser rule and iCloud sends no
+    // Access-Control-Allow-Origin; it never had to be someone else's.
+    const FEED = '/ical/travel';
 
-    // CORS proxy to fetch iCal data
-    const PROXY = 'https://corsproxy.io/?' + encodeURIComponent(ICAL_URL);
+    // Flighty writes `Booking Code: …` and `Seat: …` as the FIRST two lines of
+    // a flight's description, and the hover popup shows description.slice(0,120)
+    // — so those two lines were the ones most certain to be on screen. This is
+    // a `protected`-tier page, i.e. one other people are meant to reach, so
+    // they are stripped before anything renders them.
+    //
+    // Trailing Flighty chrome goes too: the deep link, "Synced by Flighty" and
+    // the wordmark are three lines of a 120-character budget that should be
+    // spent on where the flight goes.
+    const HIDE_LINE = /^\s*(Booking Code|Seat|Confirmation|Record Locator|PNR|Ticket)\s*:/i;
+    const CHROME_LINE = /^\s*(Open in Flighty|Synced by Flighty|www\.flighty\.app)/i;
+
+    function scrubDescription(text) {
+      return text
+        .split('\n')
+        .filter(l => !HIDE_LINE.test(l) && !CHROME_LINE.test(l))
+        .join('\n')
+        .replace(/\n{2,}/g, '\n')
+        .trim();
+    }
 
     async function loadCalendar() {
       let icsText;
       try {
-        const res = await fetch(PROXY);
-        if (!res.ok) throw new Error('fetch failed');
+        const res = await fetch(FEED);
+        if (!res.ok) throw new Error('feed responded ' + res.status);
         icsText = await res.text();
       } catch (e) {
         console.error('Failed to fetch calendar:', e);
@@ -218,7 +249,7 @@
           end: end ? end.toJSDate() : undefined,
           allDay: start.isDate,
           extendedProps: {
-            description: ev.description || '',
+            description: scrubDescription(ev.description || ''),
             location: ev.location || ''
           }
         };

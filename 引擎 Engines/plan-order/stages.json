@@ -1,0 +1,43 @@
+{
+  "_comment": [
+    "THE PLAN STAGE LADDER — the single source for what a plan entry's `stage:`",
+    "may say, in priority order, for every plan that is NOT the website's.",
+    "",
+    "WHY IT EXISTS. Two vocabularies had grown up side by side and neither was",
+    "written down anywhere: `investigate` / `on-hold` / `planned` in the app",
+    "entries, and `next` / `planned` / `wip` in Personal Apps' app-list. Nothing",
+    "validated either, and — worse — plan-order.js can only parse a VERSION",
+    "token (p0.4, v1.0, 1.+), so every one of those words fell through to null",
+    "and sorted last. The app plans had priority labels that carried no",
+    "priority. This file is the ladder they now answer to.",
+    "",
+    "THE WEBSITE IS NOT GOVERNED BY THIS. site / lifespan-atlas /",
+    "chromatic-camelot tag entries with roadmap version tokens, which sort by",
+    "number and need no table — see parseVersion in plan-order.js. Their legend",
+    "comes from plans/plan-versions.json, build-emitted from site-roadmap.yaml.",
+    "This file is the same idea for everything else, and the console builds",
+    "serialise it to the same filename so the SAME renderer draws both legends.",
+    "",
+    "THE SHAPE IS plan-versions.json's, deliberately: [{token, title}].",
+    "page-widgets/plan-renderer.js already fetches that file and builds a legend",
+    "from it — 'a page without it (e.g. a console plan) simply has no legend'.",
+    "Matching the shape is what makes the legend appear with no renderer change.",
+    "",
+    "WHY THREE. The only question a plan entry answers is WHEN, and three words",
+    "cover it with nothing to look up (user decision 2026-08-24, after `wip` and",
+    "`on-hold` were judged jargon). `investigate` was dropped as a stage",
+    "because it is a KIND OF WORK, not a time — the task text already says so.",
+    "A fourth, `paused` (started then parked, as against never started), was",
+    "weighed and left out; adding it is one entry here and nothing else.",
+    "",
+    "JSON, not YAML, because it has readers in TWO languages: plan-order.js and",
+    "cli.js on the Node side, the console builds and 日程 Agenda's [p] Planner",
+    "on the Python side. JSON is the only format both parse with no dependency,",
+    "which is what makes this one file rather than two copies."
+  ],
+  "stages": [
+    { "token": "now",   "title": "In progress" },
+    { "token": "next",  "title": "Up next" },
+    { "token": "later", "title": "Not scheduled" }
+  ]
+}
