@@ -698,7 +698,15 @@ html:not([data-show-planned]) .cat-chip--planned-only { display: none; }
 html[data-show-planned] .planned-row:not(.parked-row) { display: block; }
 html[data-show-parked] .parked-row:not(.planned-row) { display: block; }
 html[data-show-planned][data-show-parked] .planned-row.parked-row { display: block; }
-.planned-tag, .parked-tag {
+/* ONE PILL PER CELL, not per kind. The two kinds are axes — is anything
+   built, is it on the worklist — and each of the three dimmed cells they make
+   gets a word of its own: 'shelved' (built, then put away), 'unscheduled'
+   (never started and not queued), 'planned' (intended, no folder yet). The
+   row still carries one -row CLASS per kind, so the AND reveal rules above
+   are unchanged and a both-kinds row still needs both switches. Only the
+   label collapses, replacing a 'plannedparked' stutter. See index_page's
+   `_KIND_PILL_LABEL` for the grid the words come from. */
+.planned-tag, .parked-tag, .shelved-tag, .unscheduled-tag {
   font-size: 0.7rem;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -744,6 +752,12 @@ html[data-show-planned][data-show-parked] .planned-row.parked-row { display: blo
   text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;
 }
 .row-group:first-child { margin-top: 0; }
+/* A heading with nothing visible under it is noise, and there are two ways to
+   get one: a group holding only teasers whose switch is off, and — already
+   true before any of this — a text or category filter that excludes every row
+   in a group. `.row-group--empty` is set by the script at the foot of the
+   page, which re-counts after every reveal and every filter pass. */
+.row-group--empty { display: none; }
 
 li.has-folder { position: relative; }
 .row-folder {
@@ -1136,7 +1150,7 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Home</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav>
 <h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">99,471 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-19) 🛣️</a> ✦ Last updated <time datetime="2026-08-26" class="relative-time relative-time-coarse">2026-08-26</time></p>
+<p class="head-meta"><a href="site-stats/">100,090 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-19) 🛣️</a> ✦ Last updated <time datetime="2026-08-26" class="relative-time relative-time-coarse">2026-08-26</time></p>
 <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
 <div class="cat-chips" role="group" aria-label="Filter by category">
   <button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button>
@@ -1265,6 +1279,43 @@ a.app-card:hover {
     const opt = Array.from(document.querySelectorAll('.tier-nav option'))
       .find(o => o.value && o.textContent.toLowerCase().split(/\s+/).includes(q));
     if (opt) { e.preventDefault(); location.href = opt.value; }
+  });
+})();
+(function() {
+  // A group heading owns the run of rows between it and the next heading. When
+  // every one of those is hidden the heading is left captioning nothing, so it
+  // hides too. Two ways to get there: a group holding only teaser rows whose
+  // switch is off, and — true long before teasers were grouped — a text or
+  // category filter that excluded every row under one heading.
+  //
+  // RECOMPUTED FROM THE LAYOUT, not tracked. Three independent things hide a
+  // row (the reveal rules keyed off <html data-show-*>, .search-hidden,
+  // .cat-hidden) and none of them knows about the others; asking whether the
+  // element has any box is the single answer that accounts for all three.
+  const heads = document.querySelectorAll('.main > ul > li.row-group');
+  if (!heads.length) return;
+  const sync = () => {
+    heads.forEach(h => {
+      let any = false;
+      for (let n = h.nextElementSibling;
+           n && !n.classList.contains('row-group');
+           n = n.nextElementSibling) {
+        if (n.getClientRects().length) { any = true; break; }
+      }
+      // Written only when it actually changes — this callback runs inside the
+      // observer watching the very attribute it would set, so an
+      // unconditional toggle risks a write/notify loop.
+      if (h.classList.contains('row-group--empty') === any) {
+        h.classList.toggle('row-group--empty', !any);
+      }
+    });
+  };
+  sync();
+  // The filters toggle classes on the rows; the teaser switches toggle a
+  // data- attribute on <html>. One observer covers both.
+  new MutationObserver(sync).observe(document.documentElement, {
+    attributes: true, subtree: true,
+    attributeFilter: ['class', 'data-show-planned', 'data-show-parked'],
   });
 })();
 (function() {

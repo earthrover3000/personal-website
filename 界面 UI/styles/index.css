@@ -231,7 +231,15 @@ html:not([data-show-planned]) .cat-chip--planned-only { display: none; }
 html[data-show-planned] .planned-row:not(.parked-row) { display: block; }
 html[data-show-parked] .parked-row:not(.planned-row) { display: block; }
 html[data-show-planned][data-show-parked] .planned-row.parked-row { display: block; }
-.planned-tag, .parked-tag {
+/* ONE PILL PER CELL, not per kind. The two kinds are axes — is anything
+   built, is it on the worklist — and each of the three dimmed cells they make
+   gets a word of its own: 'shelved' (built, then put away), 'unscheduled'
+   (never started and not queued), 'planned' (intended, no folder yet). The
+   row still carries one -row CLASS per kind, so the AND reveal rules above
+   are unchanged and a both-kinds row still needs both switches. Only the
+   label collapses, replacing a 'plannedparked' stutter. See index_page's
+   `_KIND_PILL_LABEL` for the grid the words come from. */
+.planned-tag, .parked-tag, .shelved-tag, .unscheduled-tag {
   font-size: 0.7rem;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -277,6 +285,12 @@ html[data-show-planned][data-show-parked] .planned-row.parked-row { display: blo
   text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;
 }
 .row-group:first-child { margin-top: 0; }
+/* A heading with nothing visible under it is noise, and there are two ways to
+   get one: a group holding only teasers whose switch is off, and — already
+   true before any of this — a text or category filter that excludes every row
+   in a group. `.row-group--empty` is set by the script at the foot of the
+   page, which re-counts after every reveal and every filter pass. */
+.row-group--empty { display: none; }
 
 li.has-folder { position: relative; }
 .row-folder {
