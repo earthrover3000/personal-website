@@ -14,6 +14,7 @@
   <!-- Shared map widget (markup + Leaflet wiring) and the lossless-PNG
        exporter it depends on. Single source of truth in 界面 UI/map-widgets/;
        the cities-transport page uses the same two files. -->
+  <script src="../../../../../界面 UI/map-widgets/map-basemap.js"></script>
   <script src="../../../../../界面 UI/map-widgets/map-export.js"></script>
   <script src="../../../../../界面 UI/map-widgets/map-explorer.js"></script>
   <!-- Shared region data (window.WORLD_REGIONS = { regions }) — single source
@@ -86,25 +87,71 @@
 
   <h2>Administrative Divisions</h2>
   <p class="lede">
-    A whole country's <strong>行政区划</strong> at once — every county of a territory outlined and
+    A whole region's <strong>行政区划</strong> at once — every division of a territory outlined and
     filled over OpenStreetMap, four-coloured so no two that share a border take the same colour
-    (the same scheme the world map above uses for its UN subregions). <strong>England</strong> gives
-    the 48 <a href="https://en.wikipedia.org/wiki/Ceremonial_counties_of_England">ceremonial
-    counties</a> — the lieutenancy areas, so Yorkshire arrives in four pieces — drawn here as 47.
-    The City of London is a ceremonial county in its own right, a 1.1-square-mile hole punched
-    through the middle of Greater London, but at the zoom where England fits the frame it is under
-    a pixel wide and reads as a rendering fault, so it is folded into its host.
-    <strong>Ireland</strong> gives the 32 traditional
-    counties of the whole island, with their Irish names and provinces. <strong>吴语区</strong> gives
-    the ten divisions of the <a href="https://en.wikipedia.org/wiki/Wu_Chinese">Wu-speaking</a>
-    太湖片 core around Shanghai — nine 地级市 plus 上海市 itself, each tagged with its 小片. These are
-    cut to the <em>coastline</em>, not to the administrative line: a Chinese prefecture's legal area
-    includes its waters, so drawn literally 舟山市 would be one box of open sea and 宁波市 would reach
-    far offshore. Here 舟山市 is its 211 islands instead. Two caveats — this source omits 上海市's real
-    exclaves in Anhui and Jiangsu, and prefecture lines are administrative, so dialect boundaries do
-    not honour them: 杭州市's western counties (建德, 淳安) speak 徽语/严州话, not 太湖片 Wu at all.
-    Hover a division for its name and area, click it to zoom in, click it again to come back out,
-    and toggle <strong>Division names</strong> to label them all.
+    (the same scheme the world map above uses for its UN subregions). Eight territories sit in two
+    groups and the toggle at the top switches the whole widget between them.
+    <strong>Group 1</strong> holds six regions in the same broad class — Southern England,
+    関東甲信越, the New York CSA, Southern California, the Wu-speaking core and Ireland, 31 to 84
+    thousand km² — where the interest is how differently each is carved and how differently peopled
+    it is: the same order of land carries 7 million in Ireland and 87 million around Shanghai. <strong>Group 2</strong> holds England
+    against central Honshū, which are the same area to within 0.1% but cut into 47 pieces and 23.
+    <strong>England</strong> gives the 48
+    <a href="https://en.wikipedia.org/wiki/Ceremonial_counties_of_England">ceremonial counties</a> —
+    the lieutenancy areas, so Yorkshire arrives in four pieces — drawn as 47, the City of London
+    being folded into Greater London, since at the zoom where England fits the frame that
+    1.1-square-mile county is under a pixel wide and reads as a rendering fault.
+    <strong>Southern England</strong> is 23 of those, the four southern statistical regions.
+    <strong>New York</strong> is the 30 county-equivalents of the New York–Newark, NY–NJ–CT–PA
+    <a href="https://en.wikipedia.org/wiki/Combined_statistical_area">Combined Statistical Area</a> —
+    an official delineation, built by joining metropolitan areas whose commuting flows interlock at
+    15% or more, which is why it reaches into Pennsylvania for a single county (Pike) and why
+    Connecticut arrives as nine <em>planning regions</em> rather than eight counties: the Census
+    Bureau swapped one for the other as county-equivalents in June 2022.
+    <strong>Southern California</strong> is six counties — Ventura, Los Angeles, Orange, San
+    Bernardino, Riverside, San Diego — and is the one set here cut by something that is not an
+    administrative line. County borders are not where Southern California stops; the mountains are.
+    Past the crest the counties run on across the Mojave and the Colorado Desert, empty ground that
+    would more than treble the area and turn the density into fiction. So the counted region ends at
+    the <strong>山脊线</strong>, closing in the northwest where that line meets the Ventura–Santa
+    Barbara county boundary at Mount Pinos.
+    The ridge is not borrowed from anyone's boundary file. It is the <em>drainage divide</em>,
+    computed from
+    <a href="https://www.ncei.noaa.gov/products/etopo-global-relief-model">ETOPO 2022</a> elevation
+    at 15 arc-seconds: flood the grid from the sea and from the closed interior sinks at once, always
+    from the lowest cell first, and every point is claimed by whichever it reaches over the lower
+    saddle. Where the two meet is the crest — west of it the rain reaches the Pacific, east of it it
+    stops in the Salton Sink or a Mojave playa and evaporates. The line comes out over Mount San
+    Gorgonio and Mount Baden-Powell to within a few hundred metres, and through Cajon Pass, which is
+    how you know it is the right one. One honest wrinkle: it runs about 4.6 km <em>northeast</em> of
+    Mount San Antonio — Baldy, the skyline itself seen from Los Angeles — because Baldy's north face
+    still drains to the San Gabriel River and so to Long Beach. That summit is on the range crest and
+    inside the watershed at the same time, and the line is not bent to flatter it.
+    On the map the ridge is the heavy warm line, and it outranks the county borders it crosses; the
+    far side of each county is still drawn, dimmed to a ghost of the same colour so the ground that
+    counts is the ground you look at, and is in none of the numbers. It takes 95% of San Bernardino, 74% of Riverside and 30% each of Los
+    Angeles and San Diego, while Orange and Ventura lose nothing at all. The population follows the
+    same line rather than the county one — split by the Census Bureau's population-weighted tract
+    centres, 20.3 of the six counties' 21.8 million live on the coastal side.
+    <strong>Ireland</strong> gives the 32 traditional counties of the whole island, with their Irish
+    names and provinces. <strong>吴语区</strong> gives the ten divisions of the
+    <a href="https://en.wikipedia.org/wiki/Wu_Chinese">Wu-speaking</a> 太湖片 core around Shanghai —
+    nine 地级市 plus 上海市 — each tagged with its 小片, and cut to the <em>coastline</em> rather than
+    the administrative line: a Chinese prefecture's legal area includes its waters, so drawn
+    literally 舟山市 would be one box of open sea. Here it is its 211 islands. Two caveats there —
+    that source omits 上海市's real exclaves in Anhui and Jiangsu, and dialect boundaries do not
+    honour prefecture lines, so 杭州市's western counties (建德, 淳安) speak 徽语/严州话, not 太湖片 Wu
+    at all. <strong>Japan</strong> gives the 23 都府県 of central Honshū — 関東, 中部 and 近畿, each
+    tagged with its 地方 — and <strong>関東甲信越</strong> is ten of them: 関東 plus 甲信越, which is
+    甲斐 (山梨), 信濃 (長野) and 越後 (新潟), a grouping still named after the 令制国 it replaced. It is
+    an administrative region rather than a felt one — ministry bureaus and NHK use exactly these ten
+    — where 関東 alone, half the size, is the identity. Both Japanese sets are 1:10m data and so
+    coarser than the rest, and 東京都 reaches 1,886 km southeast to 南鳥島: those islands are drawn,
+    but the opening view frames the mainland.
+    Hover a division for its name and area, click it to zoom in, click it again to come back out.
+    <strong>Names</strong> labels them on the map — <em>all forms</em> stacks every script a
+    territory carries, so a Japanese prefecture reads 東京都 / とうきょうと / Tōkyō-to, and an Irish
+    county carries its Irish name; <em>name only</em> drops back to one line where that crowds.
     <strong>Compare with</strong> is the antidote to the projection: Web Mercator inflates area by
     sec²(latitude), so an English county at 53°N is blown up 2.8× while a Chinese prefecture at
     30°N is blown up only 1.3×. Drawn plainly, 杭州市 is 95% larger than North Yorkshire and yet
@@ -116,9 +163,10 @@
     (© Crown copyright and database right 2026, OGL v3);
     <a href="https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m">Tailte
     Éireann</a> (CC BY 4.0); <a href="https://www.opendatani.gov.uk/">OSNI Open Data</a> (OGL v3);
-    and for 吴语区, 高德 via <a href="https://datav.aliyun.com/portal/school/atlas/area_selector">阿里云
-    DataV.GeoAtlas</a> — 仅供学习和交流使用, study and exchange only. Basemap:
-    <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors (ODbL).
+    for 吴语区, 高德 via <a href="https://datav.aliyun.com/portal/school/atlas/area_selector">阿里云
+    DataV.GeoAtlas</a> — 仅供学习和交流使用, study and exchange only; and for Japan,
+    <a href="https://www.naturalearthdata.com/">Natural Earth</a> 1:10m admin-1 (public domain).
+    Basemap: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors (ODbL).
   </p>
   <div id="division-explorer"></div>
 </div>

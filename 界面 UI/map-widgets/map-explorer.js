@@ -14,6 +14,7 @@
 // Depends on:
 //   - Leaflet 1.9.x (loaded by the page before this file)
 //   - map-export.js (window.exportMapAsPng + window.EXPORT_MAX_CANVAS_DIM)
+//   - map-basemap.js (window.MAP_BASEMAP — the shared, theme-aware OSM tile layer)
 //
 // Usage from a page:
 //
@@ -602,7 +603,10 @@
         });
         // crossOrigin: true — needed so the export can draw tile <img>s
         // onto a canvas without tainting it.
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, crossOrigin: true }).addTo(lmap);
+        // One definition of the OSM layer for the whole site, and the thing that makes it follow
+        // the theme — see map-widgets/map-basemap.js. attributionControl is off on this widget,
+        // so the credit is suppressed here rather than rendered into a hidden control.
+        MAP_BASEMAP.addTo(lmap, { attribution: false });
       }
       updateRailways();
       // Compute zoom after invalidateSize so the canvas reports its

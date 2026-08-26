@@ -1207,7 +1207,9 @@ a.app-card:hover {
         dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
         touchZoom: false, boxZoom: false, keyboard: false
       });
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(lmap);
+      // Shared, theme-aware OSM layer (map-widgets/map-basemap.js). This popover runs with
+      // attributionControl off, so the credit is suppressed rather than hidden.
+      MAP_BASEMAP.addTo(lmap, { attribution: false });
     }
 
     return {

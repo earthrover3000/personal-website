@@ -128,6 +128,14 @@ window.exportMapAsPng = async function (map, container, shape, filename, onProgr
   out.height = outH;
   var ctx = out.getContext('2d');
 
+  // Dark mode is a CSS filter over .leaflet-tile-pane (map-basemap.js), and CSS cannot reach a
+  // canvas composited from the raw tile images — so without this the screen is dark and the saved
+  // PNG comes back light. Applied to the TILE pass only and cleared before any overlay, which is
+  // drawn in its own already-theme-correct colours. ctx.filter is unsupported on older Safari;
+  // there the export simply stays light rather than failing.
+  var darkTiles = !!(window.MAP_BASEMAP && MAP_BASEMAP.isDark());
+  var tileFilter = (darkTiles && 'filter' in ctx) ? MAP_BASEMAP.DARK_FILTER : null;
+
   if (shape === 'circle') {
     ctx.beginPath();
     ctx.arc(outW / 2, outH / 2, Math.min(outW, outH) / 2, 0, Math.PI * 2);
@@ -250,6 +258,10 @@ window.exportMapAsPng = async function (map, container, shape, filename, onProgr
   // through the shared limiter. The railways overlay (added after
   // the OSM base) lands on top because we process layers in addition
   // order.
+  // Set once around the whole tile pass rather than per drawImage: the fetches are async and
+  // interleaved, so a filter set and cleared inside the callback would race itself.
+  if (tileFilter) ctx.filter = tileFilter;
+
   for (var i = 0; i < layers.length; i++) {
     var layer = layers[i];
     var fetches = [];
@@ -285,6 +297,9 @@ window.exportMapAsPng = async function (map, container, shape, filename, onProgr
     }
     await Promise.all(fetches);
   }
+
+  // Tiles are down; take the dark filter off before anything else is composited.
+  if (tileFilter) ctx.filter = 'none';
 
   if (failureCount > 0) {
     console.warn('exportMapAsPng: ' + failureCount + ' of ' + totalTiles +
