@@ -1,9 +1,9 @@
 // Shared lossless-PNG map exporter, used by the City Map Explorer
-// (public/hobbies/cities-transport/) and the Region Map Explorer
-// (public/hobbies/maps-projections/). Both pages link this file directly so
-// they share one source of truth for the export pipeline; per-page
-// inline JS only handles the page-specific controls (location list,
-// default radius, etc.) and calls window.exportMapAsPng() to save.
+// (public/hobbies/cities-transport/), the Region Map Explorer and the
+// county overlay (both public/hobbies/maps-projections/). Every page links
+// this file directly so they share one source of truth for the export
+// pipeline; per-page JS only handles the page-specific controls (location
+// list, default radius, etc.) and calls window.exportMapAsPng() to save.
 //
 // Single source of truth for the export canvas-size cap. Read by
 // exportMapAsPng's hard-cap check below AND by each page's
@@ -50,6 +50,16 @@ window.EXPORT_MAX_CANVAS_DIM = 16384;
 // critical — when zHi == Math.round(currentZoom) (the common case),
 // every needed tile is already in the DOM.
 //
+// Only L.TileLayer content is rasterised — Leaflet draws vector layers
+// into a separate SVG/canvas pane this routine never reads. For the two
+// original callers that is the whole picture, but a page whose headline
+// content IS the vector layer (the 行政区划 county overlay on
+// maps-projections) would otherwise export a bare basemap. Such a caller
+// passes drawOverlay(ctx, project, scale) as the 7th argument and paints
+// it itself; `project` maps a LatLng to output-canvas pixels using the
+// same zHi the tiles were drawn at, so the two land in register at any
+// export zoom. Omitted (the default) = tiles only, exactly as before.
+//
 // Returns a Promise that resolves once the download is triggered.
 // Optional onProgress(done, total) fires after each tile completes.
 // Optional targetZoom overrides the tile zoom used for the export
@@ -58,7 +68,7 @@ window.EXPORT_MAX_CANVAS_DIM = 16384;
 // captured at native pixel density of the chosen zoom — so each
 // +1 zoom roughly doubles each side (4× the file). Default
 // (targetZoom omitted) = same integer zoom Leaflet uses on screen.
-window.exportMapAsPng = async function (map, container, shape, filename, onProgress, targetZoom) {
+window.exportMapAsPng = async function (map, container, shape, filename, onProgress, targetZoom, drawOverlay) {
   var rect = container.getBoundingClientRect();
   var screenW = Math.round(rect.width);
   var screenH = Math.round(rect.height);
@@ -279,6 +289,20 @@ window.exportMapAsPng = async function (map, container, shape, filename, onProgr
   if (failureCount > 0) {
     console.warn('exportMapAsPng: ' + failureCount + ' of ' + totalTiles +
       ' tile fetch(es) failed (likely rate-limit at high zoom). Affected regions left transparent.');
+  }
+
+  // Vector pass — after every tile, so the overlay sits on top of the basemap exactly as it
+  // does on screen, and inside the shape clip established above. A throwing painter costs the
+  // overlay, not the export: better to hand back a basemap PNG than nothing at all.
+  if (typeof drawOverlay === 'function') {
+    try {
+      drawOverlay(ctx, function (latlng) {
+        var p = map.project(latlng, zHi);
+        return { x: p.x - topLeftX, y: p.y - topLeftY };
+      }, scale);
+    } catch (e) {
+      console.error('exportMapAsPng: drawOverlay threw; exporting basemap only', e);
+    }
   }
 
   return new Promise(function (resolve) {

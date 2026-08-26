@@ -22,8 +22,7 @@
        map-route.js), so adding a region there updates both. -->
   <script src="../../../../../引擎 Engines/map-projection/regions.js"></script>
   <!-- page-nav.js auto-injects a search bar + Contents nav whenever the
-       page has 2+ <h2> direct children. Currently a no-op (one section
-       only) but ready for when more sections get added. -->
+       page has 2+ <h2> direct children — active here (three sections). -->
   <script src="../../../../../界面 UI/page-widgets/page-nav.js" defer></script>
   <style>
     /* Page-specific element rules — scoped to .container > * per the
@@ -84,6 +83,44 @@
   <!-- The Region Map Explorer is initialised at END OF BODY (not here): its empty
        state mounts a static Northern-Hǎo overview built with createWorldMap, which
        the projection toolkit below defines. -->
+
+  <h2>Administrative Divisions</h2>
+  <p class="lede">
+    A whole country's <strong>行政区划</strong> at once — every county of a territory outlined and
+    filled over OpenStreetMap, four-coloured so no two that share a border take the same colour
+    (the same scheme the world map above uses for its UN subregions). <strong>England</strong> gives
+    the 48 <a href="https://en.wikipedia.org/wiki/Ceremonial_counties_of_England">ceremonial
+    counties</a> — the lieutenancy areas, so Yorkshire arrives in four pieces — drawn here as 47.
+    The City of London is a ceremonial county in its own right, a 1.1-square-mile hole punched
+    through the middle of Greater London, but at the zoom where England fits the frame it is under
+    a pixel wide and reads as a rendering fault, so it is folded into its host.
+    <strong>Ireland</strong> gives the 32 traditional
+    counties of the whole island, with their Irish names and provinces. <strong>吴语区</strong> gives
+    the ten divisions of the <a href="https://en.wikipedia.org/wiki/Wu_Chinese">Wu-speaking</a>
+    太湖片 core around Shanghai — nine 地级市 plus 上海市 itself, each tagged with its 小片. These are
+    cut to the <em>coastline</em>, not to the administrative line: a Chinese prefecture's legal area
+    includes its waters, so drawn literally 舟山市 would be one box of open sea and 宁波市 would reach
+    far offshore. Here 舟山市 is its 211 islands instead. Two caveats — this source omits 上海市's real
+    exclaves in Anhui and Jiangsu, and prefecture lines are administrative, so dialect boundaries do
+    not honour them: 杭州市's western counties (建德, 淳安) speak 徽语/严州话, not 太湖片 Wu at all.
+    Hover a division for its name and area, click it to zoom in, click it again to come back out,
+    and toggle <strong>Division names</strong> to label them all.
+    <strong>Compare with</strong> is the antidote to the projection: Web Mercator inflates area by
+    sec²(latitude), so an English county at 53°N is blown up 2.8× while a Chinese prefecture at
+    30°N is blown up only 1.3×. Drawn plainly, 杭州市 is 95% larger than North Yorkshire and yet
+    renders about 6% <em>smaller</em>. Pick any division and its outline is drawn over the map at
+    its true ground size, wherever you drag it — the shape is re-projected as it moves, so it always
+    covers the area it really has. <strong>Save PNG</strong> exports the visible frame, compared
+    outline included.
+    Boundaries: <a href="https://osdatahub.os.uk/downloads/open/BoundaryLine">OS Boundary-Line</a>
+    (© Crown copyright and database right 2026, OGL v3);
+    <a href="https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m">Tailte
+    Éireann</a> (CC BY 4.0); <a href="https://www.opendatani.gov.uk/">OSNI Open Data</a> (OGL v3);
+    and for 吴语区, 高德 via <a href="https://datav.aliyun.com/portal/school/atlas/area_selector">阿里云
+    DataV.GeoAtlas</a> — 仅供学习和交流使用, study and exchange only. Basemap:
+    <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors (ODbL).
+  </p>
+  <div id="division-explorer"></div>
 </div>
 
 <!-- Boxes-first load. The ENGINE (small) is synchronous so createWorldMap is defined when the inline
@@ -99,6 +136,11 @@
 <!-- Page-local config (preset route groups + initial control state) — needed by the init below, so
      synchronous too. The engine above is projection-agnostic; great-circle.js is what this page feeds it. -->
 <script src="great-circle.js"></script>
+<!-- Page-local widget for the Administrative Divisions section (county overlay on OSM tiles).
+     Synchronous like great-circle.js so createDivisionMap exists for the init below; the ~700 KB
+     of county geometry it draws is NOT loaded here — the widget fetches admin-divisions.js itself
+     when the section is first scrolled to. -->
+<script src="division-map.js"></script>
 <!-- Shared city data (window.WORLD_CITIES = { world, lived }) — single source of truth in the engine
      module, also loaded by the cities-transport page. Synchronous (≈9 KB) so the city-layer toggles
      are present when the controls build in the init below. -->
@@ -174,6 +216,16 @@
         getCanvas: function () { return el.querySelector('canvas'); }   // the widget's circle-clipped Save PNG reads this
       };
     }
+  });
+
+  // Administrative Divisions — every county of a territory at once over OSM tiles. Unlike the two
+  // maps above, this one owns its own data loading: dataSrc is fetched on first reveal, so the
+  // county geometry never lands in the page's initial ~3 MB of basemap. Territories come from the
+  // data file itself (window.WORLD_ADMIN_DIVISIONS keys), so adding one is a generator-side change.
+  createDivisionMap({
+    mount: '#division-explorer',
+    filenamePrefix: 'counties',
+    dataSrc: '../../../../../引擎 Engines/map-projection/admin-divisions.js'
   });
 </script>
 
