@@ -480,6 +480,12 @@
   "asset": true
  },
  {
+  "glyph": "🎄",
+  "cps": "1f384",
+  "count": 1,
+  "asset": true
+ },
+ {
   "glyph": "🎛️",
   "cps": "1f39b-fe0f",
   "count": 1,
