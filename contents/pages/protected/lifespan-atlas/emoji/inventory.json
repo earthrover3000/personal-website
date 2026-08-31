@@ -24,6 +24,12 @@
   "asset": true
  },
  {
+  "glyph": "📏",
+  "cps": "1f4cf",
+  "count": 5,
+  "asset": true
+ },
+ {
   "glyph": "↩️",
   "cps": "21a9-fe0f",
   "count": 5,
@@ -36,8 +42,20 @@
   "asset": true
  },
  {
+  "glyph": "📐",
+  "cps": "1f4d0",
+  "count": 4,
+  "asset": true
+ },
+ {
   "glyph": "📖",
   "cps": "1f4d6",
+  "count": 4,
+  "asset": true
+ },
+ {
+  "glyph": "📚",
+  "cps": "1f4da",
   "count": 4,
   "asset": true
  },
@@ -78,6 +96,18 @@
   "asset": true
  },
  {
+  "glyph": "🎞️",
+  "cps": "1f39e-fe0f",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "🎯",
+  "cps": "1f3af",
+  "count": 3,
+  "asset": true
+ },
+ {
   "glyph": "🎲",
   "cps": "1f3b2",
   "count": 3,
@@ -108,20 +138,8 @@
   "asset": true
  },
  {
-  "glyph": "📏",
-  "cps": "1f4cf",
-  "count": 3,
-  "asset": true
- },
- {
-  "glyph": "📐",
-  "cps": "1f4d0",
-  "count": 3,
-  "asset": true
- },
- {
-  "glyph": "📚",
-  "cps": "1f4da",
+  "glyph": "🕕",
+  "cps": "1f555",
   "count": 3,
   "asset": true
  },
@@ -150,12 +168,6 @@
   "asset": true
  },
  {
-  "glyph": "🪞",
-  "cps": "1fa9e",
-  "count": 3,
-  "asset": true
- },
- {
   "glyph": "🪵",
   "cps": "1fab5",
   "count": 3,
@@ -164,6 +176,12 @@
  {
   "glyph": "☸️",
   "cps": "2638-fe0f",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "⚙️",
+  "cps": "2699-fe0f",
   "count": 3,
   "asset": true
  },
@@ -204,12 +222,6 @@
   "asset": true
  },
  {
-  "glyph": "🎞️",
-  "cps": "1f39e-fe0f",
-  "count": 2,
-  "asset": true
- },
- {
   "glyph": "🎡",
   "cps": "1f3a1",
   "count": 2,
@@ -218,12 +230,6 @@
  {
   "glyph": "🎢",
   "cps": "1f3a2",
-  "count": 2,
-  "asset": true
- },
- {
-  "glyph": "🎯",
-  "cps": "1f3af",
   "count": 2,
   "asset": true
  },
@@ -324,12 +330,6 @@
   "asset": true
  },
  {
-  "glyph": "🕕",
-  "cps": "1f555",
-  "count": 2,
-  "asset": true
- },
- {
   "glyph": "🕛",
   "cps": "1f55b",
   "count": 2,
@@ -350,6 +350,12 @@
  {
   "glyph": "🖋️",
   "cps": "1f58b-fe0f",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🗄️",
+  "cps": "1f5c4-fe0f",
   "count": 2,
   "asset": true
  },
@@ -378,6 +384,12 @@
   "asset": true
  },
  {
+  "glyph": "🧩",
+  "cps": "1f9e9",
+  "count": 2,
+  "asset": true
+ },
+ {
   "glyph": "🪟",
   "cps": "1fa9f",
   "count": 2,
@@ -396,6 +408,12 @@
   "asset": true
  },
  {
+  "glyph": "↗️",
+  "cps": "2197-fe0f",
+  "count": 2,
+  "asset": true
+ },
+ {
   "glyph": "⏯️",
   "cps": "23ef-fe0f",
   "count": 2,
@@ -408,14 +426,14 @@
   "asset": true
  },
  {
-  "glyph": "⏸️",
-  "cps": "23f8-fe0f",
+  "glyph": "⏱️",
+  "cps": "23f1-fe0f",
   "count": 2,
   "asset": true
  },
  {
-  "glyph": "⚙️",
-  "cps": "2699-fe0f",
+  "glyph": "⏸️",
+  "cps": "23f8-fe0f",
   "count": 2,
   "asset": true
  },
@@ -678,6 +696,12 @@
   "asset": true
  },
  {
+  "glyph": "📦",
+  "cps": "1f4e6",
+  "count": 1,
+  "asset": true
+ },
+ {
   "glyph": "📰",
   "cps": "1f4f0",
   "count": 1,
@@ -716,12 +740,6 @@
  {
   "glyph": "🔆",
   "cps": "1f506",
-  "count": 1,
-  "asset": true
- },
- {
-  "glyph": "🔧",
-  "cps": "1f527",
   "count": 1,
   "asset": true
  },
@@ -810,12 +828,6 @@
   "asset": true
  },
  {
-  "glyph": "🗄️",
-  "cps": "1f5c4-fe0f",
-  "count": 1,
-  "asset": true
- },
- {
   "glyph": "🗓️",
   "cps": "1f5d3-fe0f",
   "count": 1,
@@ -830,6 +842,12 @@
  {
   "glyph": "🗿",
   "cps": "1f5ff",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🚩",
+  "cps": "1f6a9",
   "count": 1,
   "asset": true
  },
@@ -854,12 +872,6 @@
  {
   "glyph": "🧠",
   "cps": "1f9e0",
-  "count": 1,
-  "asset": true
- },
- {
-  "glyph": "🧩",
-  "cps": "1f9e9",
   "count": 1,
   "asset": true
  },
@@ -906,6 +918,12 @@
   "asset": true
  },
  {
+  "glyph": "🪞",
+  "cps": "1fa9e",
+  "count": 1,
+  "asset": true
+ },
+ {
   "glyph": "🪴",
   "cps": "1fab4",
   "count": 1,
@@ -924,12 +942,6 @@
   "asset": true
  },
  {
-  "glyph": "↗️",
-  "cps": "2197-fe0f",
-  "count": 1,
-  "asset": true
- },
- {
   "glyph": "↙️",
   "cps": "2199-fe0f",
   "count": 1,
@@ -944,12 +956,6 @@
  {
   "glyph": "⏪",
   "cps": "23ea",
-  "count": 1,
-  "asset": true
- },
- {
-  "glyph": "⏱️",
-  "cps": "23f1-fe0f",
   "count": 1,
   "asset": true
  },
