@@ -9,7 +9,7 @@
          tag + drops the iOS gesture guards). Locked here too so the very first
          paint can't be pinch-zoomed before that effect mounts. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#1a5757" />
+    <meta name="theme-color" content="#33383D" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="preload" href="fonts/Fraunces-Regular.woff2" as="font" type="font/woff2" crossorigin />
@@ -22,6 +22,31 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=EB+Garamond:ital,wght@0,400;1,400&family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
     <title>Lifespan Atlas</title>
+    <!-- PRE-PAINT BRAND. Runs before the stylesheet below is used to paint,
+         so the very first frame is already the reader's colour and there is
+         no flash of a default on the way to it.
+           It reads a CACHE the app writes (lifespan-atlas:brand-hex, "light|dark")
+         rather than the choice KEY, so the palette itself is not duplicated
+         into this file — the key stays the single source of truth in
+         theme/display.ts, and this is a derived convenience the app never
+         reads back. Resolving light vs dark needs the theme pref too, since
+         "auto" follows the OS. Anything malformed is ignored and the CSS
+         fallback stands. -->
+    <script>
+      (function () {
+        try {
+          var pair = (localStorage.getItem("lifespan-atlas:brand-hex") || "").split("|");
+          if (pair.length !== 2) return;
+          var pref = localStorage.getItem("la-theme-pref");
+          var dark = pref === "dark" || (pref !== "light" &&
+            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var hex = dark ? pair[1] : pair[0];
+          if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+            document.documentElement.style.setProperty("--la-brand", hex);
+          }
+        } catch (e) { /* private tabs / disabled storage: fallback stands */ }
+      })();
+    </script>
     <style>
       @font-face {
         font-family: "Fraunces";
@@ -30,9 +55,15 @@
         font-display: swap;
         src: url("fonts/Fraunces-Regular.woff2") format("woff2");
       }
-      html, body { margin: 0; padding: 0; min-height: 100vh; background: #1a5757; }
+      /* THE SHELL MUST NOT ASSERT A BRAND. This background paints before any
+         JS runs, so a literal here is whatever the app used to be — which is
+         exactly the teal that flashed between two indigo frames on reload
+         (user report 2026-09-01). It now reads --la-brand, which the script
+         above sets from the reader's stored choice before first paint, and
+         falls back to the graphite DEFAULT rather than a retired colour. */
+      html, body { margin: 0; padding: 0; min-height: 100vh; background: var(--la-brand, #33383D); }
     </style>
-    <script type="module" crossorigin src="./assets/index-BHbe21l8.js"></script>
+    <script type="module" crossorigin src="./assets/index-Co2F4qF-.js"></script>
   <link rel="manifest" href="./manifest.webmanifest"></head>
   <body>
     <div id="root"></div>
