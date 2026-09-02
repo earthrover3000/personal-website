@@ -450,6 +450,12 @@
   "asset": true
  },
  {
+  "glyph": "🧪",
+  "cps": "1f9ea",
+  "count": 2,
+  "asset": true
+ },
+ {
   "glyph": "🪟",
   "cps": "1fa9f",
   "count": 2,
@@ -908,12 +914,6 @@
  {
   "glyph": "🧩",
   "cps": "1f9e9",
-  "count": 1,
-  "asset": true
- },
- {
-  "glyph": "🧪",
-  "cps": "1f9ea",
   "count": 1,
   "asset": true
  },
