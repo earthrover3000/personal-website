@@ -186,12 +186,6 @@
   "asset": true
  },
  {
-  "glyph": "🧬",
-  "cps": "1f9ec",
-  "count": 3,
-  "asset": true
- },
- {
   "glyph": "🧭",
   "cps": "1f9ed",
   "count": 3,
@@ -434,12 +428,6 @@
  {
   "glyph": "🥚",
   "cps": "1f95a",
-  "count": 2,
-  "asset": true
- },
- {
-  "glyph": "🧧",
-  "cps": "1f9e7",
   "count": 2,
   "asset": true
  },
@@ -914,6 +902,12 @@
  {
   "glyph": "🧩",
   "cps": "1f9e9",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🧬",
+  "cps": "1f9ec",
   "count": 1,
   "asset": true
  },
