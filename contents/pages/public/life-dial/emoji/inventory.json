@@ -6,15 +6,15 @@
   "asset": true
  },
  {
-  "glyph": "📍",
-  "cps": "1f4cd",
+  "glyph": "🔄",
+  "cps": "1f504",
   "count": 9,
   "asset": true
  },
  {
-  "glyph": "🔄",
-  "cps": "1f504",
-  "count": 9,
+  "glyph": "📍",
+  "cps": "1f4cd",
+  "count": 8,
   "asset": true
  },
  {
@@ -96,32 +96,8 @@
   "asset": true
  },
  {
-  "glyph": "🔍",
-  "cps": "1f50d",
-  "count": 4,
-  "asset": true
- },
- {
-  "glyph": "↕️",
-  "cps": "2195-fe0f",
-  "count": 4,
-  "asset": true
- },
- {
   "glyph": "🌱",
   "cps": "1f331",
-  "count": 3,
-  "asset": true
- },
- {
-  "glyph": "🌷",
-  "cps": "1f337",
-  "count": 3,
-  "asset": true
- },
- {
-  "glyph": "🎚️",
-  "cps": "1f39a-fe0f",
   "count": 3,
   "asset": true
  },
@@ -168,6 +144,12 @@
   "asset": true
  },
  {
+  "glyph": "🔍",
+  "cps": "1f50d",
+  "count": 3,
+  "asset": true
+ },
+ {
   "glyph": "🔢",
   "cps": "1f522",
   "count": 3,
@@ -186,12 +168,6 @@
   "asset": true
  },
  {
-  "glyph": "🧭",
-  "cps": "1f9ed",
-  "count": 3,
-  "asset": true
- },
- {
   "glyph": "🪜",
   "cps": "1fa9c",
   "count": 3,
@@ -200,6 +176,12 @@
  {
   "glyph": "🪵",
   "cps": "1fab5",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "↕️",
+  "cps": "2195-fe0f",
   "count": 3,
   "asset": true
  },
@@ -276,8 +258,20 @@
   "asset": true
  },
  {
+  "glyph": "🌷",
+  "cps": "1f337",
+  "count": 2,
+  "asset": true
+ },
+ {
   "glyph": "🎁",
   "cps": "1f381",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🎚️",
+  "cps": "1f39a-fe0f",
   "count": 2,
   "asset": true
  },
@@ -414,12 +408,6 @@
   "asset": true
  },
  {
-  "glyph": "🗑️",
-  "cps": "1f5d1-fe0f",
-  "count": 2,
-  "asset": true
- },
- {
   "glyph": "🛠️",
   "cps": "1f6e0-fe0f",
   "count": 2,
@@ -434,6 +422,12 @@
  {
   "glyph": "🧪",
   "cps": "1f9ea",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🧭",
+  "cps": "1f9ed",
   "count": 2,
   "asset": true
  },
@@ -854,6 +848,12 @@
  {
   "glyph": "🗄️",
   "cps": "1f5c4-fe0f",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🗑️",
+  "cps": "1f5d1-fe0f",
   "count": 1,
   "asset": true
  },

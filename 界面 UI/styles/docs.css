@@ -246,15 +246,35 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
 /* An entry's detail opens from the entry LINE, not from a marker (user decision
    2026-08-25; plan-renderer.js toggleDetail). The <summary> still has to EXIST
    — a <details> without one gets the UA's own 'Details' marker — so it is
-   hidden here rather than omitted there. The pointer cursor on a row that has a
-   body is the only hint that it opens, and only outside edit mode, where a
-   click places the caret instead. The opened prose takes the text cursor back,
-   since it is there to be read and selected. */
+   hidden here rather than omitted there. Outside edit mode a click on the line
+   opens the body; inside it, a click places the caret instead. The opened prose
+   takes the text cursor back, since it is there to be read and selected. Which
+   rows HAVE a body is said by the indicator below, not by the cursor. */
 .li-detail > summary { display: none; }
 /* EVERY entry is clickable now, not just the ones that open: a click selects,
    and selection is the point (user decision 2026-08-25). */
 .container:not(.editing) section li { cursor: pointer; }
 .li-detail { cursor: text; }
+
+/* A row carrying a body SAYS SO (user decision 2026-08-13). The pointer cursor
+   was once that hint, and it stopped discriminating the moment EVERY row became
+   clickable for selection (the rule above) — leaving rows with and without a
+   body identical at rest.
+   An INDICATOR, not the marker that was dropped: pointer-events:none, so the
+   entry LINE remains the one control. It rides inside .li-text (order 2,
+   flex:1), so it cannot disturb the num / tag / drag-handle slots or the line
+   spacing the hover rule is built around, and it flips when the body is open.
+   SSOT for the planning hub: this file is loaded by EVERY plan surface (all 24
+   app plan pages plus the site map), so the affordance is stated once here and
+   never per page. */
+.has-detail > .li-text::after {
+  content: "⌄";
+  margin-left: 0.35em;
+  color: var(--muted);
+  font-size: 0.85em;
+  pointer-events: none;
+}
+.has-detail:has(.li-detail[open]) > .li-text::after { content: "⌃"; }
 
 /* ---- Item controls ---- */
 .li-controls { display: none; gap: 0.2rem; margin-left: 0.4rem; vertical-align: middle; }
