@@ -527,7 +527,10 @@
       svg.parentNode.insertBefore(wrap, svg);
       wrap.appendChild(svg);
       const readout = document.createElement('div');
-      readout.className = 'chart-readout';
+      // ch-grid: the two-row column-aligned variant of the readout (stats.css).
+      // The other consumer of .chart-readout (site-log-rings) emits a single
+      // line of prose and keeps the plain flex layout.
+      readout.className = 'chart-readout ch-grid';
       wrap.appendChild(readout);
 
       // Crosshair layer is APPENDED (not inserted first like .x-axis-layer):
@@ -582,18 +585,119 @@
         return best;
       }
 
+      // ── The 24h row ─────────────────────────────────────────────────────
+      // Line 2 of the readout: how much each count moved over the 24 hours
+      // ENDING at the moment line 1 is reporting — the hovered snapshot, or
+      // the newest build at rest. Tying it to the hovered point rather than to
+      // the reader's clock is what keeps the two lines honest: a fixed "last
+      // 24h from now" sitting under a line reporting a build from March would
+      // be two different moments stacked in one box.
+      //
+      // The baseline is the newest snapshot at or before (t − 24h), and that
+      // is EXACT, not an approximation. The counts are a step function: they
+      // change only where a build recorded a snapshot, so the value at any
+      // instant between two snapshots IS the earlier one's. A quiet fortnight
+      // doesn't smear the window — it means the baseline is a fortnight old
+      // and the 24h delta is correctly zero.
+      const DAY_MS = 86400000;
+      const DASH = '—';
+      // baseOf[i] — the newest snapshot at or before (t_i − 24h), or -1 where
+      // the history doesn't reach a full day back. Precomputed in one forward
+      // sweep: the cutoff only ever moves right, so the baseline pointer never
+      // rewinds, and the hover path becomes an array lookup rather than a
+      // backward scan through four thousand points on every mouse move.
+      const baseOf = new Array(points.length);
+      {
+        let j = -1;
+        for (let i = 0; i < points.length; i++) {
+          const cutoff = dates[i].getTime() - DAY_MS;
+          while (j + 1 < points.length && dates[j + 1].getTime() <= cutoff) j++;
+          baseOf[i] = j;
+        }
+      }
+      const deltaAt = (i, key) => {
+        const b = baseOf[i] >= 0 ? points[baseOf[i]] : null;
+        if (!b || b[key] == null || points[i][key] == null) return null;
+        return points[i][key] - b[key];
+      };
+      // U+2212 MINUS, not a hyphen: the deltas sit in the same tabular-nums
+      // column as the counts above them, and a hyphen is narrower than a digit.
+      const fmtDelta = d =>
+        (d > 0 ? '+' : d < 0 ? '−' : '') + Math.abs(d).toLocaleString();
+      const fmtCount = v => v == null ? DASH : v.toLocaleString();
+
+      // ── Pinned value columns ──────────────────────────────────
+      // Counts are not all the same width (41,578 → 115,793), so an auto track
+      // resizes as the pointer moves and shunts everything to its right along
+      // with it — on a series this dense, a permanent shimmer under the cursor.
+      // Each value column is measured ONCE against the widest string it will
+      // ever hold — its longest count, its longest delta, or the dash — and
+      // pinned there, so only the digits change while the layout holds still.
+      // Measured with a probe carrying .ch-val rather than with a canvas, so it
+      // inherits the real font and tabular-nums instead of a reconstruction.
+      const colW = { total: 0, words: 0 };
+      function pinColumns() {
+        const probe = document.createElement('span');
+        probe.className = 'ch-val';
+        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
+        readout.appendChild(probe);
+        const longest = strs => strs.reduce((a, b) => b.length > a.length ? b : a, '');
+        for (const key of ['total', 'words']) {
+          const counts = longest(points.map(q => fmtCount(q[key])));
+          const deltas = longest(points.map((q, i) => {
+            const d = deltaAt(i, key);
+            return d === null ? DASH : fmtDelta(d);
+          }));
+          let w = 0;
+          for (const str of [counts, deltas, DASH]) {
+            probe.textContent = str;
+            w = Math.max(w, probe.getBoundingClientRect().width);
+          }
+          colW[key] = Math.ceil(w);
+        }
+        probe.remove();
+      }
+
       // Counts are always the raw values: the Log toggle changes the axis, not
-      // what the number is. A point predating word tracking has words == null —
-      // the lines value still reads out, the words field simply isn't there.
+      // what the number is. A point predating word tracking has words == null
+      // and reads as a dash rather than dropping its field: a vanishing column
+      // is the one layout shift the pinned widths above cannot prevent.
       function renderReadout(i) {
         const p = points[i];
+        const lOn = linesOn(), wOn = wordsOn();
         const field = (cls, key, val) =>
           `<span class="ch-field ${cls}"><span class="ch-key">${key}</span>` +
-          `<span class="ch-val">${val.toLocaleString()}</span></span>`;
-        readout.innerHTML =
+          `<span class="ch-val">${val}</span></span>`;
+        let html =
           `<span class="ch-when">${fmtWhen(i)}</span>` +
-          (linesOn() ? field('ch-f-lines', 'Lines', p.total) : '') +
-          (wordsOn() && p.words != null ? field('ch-f-words', 'Words', p.words) : '');
+          (lOn ? field('ch-f-lines', 'Lines', fmtCount(p.total)) : '') +
+          (wOn ? field('ch-f-words', 'Words', fmtCount(p.words)) : '');
+
+        // The row is unconditional. Through the first day of any history there
+        // is no instant 24h back to measure from, and a dash says so plainly;
+        // a row that came and went would move the page under the reader for
+        // the same reason a resizing column does.
+        const cell = (cls, key) => {
+          const d = deltaAt(i, key);
+          return field(cls + ' ch-d', '', d === null ? DASH : fmtDelta(d));
+        };
+        html +=
+          '<span class="ch-when ch-since">24h</span>' +
+          (lOn ? cell('ch-f-lines', 'total') : '') +
+          (wOn ? cell('ch-f-words', 'words') : '');
+        // One column for the when/since label, then a (key, value) pair per
+        // VISIBLE series — set here rather than in CSS because unchecking a
+        // series removes its two columns, and a fixed template would leave
+        // their gaps behind. Line 2's empty key cells hold its deltas in the
+        // same columns as the counts they modify; that alignment is what lets
+        // the row drop its own labels.
+        // A pinned width of 0 means the probe measured inside a hidden box —
+        // fall back to an auto track rather than clamping the column shut.
+        const track = w => w ? `${w}px` : 'auto';
+        readout.style.gridTemplateColumns = 'auto'
+          + (lOn ? ` auto ${track(colW.total)}` : '')
+          + (wOn ? ` auto ${track(colW.words)}` : '');
+        readout.innerHTML = html;
       }
 
       let activeIdx = -1;
@@ -640,6 +744,7 @@
         showAt(nearestIndex(v.x));
       });
       svg.addEventListener('pointerleave', restCrosshair);
+      pinColumns();
       restCrosshair();
 
       // Re-render whatever the line is currently showing when a toggle moves
@@ -652,6 +757,11 @@
         radio.addEventListener('change', refreshCrosshair);
       });
       [showLines, showWords].forEach(cb => cb && cb.addEventListener('change', refreshCrosshair));
+      // Re-pin once webfonts land: widths first measured against the fallback
+      // face would sit a few pixels off the text that finally renders.
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => { pinColumns(); refreshCrosshair(); });
+      }
     }
   }
 })();

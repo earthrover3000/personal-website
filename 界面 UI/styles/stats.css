@@ -307,12 +307,11 @@ body:has(#group-categories:not(:checked)) #project-outline .section-bar { displa
 .crosshair-layer .ch-dot { stroke: var(--surface); stroke-width: 1.5; }
 .crosshair-layer .ch-dot-lines { fill: var(--accent, #7c9ef5); }
 .crosshair-layer .ch-dot-words { fill: var(--chart-words); }
-/* Hover readout — a single line UNDER the chart, never over it. Always
-   populated: it reports the hovered snapshot while the pointer is on the plot
-   and the most recent build the rest of the time, so it never blinks out.
-   min-height holds the row steady across the one/two-field states. Left
-   padding matches the SVG's own inner padding so the text lines up with the
-   plot. */
+/* Hover readout — UNDER the chart, never over it. Always populated: it
+   reports the hovered snapshot while the pointer is on the plot and the most
+   recent build the rest of the time, so it never blinks out. min-height holds
+   the row steady across the one/two-field states. Left padding matches the
+   SVG's own inner padding so the text lines up with the plot. */
 .chart-readout {
   display: flex;
   flex-wrap: wrap;
@@ -334,6 +333,29 @@ body:has(#group-categories:not(:checked)) #project-outline .section-bar { displa
 .chart-readout .ch-when, .chart-readout .ch-val { font-variant-numeric: tabular-nums; }
 .chart-readout .ch-f-lines .ch-key { color: var(--accent); }
 .chart-readout .ch-f-words .ch-key { color: var(--chart-words); }
+/* Two-row variant (the line-history chart): line 1 is the snapshot's counts,
+   line 2 the change over the 24 hours before it. A grid rather than the flex
+   default because flex cannot column-align across rows — and the alignment is
+   the whole point: each delta sits in the same column as the count it modifies,
+   so line 2 carries no labels of its own. .ch-field collapses to `contents` so
+   its key and value become grid items in their own right; the widget sets
+   grid-template-columns to match the visible series (see renderReadout).
+   justify-content keeps the auto tracks at content width instead of stretching
+   them across the box. The single-line consumers (site-log-rings) never take
+   this class and keep the flex layout above. */
+.chart-readout.ch-grid {
+  display: grid;
+  justify-content: start;
+  column-gap: 0.45rem;
+  row-gap: 0.15rem;
+}
+.chart-readout.ch-grid .ch-field { display: contents; }
+/* Key padding + column-gap reproduce the 1.1rem the flex layout put between
+   whole fields, while the gap alone keeps each key close to its own value. */
+.chart-readout.ch-grid .ch-key { padding-left: 0.65rem; }
+/* Right-aligned against the tabular-nums figures: 114,387 and +412 are
+   different widths, and it is their last digits that should share an edge. */
+.chart-readout.ch-grid .ch-val { justify-self: end; }
 
 .touched-date, .touched-block, .touched-ago { min-width: 6em; }
 .touched-date { display: inline-block; }

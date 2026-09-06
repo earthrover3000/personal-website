@@ -211,16 +211,23 @@ html:not([data-show-planned]) .cat-chip--planned-only { display: none; }
 
 /* Developer entries — index cards and rows for scaffolding rather than
    content (site-structure.yaml `dev: true`; Launchbolt is the only one so
-   far). INVERTED against the switches below: the stamp HIDES, because these
-   are shown by default and Developer mode takes them away. The index head
-   snippet stamps <html data-dev-mode> from localStorage['site-dev-mode']
-   before first paint, same as the theme.
+   far). HIDDEN BY DEFAULT and revealed by Settings' "Show developer
+   entries", the same shape as the planned rows below: the index head
+   snippet stamps <html data-show-dev> from localStorage['site-show-dev']
+   before first paint.
 
-   `display: none` on the card also collapses its side-column <li>, which
-   carries the class too so the row leaves no gap. NOT a privacy mechanism:
-   the card is in the HTML either way, and anything that must not ship is a
-   ceiling question, not a preference (TIER-VARIANTS.md rulings 18 and 21). */
-html[data-dev-mode] .dev-entry { display: none; }
+   Written as :not() rather than a hide/show pair because .dev-entry lands on
+   three different kinds of element — an .app-card anchor, its side-column
+   <li>, and a plain row — so there is no single `display` value to restore.
+   Removing the rule instead lets each keep its own.
+
+   The <li> carries the class alongside the card it wraps, so a hidden card
+   leaves no gap in the side column.
+
+   NOT a privacy mechanism: the card is in the HTML either way, and anything
+   that must not ship is a ceiling question, not a preference
+   (TIER-VARIANTS.md rulings 18 and 21). */
+html:not([data-show-dev]) .dev-entry { display: none; }
 
 /* Planned-page teaser rows — inert grey entries after the live page list,
    hidden unless the visitor opted in on Settings ("Show planned pages"):

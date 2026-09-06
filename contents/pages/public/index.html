@@ -68,7 +68,7 @@
 })();
 </script>
 <script>if(localStorage.getItem("site-show-planned")==="on")document.documentElement.setAttribute("data-show-planned","");</script>
-<script>if(localStorage.getItem("site-dev-mode")==="on")document.documentElement.setAttribute("data-dev-mode","");</script>
+<script>if(localStorage.getItem("site-show-dev")==="on")document.documentElement.setAttribute("data-show-dev","");</script>
 <style>/* Shared base styles for index pages (root, protected, private) and docs
    pages (site-map, site-stats, lifespan-atlas plan). Loaded BEFORE the
    page-specific stylesheet so page rules can override.
@@ -688,16 +688,23 @@ html:not([data-show-planned]) .cat-chip--planned-only { display: none; }
 
 /* Developer entries — index cards and rows for scaffolding rather than
    content (site-structure.yaml `dev: true`; Launchbolt is the only one so
-   far). INVERTED against the switches below: the stamp HIDES, because these
-   are shown by default and Developer mode takes them away. The index head
-   snippet stamps <html data-dev-mode> from localStorage['site-dev-mode']
-   before first paint, same as the theme.
+   far). HIDDEN BY DEFAULT and revealed by Settings' "Show developer
+   entries", the same shape as the planned rows below: the index head
+   snippet stamps <html data-show-dev> from localStorage['site-show-dev']
+   before first paint.
 
-   `display: none` on the card also collapses its side-column <li>, which
-   carries the class too so the row leaves no gap. NOT a privacy mechanism:
-   the card is in the HTML either way, and anything that must not ship is a
-   ceiling question, not a preference (TIER-VARIANTS.md rulings 18 and 21). */
-html[data-dev-mode] .dev-entry { display: none; }
+   Written as :not() rather than a hide/show pair because .dev-entry lands on
+   three different kinds of element — an .app-card anchor, its side-column
+   <li>, and a plain row — so there is no single `display` value to restore.
+   Removing the rule instead lets each keep its own.
+
+   The <li> carries the class alongside the card it wraps, so a hidden card
+   leaves no gap in the side column.
+
+   NOT a privacy mechanism: the card is in the HTML either way, and anything
+   that must not ship is a ceiling question, not a preference
+   (TIER-VARIANTS.md rulings 18 and 21). */
+html:not([data-show-dev]) .dev-entry { display: none; }
 
 /* Planned-page teaser rows — inert grey entries after the live page list,
    hidden unless the visitor opted in on Settings ("Show planned pages"):
@@ -1173,7 +1180,7 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Home</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav>
 <h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">115,574 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-09-06" class="relative-time relative-time-coarse">2026-09-06</time></p>
+<p class="head-meta"><a href="site-stats/">116,222 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-09-06" class="relative-time relative-time-coarse">2026-09-06</time></p>
 <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
 <div class="cat-chips" role="group" aria-label="Filter by category">
   <button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button>
