@@ -260,7 +260,8 @@ export function sparseRingWindow({ t_ref, refFrac, anchorFrac, futureOffsetDays 
 
 /**
  * @param {{ fraction: number, midFraction: number, endFraction: number,
- *           text: string, blockIndex?: number }[]} marks
+ *           text: string, blockIndex?: number,
+ *           isYearBoundary?: boolean, yearText?: string|null }[]} marks
  * @param {{ fracToT: (frac: number) => number,
  *           polarPt: (r: number, theta: number) => {x: number, y: number},
  *           b: number, PHASE_DIFF: number, PHASE_ABS: number,
@@ -268,6 +269,7 @@ export function sparseRingWindow({ t_ref, refFrac, anchorFrac, futureOffsetDays 
  *           tOuterEndS1: number, tInnerEndS1: number,
  *           dayFrac: number, tickLen: number, labelGap: number,
  *           innerSide: boolean,
+ *           yearTickLen?: number, yearLabelGap?: number,
  *           boundaryTickDayWidth?: number,
  *           closeFinalBoundary?: boolean,
  *           skipBoundary?: (blockIndex: number) => boolean }} cfg
@@ -275,6 +277,10 @@ export function sparseRingWindow({ t_ref, refFrac, anchorFrac, futureOffsetDays 
  *     FADE_DAYS), bounding the neighbour-clear test exactly as the scene's.
  *   boundaryTickDayWidth — tick width as a fraction of one day (the atlas's
  *     clockGeometry BOUNDARY_TICK_DAY_WIDTH; default 0.5).
+ *   yearTickLen — tick length for marks flagged `isYearBoundary` (the months
+ *     tier's longer year seam). Omit and every tick uses tickLen.
+ *   yearLabelGap — radial gap for the YEAR NUMBER, anchored on the mark's
+ *     opening boundary. Omit and no year labels are placed.
  *   closeFinalBoundary — also tick the last mark's END boundary (blocks).
  *   skipBoundary — optional per-boundary veto (the atlas's synthesised
  *     current↔next transition skip), keyed by the boundary's blockIndex.
@@ -282,7 +288,10 @@ export function sparseRingWindow({ t_ref, refFrac, anchorFrac, futureOffsetDays 
  *                              inner: string|null }[],
  *             labels: { index: number, text: string,
  *                       outer: {x: number, y: number}|null,
- *                       inner: {x: number, y: number}|null }[] }}
+ *                       inner: {x: number, y: number}|null }[],
+ *             yearLabels: { index: number, text: string,
+ *                           outer: {x: number, y: number}|null,
+ *                           inner: {x: number, y: number}|null }[] }}
  */
 export function placeLabelMarks(marks, cfg) {
   const {
@@ -302,14 +311,15 @@ export function placeLabelMarks(marks, cfg) {
   const outerClear = (tt) => tt + TWO_PI > tOuterEndS1;
   const innerClear = (tt) => innerSide && tt - TWO_PI < tInnerEndS1;
   const inSolid = (tt) => tt >= tInnerS1 && tt <= tSolidS1;
-  const wedgePath = (frac, edge, dir) => {
+  const wedgePath = (frac, edge, dir, len) => {
+    const useLen = len !== undefined ? len : tickLen;
     const t1 = fracToT(frac + dayFrac * halfStart);
     const t2 = fracToT(frac + dayFrac * (halfStart + boundaryTickDayWidth));
     const e1 = edge(t1);
     const e2 = edge(t2);
     const p1 = polarPt(e1, t1 + PHASE_ABS);
-    const p2 = polarPt(e1 + dir * tickLen, t1 + PHASE_ABS);
-    const p3 = polarPt(e2 + dir * tickLen, t2 + PHASE_ABS);
+    const p2 = polarPt(e1 + dir * useLen, t1 + PHASE_ABS);
+    const p3 = polarPt(e2 + dir * useLen, t2 + PHASE_ABS);
     const p4 = polarPt(e2, t2 + PHASE_ABS);
     return `M ${p1.x.toFixed(2)},${p1.y.toFixed(2)} L ${p2.x.toFixed(2)},${p2.y.toFixed(2)} L ${p3.x.toFixed(2)},${p3.y.toFixed(2)} L ${p4.x.toFixed(2)},${p4.y.toFixed(2)} Z`;
   };
@@ -319,6 +329,9 @@ export function placeLabelMarks(marks, cfg) {
   const boundaries = marks.map((m, i) => ({
     frac: m.fraction,
     blockIndex: m.blockIndex !== undefined ? m.blockIndex : i,
+    // A mark may ask for a LONGER tick than the tier's — the months tier
+    // does it at the year seam (see cfg.yearTickLen). Undefined = the tier's.
+    tickLen: m.isYearBoundary && cfg.yearTickLen !== undefined ? cfg.yearTickLen : undefined,
   }));
   if (cfg.closeFinalBoundary && marks.length > 0) {
     const last = marks[marks.length - 1];
@@ -332,8 +345,8 @@ export function placeLabelMarks(marks, cfg) {
     const tB = fracToT(bnd.frac);
     if (!inSolid(tB)) continue;
     if (cfg.skipBoundary && cfg.skipBoundary(bnd.blockIndex)) continue;
-    const outer = outerClear(tB) ? wedgePath(bnd.frac, rO, 1) : null;
-    const inner = innerClear(tB) ? wedgePath(bnd.frac, rI, -1) : null;
+    const outer = outerClear(tB) ? wedgePath(bnd.frac, rO, 1, bnd.tickLen) : null;
+    const inner = innerClear(tB) ? wedgePath(bnd.frac, rI, -1, bnd.tickLen) : null;
     if (outer || inner) boundaryTicks.push({ index: bnd.blockIndex, outer, inner });
   }
 
@@ -352,7 +365,29 @@ export function placeLabelMarks(marks, cfg) {
       ? polarPt(rI(tMid) - labelGap, ang) : null;
     if (outer || inner) labels.push({ index: i, text: m.text, outer, inner });
   }
-  return { boundaryTicks, labels };
+
+  // YEAR LABELS — the months tier's second text class (2026-09-05). Anchored
+  // on the mark's OPENING BOUNDARY, not its midpoint: the number names the
+  // seam it sits on, and a boundary-anchored number reads as belonging to the
+  // turn rather than to either month beside it. That is also why it is a
+  // separate list instead of a second field on `labels` — different anchor,
+  // different radius (cfg.yearLabelGap), different size at every consumer.
+  // WHICH marks carry one is not decided here: the caller sets `yearText`
+  // from event-marks' yearLabelForMonth, the SSOT for that convention.
+  const yearLabels = [];
+  if (cfg.yearLabelGap !== undefined) {
+    for (let i = 0; i < marks.length; i++) {
+      const m = marks[i];
+      if (!m.yearText) continue;
+      const tB = fracToT(m.fraction);
+      if (!inSolid(tB)) continue;
+      const ang = tB + PHASE_ABS;
+      const outer = outerClear(tB) ? polarPt(rO(tB) + cfg.yearLabelGap, ang) : null;
+      const inner = innerClear(tB) ? polarPt(rI(tB) - cfg.yearLabelGap, ang) : null;
+      if (outer || inner) yearLabels.push({ index: i, text: m.yearText, outer, inner });
+    }
+  }
+  return { boundaryTicks, labels, yearLabels };
 }
 
 // ─── Event placement (data in → positioned specs out) ────────────────────

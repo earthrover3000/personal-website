@@ -11,11 +11,23 @@
 // (引擎 Engines/ring-log/) — the SAME dense-window geometry AND the same
 // deterministic phase colours as the lifespan-atlas app (the app's
 // denseWindow policy delegates to the very same engine function) — loaded
-// via dynamic import by relative path, exactly like stats-table.js. The
-// app's label tiers (engine placeLabelMarks) are deliberately NOT drawn
-// here — labelsMode "none", a bare wheel (user call 2026-08-19). Progressive
-// enhancement throughout: with JS off, or if an engine fails to load, the
-// server-rendered muted note simply stays.
+// via dynamic import by relative path, exactly like stats-table.js.
+//
+// The wheel was BARE until 2026-09-05 (labelsMode "none", user call
+// 2026-08-19); two calendar layers were added that day, both replicated from
+// the app rather than invented here:
+//   • the four SEASON GLYPHS — not a label tier but the app's own fixed,
+//     non-rotating calendar ring, on the shared ring-log/seasons SSOT;
+//   • the MONTHS label tier — the app's `months` mode at its DENSE setting,
+//     drawn through the shared engine's placeLabelMarks with innerSide
+//     false. Outer side only is not a compromise for the site: RingsScene
+//     passes `innerSide={isSparse}`, so the dense spiral — which is exactly
+//     what this widget replicates — already drops the inner side "so the
+//     spiral's core stays clean". The engine's own outerClear rule then
+//     limits outer marks to the OUTERMOST revolution, so it is twelve labels
+//     around the current year, not twelve per ring.
+// Progressive enhancement throughout: with JS off, or if an engine fails to
+// load, the server-rendered muted note simply stays.
 (function () {
   const mount = document.querySelector('.site-log-rings[data-ringlog-events]');
   if (!mount) return;
@@ -26,10 +38,39 @@
   const todayIso = mount.dataset.ringlogToday;
   const size = +mount.dataset.ringlogSize || 320;
 
+  // Month NAMES are the one label piece not taken from an engine, and
+  // deliberately: event-marks states its own division of labour — "this
+  // module returns NUMBERS only … each consumer owns … its own i18n
+  // (mapping monthIndex → a month name)". The app's copy is
+  // theme/display.ts ENGLISH_MONTHS; keep the two spellings identical.
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
   Promise.all([
     import('../../引擎 Engines/ring-log/rings.js'),
     import('../../引擎 Engines/ring-log/phase-color.js'),
-  ]).then(([rings, phasePalette]) => {
+    import('../../引擎 Engines/ring-log/seasons.js'),
+    import('../../引擎 Engines/event-marks/marks.js'),
+    import('../../引擎 Engines/ring-log/future-registers.js'),
+  ]).then(([rings, phasePalette, seasons, eventMarks, registers]) => {
+    // THE FUTURE GROUND, resolved to a real hex. The registers blend colours,
+    // and mixHex parses hex — handing it the literal string "var(--future-grey)"
+    // yields "#NaNNaNNaN" silently — so the variable is read off the document
+    // and resolved here, once. getPropertyValue returns the AUTHORED value, and
+    // light-dark() is not resolved by it, so the pair is picked apart by the
+    // effective colour scheme; a stylesheet that never loaded falls back to the
+    // dark value, matching base.css's own dark-by-default posture.
+    const futureGrey = (() => {
+      const raw = getComputedStyle(document.documentElement)
+        .getPropertyValue('--future-grey').trim();
+      const m = raw.match(/light-dark\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)/);
+      if (!m) return /^#[0-9a-f]{3,8}$/i.test(raw) ? raw : '#4a4a4a';
+      const explicit = document.documentElement.getAttribute('data-theme');
+      const dark = explicit
+        ? explicit === 'dark'
+        : !window.matchMedia('(prefers-color-scheme: light)').matches;
+      return dark ? m[2] : m[1];
+    })();
     // Frame: the atlas Rings view's proportions — band 0.02·size, rim inset
     // 0.07·size, gap = one band width; sparse rimExtraRevs 0.
     const frame = rings.makeRingFrame({
@@ -93,12 +134,24 @@
       for (const k in attrs) node.setAttribute(k, attrs[k]);
       return node;
     };
+    // Append a node filled in the theme's muted ink — the site's analog of
+    // the app's `t.labelMuted`, which is what the label tier and its boundary
+    // ticks are drawn in. Via style, not a fill attribute: a CSS var() does
+    // not resolve in a bare presentation attribute (the same reason the
+    // shading's base segment and its fade gradient set fill/stop-color in
+    // style below).
+    const svgAppendMuted = (parent, node) => {
+      node.setAttribute('style', 'fill:var(--muted)');
+      parent.appendChild(node);
+      return node;
+    };
     const svg = el('svg', {
       viewBox: `0 0 ${size} ${size}`,
       class: 'site-log-rings-svg',
       preserveAspectRatio: 'xMidYMid meet',
       role: 'img',
-      'aria-label': 'Site log — one growth ring per year, one tick per milestone',
+      'aria-label': 'Site log — one growth ring per year, one tick per milestone, '
+        + 'read clockwise from the December solstice at the top',
       // Sized like the stats chart (fluid width + capped height, see
       // .line-history-svg); currentColor rides the page text colour and the
       // phase hexes read at band opacity in both themes.
@@ -114,12 +167,22 @@
     // phase's [start → next start) span in the SHARED deterministic phase
     // colour (ring-log/phase-color.js — the exact function the app's
     // Projects shading uses) at shadingFillOpacity("projects") (0.5). The
-    // CURRENT phase runs solid to build-time today and then FADES FORWARD
-    // over FADE_YEARS (0.25y) in PHASE_FADE_STEPS staircase sub-segments
-    // (fadeOpacityMul) — the app's forward fade into the future. Base grey
-    // uses var(--muted) (theme-aware, the site's analog of the app's
+    // CURRENT phase runs solid to build-time today and then DISSOLVES FORWARD
+    // over FADE_YEARS (0.25y) in PHASE_FADE_STEPS staircase sub-segments,
+    // after which the PROJECTION GROUND carries that same grey on to the rim.
+    // Base grey uses var(--muted) (theme-aware, the site's analog of the app's
     // t.labelMuted) — set via style: CSS var() doesn't resolve in a bare
     // fill attribute.
+    //
+    // THE DISSOLVE IS A COLOUR RAMP, NOT AN ALPHA RAMP (2026-09-05). This
+    // widget ramped OPACITY to nothing until then — which is the shape
+    // ring-log/future-registers exists to forbid, and which had quietly
+    // stopped matching the app when it moved to a hue dissolve on 2026-09-02,
+    // while the comment above still claimed the recipe was replicated
+    // EXACTLY. It looked fine here only by luck: with just the grey base
+    // underneath, alpha-to-zero happens to land on a colour close to where a
+    // dissolve should end. Both registers now come from the shared engine,
+    // so the two surfaces cannot drift again.
     const PROJECTS_OPACITY = 0.5;   // eventManifoldSpec SHADING_FILL_OPACITY.projects
     const BASE_OPACITY = 0.2;       // eventManifoldSpec LOCATION_GAP_OPACITY
     const PHASE_FADE_STEPS = 20;    // projectPhases.PHASE_FADE_STEPS
@@ -148,11 +211,19 @@
       // Current phase: solid through today, then the forward staircase fade.
       const bodyEnd = Math.max(p.frac, todayFrac);
       pushSeg(p.frac, bodyEnd, color, PROJECTS_OPACITY);
+      // ③ DISSOLVE — the band's colour carried step by step to the future
+      // grey, every step at the SAME band opacity (the register is the hue).
       for (let k = 0; k < PHASE_FADE_STEPS; k++) {
         pushSeg(bodyEnd + (k / PHASE_FADE_STEPS) * FADE_YEARS,
                 bodyEnd + ((k + 1) / PHASE_FADE_STEPS) * FADE_YEARS,
-                color, PROJECTS_OPACITY * (1 - (k + 0.5) / PHASE_FADE_STEPS));
+                registers.dissolveToFuture(color, futureGrey, (k + 0.5) / PHASE_FADE_STEPS),
+                PROJECTS_OPACITY);
       }
+      // ② PROJECTION GROUND — the same grey, on to the end of the window.
+      // ③ ends where ② begins, so the handover is continuous by construction
+      // rather than by two values agreeing.
+      pushSeg(bodyEnd + FADE_YEARS, win.winHiFrac,
+              registers.projectionGround(futureGrey), PROJECTS_OPACITY);
     });
     for (const s of segments) {
       const attrs = {
@@ -215,6 +286,156 @@
     };
     fadeWedge('outer', win.tSolidS1, tOuterEndS1, win.winHiFrac);
     fadeWedge('inner', win.tInnerS1, tInnerEndS1, win.winLoFrac);
+
+    // ── Season glyphs: the fixed calendar ring ──────────────────────────
+    // The four seasons on a FIXED (non-rotating) ring outside the spiral
+    // rim — REPLICATED from the app's RingsScene.tsx season block, on the
+    // shared ring-log/seasons SSOT (fractions, glyphs and radius all from
+    // there), so the site's log and the app's Rings view seat them
+    // identically. Two things make this exact:
+    //   • the angle is `midpoint · 2π` with NO PHASE_ABS. The spiral's own
+    //     phase rotates the BAND so the rim lands at RIM_ORIENT; the
+    //     calendar does not rotate with it. polarPt already puts θ=0 at 12
+    //     o'clock going clockwise, and the spiral is calendar-fixed with
+    //     the reference December solstice there, so a bare `mid·2π` is the
+    //     glyph's screen angle.
+    //   • the radius is SEASON_EMOJI_RATIO (0.55) of the canvas edge, well
+    //     outside the rim (0.43·size) — and it still fits the square
+    //     UNPADDED because the four midpoints land 37.5° off the axes, i.e.
+    //     near the corners: max offset is 0.55·cos(37.5°) ≈ 0.436 of the
+    //     edge against the 0.5 half-width. Do not "centre" them onto the
+    //     axes; that is what would push them off-canvas.
+    // They are the ONLY thing drawn outside the band, and the band cannot
+    // reach them, so paint order against the ticks below is moot. Plain
+    // <text>, matching the app (its Fluent 3D assets are app-only and the
+    // site has no such store) — and aria-hidden, because the SVG's own
+    // label above already says which way the year runs and the hover
+    // readout gives every real date exactly.
+    const seasonG = el('g', { 'aria-hidden': 'true' });
+    seasons.SEASON_MIDPOINTS.forEach((mid, i) => {
+      const pos = proj.polarPt(size * seasons.SEASON_EMOJI_RATIO, mid * 2 * Math.PI);
+      const t = el('text', {
+        x: pos.x.toFixed(2),
+        y: pos.y.toFixed(2),
+        'text-anchor': 'middle',
+        'dominant-baseline': 'central',
+        // The app's FONT.emoji (28) against its REF_CHART canvas (304) —
+        // kept as that ratio so the glyphs track this widget's own size.
+        'font-size': String((28 / 304) * size),
+      });
+      t.textContent = seasons.SEASON_EMOJIS[i];
+      seasonG.appendChild(t);
+    });
+    svg.appendChild(seasonG);
+
+    // ── The months label tier ───────────────────────────────────────────
+    // REPLICATED from the app's RingsLabelMarks.tsx, on the two shared
+    // engines: event-marks supplies the month boundaries (NUMBERS only — see
+    // MONTHS above for why the names don't come from there) and ring-log's
+    // placeLabelMarks does the placement, including the midpoint-clear rule
+    // that decides which side of a coil a mark may use. Both were already
+    // reachable, so nothing had to move into an engine for this.
+    //
+    // Three details are the app's and matter:
+    //   • innerSide FALSE — the dense setting (RingsScene `innerSide={isSparse}`).
+    //   • The gates are handed the FADE ENDS rather than the solid caps
+    //     (the engine's inSolid check reads tSolidS1/tInnerS1), so marks are
+    //     placed THROUGH the fade region instead of being dropped at the
+    //     solid edge; fadeAt below then gives each one the band's own ramp,
+    //     which is what stops them popping at that edge. The clearance
+    //     params keep their true values.
+    //   • The range is padded by both fade tails + 2 days so a month whose
+    //     midpoint sits inside a fade still gets its mark.
+    const RING_TICK_LENGTH_RATIO = 0.02;   // clockGeometry, month/week ticks
+    // PRIMARY_LABEL_OUTWARD_RATIO.zh. RingsLabelMarks uses the zh gap for
+    // EVERY language (the Rings view has no language control and renders the
+    // English names), so matching the app means matching that — the two
+    // ratios differ by 0.005 of the edge, ~1.6px here.
+    const PRIMARY_LABEL_OUTWARD_RATIO_ZH = 0.035;
+    const RING_TICK_YEAR_RATIO = 0.04;     // clockGeometry, the year seam
+    const YEAR_LABEL_OUTWARD_RATIO = 0.05; // eventManifoldSpec
+    const tickLen = RING_TICK_LENGTH_RATIO * size;
+    const yearTickLen = RING_TICK_YEAR_RATIO * size;
+    const yearLabelGap = YEAR_LABEL_OUTWARD_RATIO * size;
+    const yearFont = (12 / 304) * size;    // FONT.chartMajor against REF_CHART
+    const labelGap = PRIMARY_LABEL_OUTWARD_RATIO_ZH * size;
+    const labelFont = (9 / 304) * size;    // FONT.chart against REF_CHART
+    const PAD_FRAC = (rings.FADE_DAYS + 2) / rings.DAYS_PER_YEAR;
+    const monthMarks = eventMarks
+      .getMonthMarksInRange(
+        rings.fracToMs(win.winLoFrac - PAD_FRAC, originMs),
+        rings.fracToMs(win.winHiFrac + PAD_FRAC, originMs))
+      .map(m => ({
+        fraction: rings.msToFrac(m.startMs, originMs),
+        midFraction: rings.msToFrac(m.midMs, originMs),
+        endFraction: rings.msToFrac(m.endMs, originMs),
+        text: MONTHS[m.monthIndex],
+        // The months tier's year conventions, from the SAME place the app
+        // reads them (event-marks): the year seam takes a longer tick, and
+        // the number appears at the Jan/Feb, Jun/Jul and Nov/Dec boundaries.
+        isYearBoundary: m.isNewYear,
+        yearText: eventMarks.yearLabelForMonth(m),
+      }));
+    // The band's own edge ramp, read at a mark's t (RingsLabelMarks fadeAtT).
+    const fadeAt = (tt) => {
+      if (tt >= win.tInnerS1 && tt <= win.tSolidS1) return 1;
+      if (tt > win.tSolidS1 && tt < tOuterEndS1) return (tOuterEndS1 - tt) / (tOuterEndS1 - win.tSolidS1);
+      if (tt > tInnerEndS1 && tt < win.tInnerS1) return (tt - tInnerEndS1) / (win.tInnerS1 - tInnerEndS1);
+      return 0;
+    };
+    const monthG = el('g', { 'aria-hidden': 'true' });
+    const labelPlaced = rings.placeLabelMarks(monthMarks, {
+      fracToT: proj.fracToT, polarPt: proj.polarPt,
+      b: frame.b, PHASE_DIFF: frame.PHASE_DIFF, PHASE_ABS: frame.PHASE_ABS,
+      tSolidS1: tOuterEndS1, tInnerS1: tInnerEndS1,   // widened gates, see above
+      tOuterEndS1, tInnerEndS1,
+      dayFrac: DAY_FRAC, tickLen, labelGap, innerSide: false,
+      yearTickLen, yearLabelGap,
+      // boundaryTickDayWidth omitted — the engine's default 0.5 IS the app's
+      // clockGeometry BOUNDARY_TICK_DAY_WIDTH.
+    });
+    // Boundary ticks come back keyed by index, not position; rebuild
+    // index → opening frac the way the engine built its boundary list.
+    for (const tick of labelPlaced.boundaryTicks) {
+      const m = monthMarks[tick.index];
+      const f = m ? fadeAt(proj.fracToT(m.fraction)) : 1;
+      if (!tick.outer || f <= 0) continue;
+      svgAppendMuted(monthG, el('path', {
+        d: tick.outer, stroke: 'none',
+        'fill-opacity': String(0.5 * f),   // the app's tick weight
+      }));
+    }
+    for (const lbl of labelPlaced.labels) {
+      const m = monthMarks[lbl.index];
+      const f = m ? fadeAt(proj.fracToT(m.midFraction)) : 1;
+      if (!lbl.outer || f <= 0) continue;
+      const node = el('text', {
+        x: lbl.outer.x.toFixed(2), y: lbl.outer.y.toFixed(2),
+        'text-anchor': 'middle', 'dominant-baseline': 'central',
+        'font-size': String(labelFont),
+        'fill-opacity': String(f),
+      });
+      node.textContent = lbl.text;
+      svgAppendMuted(monthG, node);
+    }
+    // YEAR NUMBERS — anchored on the boundary, so they take the TICK's fade
+    // rather than the month label's: a number naming a seam comes and goes
+    // with it. Drawn at the app's chartMajor size, a step up from the month
+    // names, which is what makes the year read as the coarser tier.
+    for (const yl of labelPlaced.yearLabels) {
+      const m = monthMarks[yl.index];
+      const f = m ? fadeAt(proj.fracToT(m.fraction)) : 1;
+      if (!yl.outer || f <= 0) continue;
+      const node = el('text', {
+        x: yl.outer.x.toFixed(2), y: yl.outer.y.toFixed(2),
+        'text-anchor': 'middle', 'dominant-baseline': 'central',
+        'font-size': String(yearFont),
+        'fill-opacity': String(f),
+      });
+      node.textContent = yl.text;
+      svgAppendMuted(monthG, node);
+    }
+    svg.appendChild(monthG);
 
     // Every dated event, already placed above (the dense window is sized to
     // cover them all, so no further filtering is needed).

@@ -130,11 +130,25 @@ export type RingLabelMarkInput = {
   endFraction: number;
   text: string;
   blockIndex?: number;
+  /** Draw this boundary's tick at cfg.yearTickLen — the months tier's year
+   *  seam. Set from the mark's own isNewYear. */
+  isYearBoundary?: boolean;
+  /** Year number for this boundary, or null/absent for none. Set from
+   *  event-marks yearLabelForMonth, which owns WHICH months carry one. */
+  yearText?: string | null;
 };
 
 export type PlacedLabelMarks = {
   boundaryTicks: { index: number; outer: string | null; inner: string | null }[];
   labels: {
+    index: number;
+    text: string;
+    outer: { x: number; y: number } | null;
+    inner: { x: number; y: number } | null;
+  }[];
+  /** Year numbers, anchored on each mark's OPENING boundary rather than its
+   *  midpoint. Empty unless cfg.yearLabelGap is given. */
+  yearLabels: {
     index: number;
     text: string;
     outer: { x: number; y: number } | null;
@@ -162,6 +176,10 @@ export declare function placeLabelMarks(
     innerSide: boolean;
     /** Tick width as a fraction of one day (default 0.5). */
     boundaryTickDayWidth?: number;
+    /** Tick length for marks flagged isYearBoundary. Omit → all use tickLen. */
+    yearTickLen?: number;
+    /** Radial gap for the year number. Omit → no year labels are placed. */
+    yearLabelGap?: number;
     /** Also tick the last mark's END boundary (blocks). */
     closeFinalBoundary?: boolean;
     /** Per-boundary veto, keyed by the boundary's blockIndex. */

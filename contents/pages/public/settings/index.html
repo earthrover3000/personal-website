@@ -94,6 +94,14 @@
   --accent:  light-dark(#3a5fd9, #7c9ef5);
   --text:    light-dark(#1a1a1a, #e0e0e0);
   --muted:   light-dark(#666,    #888);
+  /* The FUTURE GROUND — "this time is not settled". Used by the Site Log
+     rings, where the website's current version band dissolves into it past
+     today and it then carries on to the rim (the shared ring-log engine's two
+     future registers). Distinct from --muted on purpose: muted is a
+     TYPOGRAPHY grey and the gap it fills means "no data here", which happens
+     in the past too. Pairs with the lifespan-atlas theme's `futureGrey`, the
+     SSOT for the same two registers on the app side — keep the two in step. */
+  --future-grey: light-dark(#d3d3d3, #4a4a4a);
 }
 :root[data-theme="light"] { color-scheme: light; }  /* forced light */
 :root[data-theme="dark"]  { color-scheme: dark;  }   /* forced dark  */
@@ -954,7 +962,7 @@ a.app-card:hover {
 </section>
 <section class="setting">
   <h2>Planned pages</h2>
-  <p class="setting-desc">The private index normally lists only pages that exist. Turn this on to also show upcoming pages there as greyed-out rows at the end of each list. The public and protected indexes never show planned pages. Remembered in this browser.</p>
+  <p class="setting-desc">The indexes normally list only pages that exist. Turn this on to also show upcoming pages as greyed-out rows at the end of each list. Remembered in this browser.</p>
   <label class="badge-toggle"><input type="checkbox" id="show-planned-toggle"> Show planned pages on the indexes</label>
 </section>
 <section class="setting" id="local-access" hidden>

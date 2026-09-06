@@ -94,6 +94,14 @@
   --accent:  light-dark(#3a5fd9, #7c9ef5);
   --text:    light-dark(#1a1a1a, #e0e0e0);
   --muted:   light-dark(#666,    #888);
+  /* The FUTURE GROUND — "this time is not settled". Used by the Site Log
+     rings, where the website's current version band dissolves into it past
+     today and it then carries on to the rim (the shared ring-log engine's two
+     future registers). Distinct from --muted on purpose: muted is a
+     TYPOGRAPHY grey and the gap it fills means "no data here", which happens
+     in the past too. Pairs with the lifespan-atlas theme's `futureGrey`, the
+     SSOT for the same two registers on the app side — keep the two in step. */
+  --future-grey: light-dark(#d3d3d3, #4a4a4a);
 }
 :root[data-theme="light"] { color-scheme: light; }  /* forced light */
 :root[data-theme="dark"]  { color-scheme: dark;  }   /* forced dark  */
@@ -1150,7 +1158,7 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="home/">Home</a> <span class="sep">›</span> <span aria-current="page">Protected Index</span></nav>
 <h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">114,567 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-09-05T19:19:02Z" title="2026-09-05 19:19 UTC" class="relative-time">2026-09-05</time></p>
+<p class="head-meta"><a href="site-stats/">115,236 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-09-05T22:34:33Z" title="2026-09-05 22:34 UTC" class="relative-time">2026-09-05</time></p>
 <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
 <div class="cat-chips" role="group" aria-label="Filter by category">
   <button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button>

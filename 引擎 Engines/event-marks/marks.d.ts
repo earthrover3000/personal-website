@@ -72,6 +72,13 @@ export type BlockMarkMs = {
 };
 
 export declare function getMonthMarksInRange(startTime: number, endTime: number): MonthMarkMs[];
+/** Months whose OPENING boundary carries the year number — Feb, Jul, Dec
+ *  (0-indexed): the Jan/Feb, Jun/Jul and Nov/Dec boundaries. */
+export declare const YEAR_LABEL_MONTHS: number[];
+/** The year number a month mark carries, or null. */
+export declare function yearLabelForMonth(
+  mark: { monthIndex: number; calendarYear: number },
+): string | null;
 export declare function getWeekMarksInRange(startTime: number, endTime: number): WeekMarkMs[];
 export declare function getBlockMarksInRange(
   startTime: number,

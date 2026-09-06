@@ -141,6 +141,39 @@ export function getMonthMarksInRange(startTime, endTime) {
   return marks;
 }
 
+// ─── The MONTH LABEL MODE's own conventions ───────────────────────────────
+// Which month boundaries are drawn EMPHATICALLY, and which of them carry the
+// year number. One place, because the same tier is drawn on four surfaces —
+// the Clock's event ring, the Log's Rings spiral, the site's Site Log rings,
+// and the linear strip — and until 2026-09-05 only ClockEventRing implemented
+// it, so the spiral drew twelve identical ticks and never said which year you
+// were looking at.
+//
+// These are DECISIONS about the calendar, not geometry or i18n, so they sit
+// with the marks rather than violating this module's numbers-only rule: the
+// answer is "which mark", and each surface still owns how long its long tick
+// is and where it puts the text. `isNewYear` was already here on the same
+// reasoning.
+
+/** Months whose OPENING boundary carries the year number: Feb, Jul and Dec
+ *  (0-indexed), i.e. the Jan/Feb, Jun/Jul and Nov/Dec boundaries.
+ *
+ *  THREE PER YEAR, and off the year seam on purpose. The year boundary itself
+ *  is already the loudest mark on the ring (it gets the long tick), so putting
+ *  the number there too stacks two statements on one line and leaves the rest
+ *  of the revolution unlabelled — on a spiral, where a full turn is a year,
+ *  that means most of the wheel cannot be dated without counting round to the
+ *  seam. Spacing them ~5 months apart puts a year number within a season's
+ *  reach of any point on the ring. */
+export const YEAR_LABEL_MONTHS = [1, 6, 11];
+
+/** The year number a month mark should carry, or null for the nine months
+ *  that carry none. Takes the mark so a caller cannot get the index/year
+ *  pairing wrong, and returns a STRING because it is a label. */
+export function yearLabelForMonth(mark) {
+  return YEAR_LABEL_MONTHS.includes(mark.monthIndex) ? String(mark.calendarYear) : null;
+}
+
 /** ISO 8601 week marks for every week within [startTime, endTime] (ms). Each
  *  anchors on Monday 00:00 UTC (boundary) with its midpoint at Thursday 12:00
  *  UTC; the ISO week number is that of the Thursday. */
