@@ -46,13 +46,22 @@
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-  Promise.all([
+  // RE-DRAWN ON EVERY THEME CHANGE. Most of the wheel is painted through CSS
+  // vars and follows the theme on its own, but the dissolve, the projection
+  // ground and the cap fades are ARITHMETIC — they mix colours, so they need
+  // real hex values and hold whatever the theme was when they were computed.
+  // theme-init.js applies a toggle live, without a reload, so a drawing made
+  // once would keep the old theme's greys under a flipped page. Re-running is
+  // cheap: the dynamic imports below are module-cached, so a redraw is the
+  // maths and the DOM build, nothing more.
+  const render = () => Promise.all([
     import('../../引擎 Engines/ring-log/rings.js'),
     import('../../引擎 Engines/ring-log/phase-color.js'),
     import('../../引擎 Engines/ring-log/seasons.js'),
     import('../../引擎 Engines/event-marks/marks.js'),
     import('../../引擎 Engines/ring-log/future-registers.js'),
-  ]).then(([rings, phasePalette, seasons, eventMarks, registers]) => {
+    import('../../引擎 Engines/ring-log/segment-stack.js'),
+  ]).then(([rings, phasePalette, seasons, eventMarks, registers, stack]) => {
     // THE FUTURE GROUND, resolved to a real hex. The registers blend colours,
     // and mixHex parses hex — handing it the literal string "var(--future-grey)"
     // yields "#NaNNaNNaN" silently — so the variable is read off the document
@@ -60,17 +69,22 @@
     // light-dark() is not resolved by it, so the pair is picked apart by the
     // effective colour scheme; a stylesheet that never loaded falls back to the
     // dark value, matching base.css's own dark-by-default posture.
-    const futureGrey = (() => {
+    const cssHex = (name, fallback) => {
       const raw = getComputedStyle(document.documentElement)
-        .getPropertyValue('--future-grey').trim();
+        .getPropertyValue(name).trim();
       const m = raw.match(/light-dark\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)/);
-      if (!m) return /^#[0-9a-f]{3,8}$/i.test(raw) ? raw : '#4a4a4a';
+      if (!m) return /^#[0-9a-f]{3,8}$/i.test(raw) ? raw : fallback;
       const explicit = document.documentElement.getAttribute('data-theme');
       const dark = explicit
         ? explicit === 'dark'
         : !window.matchMedia('(prefers-color-scheme: light)').matches;
       return dark ? m[2] : m[1];
-    })();
+    };
+    const futureGrey = cssHex('--future-grey', '#4a4a4a');
+    // The base grey as a HEX as well as a var. It is painted through the var
+    // (so it is the stylesheet's colour, not a copy), but the cap fade has to
+    // do arithmetic on the stack it sits in, and that needs a real value.
+    const mutedHex = cssHex('--muted', '#888888');
     // Frame: the atlas Rings view's proportions — band 0.02·size, rim inset
     // 0.07·size, gap = one band width; sparse rimExtraRevs 0.
     const frame = rings.makeRingFrame({
@@ -134,14 +148,14 @@
       for (const k in attrs) node.setAttribute(k, attrs[k]);
       return node;
     };
-    // Append a node filled in the theme's muted ink — the site's analog of
-    // the app's `t.labelMuted`, which is what the label tier and its boundary
-    // ticks are drawn in. Via style, not a fill attribute: a CSS var() does
-    // not resolve in a bare presentation attribute (the same reason the
-    // shading's base segment and its fade gradient set fill/stop-color in
-    // style below).
-    const svgAppendMuted = (parent, node) => {
-      node.setAttribute('style', 'fill:var(--muted)');
+    // Append a node in the theme's muted ink. A CLASS, not an inline fill —
+    // the colour is a style decision and lives in stats.css
+    // (.site-log-rings-svg .slr-ink). It cannot be a bare `fill` attribute
+    // either way, since a CSS var() does not resolve in a presentation
+    // attribute; that is why the shading segments below, whose fill IS
+    // computed here, still set it through `style`.
+    const svgAppendInk = (parent, node) => {
+      node.setAttribute('class', 'slr-ink');
       parent.appendChild(node);
       return node;
     };
@@ -152,10 +166,8 @@
       role: 'img',
       'aria-label': 'Site log — one growth ring per year, one tick per milestone, '
         + 'read clockwise from the December solstice at the top',
-      // Sized like the stats chart (fluid width + capped height, see
-      // .line-history-svg); currentColor rides the page text colour and the
-      // phase hexes read at band opacity in both themes.
-      style: 'width:100%;height:auto;display:block;max-height:340px;margin-top:0.5rem;color:var(--text);',
+      // Sizing and colour live in stats.css (.site-log-rings-svg), not here —
+      // this widget builds the wheel, the stylesheet dresses it.
     });
 
     // ── Layers 1+2: the band's shading segments ─────────────────────────
@@ -191,7 +203,7 @@
     // to the window. `varColor` fills via style so var(--muted) resolves.
     const segments = [{
       fLo: win.winLoFrac, fHi: win.winHiFrac,
-      color: 'var(--muted)', opacity: BASE_OPACITY, varColor: true,
+      color: 'var(--muted)', hex: mutedHex, opacity: BASE_OPACITY, varColor: true,
     }];
     const reached = phases
       .map(p => ({ frac: rings.msToFrac(Date.parse(p[0] + 'T00:00:00Z'), originMs), major: p[1], minor: p[2] }))
@@ -243,14 +255,19 @@
     // segment containing the cap (the app's findEdgeSeg rule) — to the
     // tail's mid-band end at opacity 0. Drawn AFTER the shading so the
     // tail continues visually from the segment that abuts the cap.
+    // THE WHOLE STACK, not the topmost segment covering the cap. The band
+    // there is the grey base AND the phase/ground colour over it, so starting
+    // the gradient from the top layer alone dropped the base the instant the
+    // cap was crossed — the band stepped at the very seam the fade exists to
+    // smooth. flattenStackAt is the shared engine's answer, the same one the
+    // app's wedges now use (lib/ringSegments bandPaintAt).
     const capFill = (frac) => {
-      for (let i = segments.length - 1; i >= 0; i--) {
-        const s = segments[i];
-        if (s.fLo <= frac + 1e-9 && s.fHi >= frac - 1e-9) {
-          return { color: s.color, opacity: String(s.opacity), varColor: !!s.varColor };
-        }
-      }
-      return { color: 'var(--muted)', opacity: String(BASE_OPACITY), varColor: true };
+      const paint = stack.flattenStackAt(
+        segments.map(s => ({ lo: s.fLo, hi: s.fHi, color: s.hex || s.color, opacity: s.opacity })),
+        frac);
+      return paint.opacity > 0
+        ? { color: paint.color, opacity: String(paint.opacity), varColor: false }
+        : { color: mutedHex, opacity: String(BASE_OPACITY), varColor: false };
     };
     const defsEl = el('defs', {});
     svg.appendChild(defsEl);
@@ -400,7 +417,7 @@
       const m = monthMarks[tick.index];
       const f = m ? fadeAt(proj.fracToT(m.fraction)) : 1;
       if (!tick.outer || f <= 0) continue;
-      svgAppendMuted(monthG, el('path', {
+      svgAppendInk(monthG, el('path', {
         d: tick.outer, stroke: 'none',
         'fill-opacity': String(0.5 * f),   // the app's tick weight
       }));
@@ -416,7 +433,7 @@
         'fill-opacity': String(f),
       });
       node.textContent = lbl.text;
-      svgAppendMuted(monthG, node);
+      svgAppendInk(monthG, node);
     }
     // YEAR NUMBERS — anchored on the boundary, so they take the TICK's fade
     // rather than the month label's: a number naming a seam comes and goes
@@ -433,7 +450,7 @@
         'fill-opacity': String(f),
       });
       node.textContent = yl.text;
-      svgAppendMuted(monthG, node);
+      svgAppendInk(monthG, node);
     }
     svg.appendChild(monthG);
 
@@ -569,4 +586,11 @@
     wrap.appendChild(readout);
     mount.replaceChildren(wrap);
   }).catch(() => { /* engine unreachable — keep the server-rendered note */ });
+
+  render();
+  // The stored choice (Settings' toggle, and cross-tab), plus the OS setting
+  // for anyone left on 'auto' — onSiteThemeChange only fires for the former.
+  if (typeof window.onSiteThemeChange === 'function') window.onSiteThemeChange(render);
+  const os = window.matchMedia('(prefers-color-scheme: light)');
+  if (os.addEventListener) os.addEventListener('change', render);
 })();

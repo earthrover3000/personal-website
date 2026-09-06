@@ -23,8 +23,10 @@
 // expressed by HUE. A surface still applies its own band opacity on top; what
 // it must not do is use opacity to mean "less settled".
 
-/** Parse "#rgb" or "#rrggbb" into [r, g, b] (0–255). */
-function parseHex(h) {
+/** Parse "#rgb" or "#rrggbb" into [r, g, b] (0–255). EXPORTED for the sibling
+ *  segment-stack module, so the engine folder has ONE hex parser rather than a
+ *  second copy alongside the first. */
+export function parseHex(h) {
   const s = String(h).replace("#", "");
   const f = s.length === 3 ? s.split("").map((c) => c + c).join("") : s.slice(0, 6);
   return [

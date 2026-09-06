@@ -209,6 +209,19 @@ html:not([data-show-planned]) .cat-chip--planned-only { display: none; }
   margin: 0 0.2rem;
 }
 
+/* Developer entries — index cards and rows for scaffolding rather than
+   content (site-structure.yaml `dev: true`; Launchbolt is the only one so
+   far). INVERTED against the switches below: the stamp HIDES, because these
+   are shown by default and Developer mode takes them away. The index head
+   snippet stamps <html data-dev-mode> from localStorage['site-dev-mode']
+   before first paint, same as the theme.
+
+   `display: none` on the card also collapses its side-column <li>, which
+   carries the class too so the row leaves no gap. NOT a privacy mechanism:
+   the card is in the HTML either way, and anything that must not ship is a
+   ceiling question, not a preference (TIER-VARIANTS.md rulings 18 and 21). */
+html[data-dev-mode] .dev-entry { display: none; }
+
 /* Planned-page teaser rows — inert grey entries after the live page list,
    hidden unless the visitor opted in on Settings ("Show planned pages"):
    the index head snippet stamps <html data-show-planned> from

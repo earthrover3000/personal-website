@@ -4,6 +4,8 @@
 // lib/futureRegisters.ts re-exports the registers and theme/display.ts
 // re-exports mixHex) and the site's site-log-rings page-widget.
 
+/** Parse "#rgb" or "#rrggbb" into [r, g, b] (0-255). */
+export declare function parseHex(h: string): [number, number, number];
 /** Blend two hex colours in sRGB: t=0 → a, t=1 → b. Both must be real hex —
  *  a CSS var() string parses to NaN. */
 export declare function mixHex(a: string, b: string, t: number): string;

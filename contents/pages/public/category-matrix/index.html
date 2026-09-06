@@ -67,6 +67,7 @@
   });
 })();
 </script>
+<script>if(localStorage.getItem("site-show-planned")==="on")document.documentElement.setAttribute("data-show-planned","");</script>
 <style>/* Shared base styles for index pages (root, protected, private) and docs
    pages (site-map, site-stats, lifespan-atlas plan). Loaded BEFORE the
    page-specific stylesheet so page rules can override.
@@ -684,6 +685,19 @@ html:not([data-show-planned]) .cat-chip--planned-only { display: none; }
   margin: 0 0.2rem;
 }
 
+/* Developer entries — index cards and rows for scaffolding rather than
+   content (site-structure.yaml `dev: true`; Launchbolt is the only one so
+   far). INVERTED against the switches below: the stamp HIDES, because these
+   are shown by default and Developer mode takes them away. The index head
+   snippet stamps <html data-dev-mode> from localStorage['site-dev-mode']
+   before first paint, same as the theme.
+
+   `display: none` on the card also collapses its side-column <li>, which
+   carries the class too so the row leaves no gap. NOT a privacy mechanism:
+   the card is in the HTML either way, and anything that must not ship is a
+   ceiling question, not a preference (TIER-VARIANTS.md rulings 18 and 21). */
+html[data-dev-mode] .dev-entry { display: none; }
+
 /* Planned-page teaser rows — inert grey entries after the live page list,
    hidden unless the visitor opted in on Settings ("Show planned pages"):
    the index head snippet stamps <html data-show-planned> from
@@ -1038,23 +1052,45 @@ a.app-card:hover {
 </head>
 <body>
 <div class="container">
-<div class="page-head"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../">Home</a> <span class="sep">›</span> <a href="../">Index</a> <span class="sep">›</span> <span aria-current="page">Category Matrix</span></nav><span class="page-head__controls"><button type="button" class="filter-clear is-off">Clear filter</button></span></div>
+<div class="page-head"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../../">Home</a> <span class="sep">›</span> <a href="../">Index</a> <span class="sep">›</span> <span aria-current="page">Category Matrix</span></nav><span class="page-head__controls"><button type="button" class="filter-clear is-off">Clear filter</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Category Matrix</h1>
-<p class="head-meta">9 categories · <span class="proj-tally">7 projects</span></p>
+<p class="head-meta">11 categories · <span class="proj-tally">8 projects</span></p>
 <div class="matrix-scroll">
 <table class="cat-matrix">
-<tr><th>Project<span class="col-sizer" aria-hidden="true"><span>Linguistics Dissertation</span><span>Chinese Language(s)</span><span>Cities &amp; Transport</span></span></th><th class="cat-col"><button type="button" class="cat-head" data-cat="art" aria-pressed="false" title="Art" aria-label="Art">🪅</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="geography" aria-pressed="false" title="Geography" aria-label="Geography">🗺️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="linguistics" aria-pressed="false" title="Linguistics" aria-label="Linguistics">🔤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="maths" aria-pressed="false" title="Maths" aria-label="Maths">📐</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="music" aria-pressed="false" title="Music" aria-label="Music">🎵</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="personal" aria-pressed="false" title="Personal" aria-label="Personal">👤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="philosophy" aria-pressed="false" title="Philosophy" aria-label="Philosophy">🕯️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="politics" aria-pressed="false" title="Politics" aria-label="Politics">🏛️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="transport" aria-pressed="false" title="Transport" aria-label="Transport">🚦</button></th></tr>
-<tr data-categories="linguistics politics"><td><a href="../chinese-languages/">Chinese Language(s)</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td></tr>
-<tr data-categories="music personal"><td><a href="../chromatic-camelot/">Chromatic Camelot</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr data-categories="geography transport"><td><a href="../cities-transport/">Cities &amp; Transport</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td></tr>
-<tr data-categories="art maths personal philosophy"><td><a href="../life-dial/">Life Dial</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr data-categories="linguistics maths"><td><a href="../linguistics-dissertation/">Linguistics Dissertation</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr data-categories="geography maths"><td><a href="../maps-projections/">Maps &amp; Projections</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr data-categories="personal"><td><a href="../personal-info/">Personal Info</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
-<tr class="totals"><td>Total</td><td class="mark-cell" data-cat="art">1</td><td class="mark-cell" data-cat="geography">2</td><td class="mark-cell" data-cat="linguistics">2</td><td class="mark-cell" data-cat="maths">3</td><td class="mark-cell" data-cat="music">1</td><td class="mark-cell" data-cat="personal">3</td><td class="mark-cell" data-cat="philosophy">1</td><td class="mark-cell" data-cat="politics">1</td><td class="mark-cell" data-cat="transport">1</td></tr>
+<tr><th>Project<span class="col-sizer" aria-hidden="true"><span>Linguistics Dissertation</span><span>Chinese Language(s)</span><span>Cities &amp; Transport</span></span></th><th class="cat-col"><button type="button" class="cat-head" data-cat="art" aria-pressed="false" title="Art" aria-label="Art">🪅</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="chemistry" aria-pressed="false" title="Chemistry" aria-label="Chemistry">⚗️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="geography" aria-pressed="false" title="Geography" aria-label="Geography">🗺️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="linguistics" aria-pressed="false" title="Linguistics" aria-label="Linguistics">🔤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="maths" aria-pressed="false" title="Maths" aria-label="Maths">📐</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="music" aria-pressed="false" title="Music" aria-label="Music">🎵</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="personal" aria-pressed="false" title="Personal" aria-label="Personal">👤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="pharmacology" aria-pressed="false" title="Pharmacology" aria-label="Pharmacology">💊</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="philosophy" aria-pressed="false" title="Philosophy" aria-label="Philosophy">🕯️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="politics" aria-pressed="false" title="Politics" aria-label="Politics">🏛️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="transport" aria-pressed="false" title="Transport" aria-label="Transport">🚦</button></th></tr>
+<tr data-categories="linguistics politics"><td><a href="../chinese-languages/">Chinese Language(s)</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td></tr>
+<tr data-categories="music personal"><td><a href="../chromatic-camelot/">Chromatic Camelot</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr data-categories="geography transport"><td><a href="../cities-transport/">Cities &amp; Transport</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td></tr>
+<tr data-categories="art maths personal philosophy"><td><a href="../life-dial/">Life Dial</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr data-categories="linguistics maths"><td><a href="../linguistics-dissertation/">Linguistics Dissertation</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr data-categories="geography maths"><td><a href="../maps-projections/">Maps &amp; Projections</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr data-categories="chemistry pharmacology"><td><a href="../molecule-lookup/">Molecule Lookup</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr data-categories="personal"><td><a href="../personal-info/">Personal Info</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
+<tr class="totals"><td>Total</td><td class="mark-cell" data-cat="art">1</td><td class="mark-cell" data-cat="chemistry">1</td><td class="mark-cell" data-cat="geography">2</td><td class="mark-cell" data-cat="linguistics">2</td><td class="mark-cell" data-cat="maths">3</td><td class="mark-cell" data-cat="music">1</td><td class="mark-cell" data-cat="personal">3</td><td class="mark-cell" data-cat="pharmacology">1</td><td class="mark-cell" data-cat="philosophy">1</td><td class="mark-cell" data-cat="politics">1</td><td class="mark-cell" data-cat="transport">1</td></tr>
 </table>
 </div>
 </div>
+<script>
+(function () {
+  var K = 'site-show-planned';
+  var sw = document.querySelector('.planned-switch');
+  function stamp() {
+    var on = localStorage.getItem(K) === 'on';
+    document.documentElement.toggleAttribute('data-show-planned', on);
+    if (sw) sw.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  stamp();
+  if (sw) sw.addEventListener('click', function () {
+    if (localStorage.getItem(K) === 'on') localStorage.removeItem(K);
+    else localStorage.setItem(K, 'on');
+    stamp();
+  });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) stamp(); });
+  window.addEventListener('storage', function (e) {
+    if (e.key === K || e.key === null) stamp();
+  });
+})();
+</script>
 <script>
 (function () {
   var heads = Array.prototype.slice.call(document.querySelectorAll('.cat-head'));

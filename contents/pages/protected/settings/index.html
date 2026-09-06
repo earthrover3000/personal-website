@@ -684,6 +684,19 @@ html:not([data-show-planned]) .cat-chip--planned-only { display: none; }
   margin: 0 0.2rem;
 }
 
+/* Developer entries — index cards and rows for scaffolding rather than
+   content (site-structure.yaml `dev: true`; Launchbolt is the only one so
+   far). INVERTED against the switches below: the stamp HIDES, because these
+   are shown by default and Developer mode takes them away. The index head
+   snippet stamps <html data-dev-mode> from localStorage['site-dev-mode']
+   before first paint, same as the theme.
+
+   `display: none` on the card also collapses its side-column <li>, which
+   carries the class too so the row leaves no gap. NOT a privacy mechanism:
+   the card is in the HTML either way, and anything that must not ship is a
+   ceiling question, not a preference (TIER-VARIANTS.md rulings 18 and 21). */
+html[data-dev-mode] .dev-entry { display: none; }
+
 /* Planned-page teaser rows — inert grey entries after the live page list,
    hidden unless the visitor opted in on Settings ("Show planned pages"):
    the index head snippet stamps <html data-show-planned> from
@@ -975,7 +988,12 @@ a.app-card:hover {
   </div>
 </section>
 <section class="setting">
-  <h2>Developer 🛠️</h2>
+  <h2>Developer mode 🧰</h2>
+  <p class="setting-desc">Some entries on the indexes are tools for getting around this site rather than pages of it. Turn this on to keep them out of the way. Remembered in this browser.</p>
+  <label class="badge-toggle"><input type="checkbox" id="dev-mode-toggle"> Hide developer entries</label>
+</section>
+<section class="setting">
+  <h2>Build 🛠️</h2>
   <p class="setting-desc">Which build this site is serving. The build ID matches the one <code>build.py</code> printed when these bytes were built; the fingerprint is the deploy checksum the push pipeline compares.</p>
   <div class="dev-row"><span class="dev-label">Built</span><span class="dev-value" id="dev-built">—</span></div>
   <div class="dev-row"><span class="dev-label">Build ID</span><span class="dev-value dev-mono" id="dev-build-id">—</span></div>
@@ -1050,6 +1068,19 @@ a.app-card:hover {
   cb.checked = localStorage.getItem(K) === 'on';
   cb.addEventListener('change', function () {
     if (cb.checked) localStorage.setItem(K, 'on'); else localStorage.removeItem(K);
+  });
+})();
+</script>
+<script>
+(function () {
+  var cb = document.getElementById('dev-mode-toggle');
+  if (!cb) return;
+  var K = 'site-dev-mode';
+  cb.checked = localStorage.getItem(K) === 'on';
+  document.documentElement.toggleAttribute('data-dev-mode', cb.checked);
+  cb.addEventListener('change', function () {
+    if (cb.checked) localStorage.setItem(K, 'on'); else localStorage.removeItem(K);
+    document.documentElement.toggleAttribute('data-dev-mode', cb.checked);
   });
 })();
 </script>

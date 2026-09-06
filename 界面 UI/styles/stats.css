@@ -4,7 +4,31 @@
    refresh). Markup vocabulary it styles: .stats-table (+ .section-bar /
    .others / .agg / .group-divider / .totals rows, .num cells, th .th-label /
    .th-qual), .view-toggle radios, .group-toggle, .section-heading,
-   .touched-date/-block/-ago triplets, .line-history-svg. */
+   .touched-date/-block/-ago triplets, .line-history-svg, .site-log-rings. */
+
+/* ---- Stats-page theme tokens ----
+   base.css's rule, followed here: each colour declared EXACTLY ONCE via
+   light-dark(light, dark), resolved by `color-scheme`, so the manual theme
+   toggle reaches them. docs.css keeps its own block for the status pills;
+   this one is for colours only the stats/roadmap surfaces use. Before
+   2026-09-06 these were hexes written inline in the rules below — the words
+   accent three times over — which is how the roadmap's Today wash came to be
+   tuned for the light theme alone. */
+:root {
+  /* The past→future boundary on the roadmap timeline, keyed to the
+     event-manifold / life-clock "now" marker (ANCHOR_MARKER_COLOR #E53935).
+     SAME red both ways; the STRENGTH differs because the ground does. A 14%
+     wash lightens to an obvious pink on #f5f5f5 but barely lifts #0f0f0f —
+     measured, −21.0 luminance in light against only +11.0 in dark, half the
+     presence. 28% restores it (+22.1) and keeps the row quieter than the
+     version bar above it (+31.0), which is the hierarchy light already had. */
+  --roadmap-today-wash: light-dark(
+      color-mix(in srgb, #E53935 14%, transparent),
+      color-mix(in srgb, #E53935 28%, transparent));
+  /* The line-history chart's WORDS series (lines ride var(--accent)). One
+     value for both themes — a warm tan that holds up on either ground. */
+  --chart-words: #d4a574;
+}
 
 /* nowrap keeps the Size cell's "12.4 KiB" (number + space + unit) on one
    line — without it the space between value and unit becomes a wrap point
@@ -228,8 +252,8 @@ body:has(#group-categories:not(:checked)) #project-outline .section-bar { displa
   border-color: var(--accent);
 }
 .series-toggle #series-words:checked + label {
-  color: #d4a574;
-  border-color: #d4a574;
+  color: var(--chart-words);
+  border-color: var(--chart-words);
 }
 .series-toggle input[type="checkbox"]:disabled + label {
   opacity: 0.4;
@@ -282,7 +306,7 @@ body:has(#group-categories:not(:checked)) #project-outline .section-bar { displa
    series cross each other or a gridline. */
 .crosshair-layer .ch-dot { stroke: var(--surface); stroke-width: 1.5; }
 .crosshair-layer .ch-dot-lines { fill: var(--accent, #7c9ef5); }
-.crosshair-layer .ch-dot-words { fill: #d4a574; }
+.crosshair-layer .ch-dot-words { fill: var(--chart-words); }
 /* Hover readout — a single line UNDER the chart, never over it. Always
    populated: it reports the hovered snapshot while the pointer is on the plot
    and the most recent build the rest of the time, so it never blinks out.
@@ -309,7 +333,7 @@ body:has(#group-categories:not(:checked)) #project-outline .section-bar { displa
 .chart-readout .ch-field { display: inline-flex; align-items: baseline; gap: 0.4rem; }
 .chart-readout .ch-when, .chart-readout .ch-val { font-variant-numeric: tabular-nums; }
 .chart-readout .ch-f-lines .ch-key { color: var(--accent); }
-.chart-readout .ch-f-words .ch-key { color: #d4a574; }
+.chart-readout .ch-f-words .ch-key { color: var(--chart-words); }
 
 .touched-date, .touched-block, .touched-ago { min-width: 6em; }
 .touched-date { display: inline-block; }
@@ -346,9 +370,46 @@ body:has(#view-ago:checked) .touched-ago { display: inline-block; }
 .roadmap-defining td:first-child { border-left: 3px solid var(--accent); }
 .roadmap-defining:hover td { background: color-mix(in srgb, var(--accent) 16%, transparent); }
 /* Today line — the past→future boundary (roadmap timeline only; the What's New
-   face is shipped-only and emits no Today row). Faint-red wash matching the
-   event-manifold / life-clock "now" marker (ANCHOR_MARKER_COLOR #E53935). */
-.roadmap-today td { background: color-mix(in srgb, #E53935 14%, transparent); font-weight: 600; }
+   face is shipped-only and emits no Today row). Red wash, per-theme strength;
+   see --roadmap-today-wash at the top of this file for why the two differ. */
+.roadmap-today td { background: var(--roadmap-today-wash); font-weight: 600; }
+
+/* ---- Site Log rings (page-widgets/site-log-rings.js) ----
+   The widget BUILDS the wheel and this file DRESSES it. Until 2026-09-06 the
+   sizing and the label ink were set as inline `style` attributes from the
+   JS, which put presentation in two places and hid it from the theme audit
+   this block sits under. What stays inline there is only what JS computes —
+   per-element geometry, and the shading segments' fill, which is chosen at
+   run time between a phase hex and the muted grey.
+
+   Sized like the line-history chart: fluid width, capped height. currentColor
+   rides the page text colour so the event ticks (fill: currentColor) follow
+   the theme, and the phase hexes read at band opacity on either ground. */
+.site-log-rings-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 340px;
+  margin-top: 0.5rem;
+  color: var(--text);
+}
+/* The doorway into the Atlas, under the Site Log heading. base.css styles
+   .head-meta links as quiet inline text — colour inherited, underline only on
+   hover — which is right for the meta lines that sit under a page title but
+   left this one reading as prose rather than as somewhere to go. It carries
+   its own underline; the colour stays inherited so the line stays quiet.
+
+   Selector scoped to `.head-meta a.site-log-link` on purpose: base.css's rule
+   is `.head-meta a`, one class AND one element, so a bare `.site-log-link`
+   loses on specificity and the underline silently does not appear (it took a
+   computed-style read to notice — text-underline-offset applied while
+   text-decoration-line stayed `none`). */
+.head-meta a.site-log-link { text-decoration: underline; text-underline-offset: 0.15em; }
+
+/* Calendar ink — the month names, their boundary ticks and the year numbers.
+   The site's analog of the app's `t.labelMuted`, which is what the Rings
+   view draws its label tier in. */
+.site-log-rings-svg .slr-ink { fill: var(--muted); }
 
 /* Roadmap ⇄ What's New mode toggle. Same pure-CSS radiogroup idiom as the
    date view-toggle: the checked #mode-* radio shows its view (and its heading)

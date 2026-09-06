@@ -67,6 +67,8 @@
   });
 })();
 </script>
+<script>if(localStorage.getItem("site-show-planned")==="on")document.documentElement.setAttribute("data-show-planned","");</script>
+<script>if(localStorage.getItem("site-dev-mode")==="on")document.documentElement.setAttribute("data-dev-mode","");</script>
 <style>/* Shared base styles for index pages (root, protected, private) and docs
    pages (site-map, site-stats, lifespan-atlas plan). Loaded BEFORE the
    page-specific stylesheet so page rules can override.
@@ -684,6 +686,19 @@ html:not([data-show-planned]) .cat-chip--planned-only { display: none; }
   margin: 0 0.2rem;
 }
 
+/* Developer entries — index cards and rows for scaffolding rather than
+   content (site-structure.yaml `dev: true`; Launchbolt is the only one so
+   far). INVERTED against the switches below: the stamp HIDES, because these
+   are shown by default and Developer mode takes them away. The index head
+   snippet stamps <html data-dev-mode> from localStorage['site-dev-mode']
+   before first paint, same as the theme.
+
+   `display: none` on the card also collapses its side-column <li>, which
+   carries the class too so the row leaves no gap. NOT a privacy mechanism:
+   the card is in the HTML either way, and anything that must not ship is a
+   ceiling question, not a preference (TIER-VARIANTS.md rulings 18 and 21). */
+html[data-dev-mode] .dev-entry { display: none; }
+
 /* Planned-page teaser rows — inert grey entries after the live page list,
    hidden unless the visitor opted in on Settings ("Show planned pages"):
    the index head snippet stamps <html data-show-planned> from
@@ -1158,17 +1173,20 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Home</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav>
 <h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">115,236 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-09-05" class="relative-time relative-time-coarse">2026-09-05</time></p>
+<p class="head-meta"><a href="site-stats/">115,574 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-09-06" class="relative-time relative-time-coarse">2026-09-06</time></p>
 <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
 <div class="cat-chips" role="group" aria-label="Filter by category">
   <button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button>
+  <button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button>
   <div class="cat-chips__body" hidden>
   <button type="button" class="cat-chip" data-cat="art" aria-pressed="false">🪅 Art</button>
+  <button type="button" class="cat-chip" data-cat="chemistry" aria-pressed="false">⚗️ Chemistry</button>
   <button type="button" class="cat-chip" data-cat="geography" aria-pressed="false">🗺️ Geography</button>
   <button type="button" class="cat-chip" data-cat="linguistics" aria-pressed="false">🔤 Linguistics</button>
   <button type="button" class="cat-chip" data-cat="maths" aria-pressed="false">📐 Maths</button>
   <button type="button" class="cat-chip" data-cat="music" aria-pressed="false">🎵 Music</button>
   <button type="button" class="cat-chip" data-cat="personal" aria-pressed="false">👤 Personal</button>
+  <button type="button" class="cat-chip" data-cat="pharmacology" aria-pressed="false">💊 Pharmacology</button>
   <button type="button" class="cat-chip" data-cat="philosophy" aria-pressed="false">🕯️ Philosophy</button>
   <button type="button" class="cat-chip" data-cat="politics" aria-pressed="false">🏛️ Politics</button>
   <button type="button" class="cat-chip" data-cat="transport" aria-pressed="false">🚦 Transport</button>
@@ -1200,6 +1218,7 @@ a.app-card:hover {
   <li data-categories="geography transport"><a href="cities-transport/">Cities & Transport</a></li>
   <li data-categories="linguistics maths"><a href="linguistics-dissertation/">Linguistics Dissertation</a></li>
   <li data-categories="geography maths"><a href="maps-projections/">Maps & Projections</a></li>
+  <li data-categories="chemistry pharmacology"><a href="molecule-lookup/">Molecule Lookup</a></li>
   <li data-categories="personal"><a href="personal-info/">Personal Info</a></li>
 </ul>
 </div>

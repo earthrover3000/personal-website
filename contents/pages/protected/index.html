@@ -67,6 +67,8 @@
   });
 })();
 </script>
+<script>if(localStorage.getItem("site-show-planned")==="on")document.documentElement.setAttribute("data-show-planned","");</script>
+<script>if(localStorage.getItem("site-dev-mode")==="on")document.documentElement.setAttribute("data-dev-mode","");</script>
 <style>/* Shared base styles for index pages (root, protected, private) and docs
    pages (site-map, site-stats, lifespan-atlas plan). Loaded BEFORE the
    page-specific stylesheet so page rules can override.
@@ -684,6 +686,19 @@ html:not([data-show-planned]) .cat-chip--planned-only { display: none; }
   margin: 0 0.2rem;
 }
 
+/* Developer entries — index cards and rows for scaffolding rather than
+   content (site-structure.yaml `dev: true`; Launchbolt is the only one so
+   far). INVERTED against the switches below: the stamp HIDES, because these
+   are shown by default and Developer mode takes them away. The index head
+   snippet stamps <html data-dev-mode> from localStorage['site-dev-mode']
+   before first paint, same as the theme.
+
+   `display: none` on the card also collapses its side-column <li>, which
+   carries the class too so the row leaves no gap. NOT a privacy mechanism:
+   the card is in the HTML either way, and anything that must not ship is a
+   ceiling question, not a preference (TIER-VARIANTS.md rulings 18 and 21). */
+html[data-dev-mode] .dev-entry { display: none; }
+
 /* Planned-page teaser rows — inert grey entries after the live page list,
    hidden unless the visitor opted in on Settings ("Show planned pages"):
    the index head snippet stamps <html data-show-planned> from
@@ -1158,17 +1173,20 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="home/">Home</a> <span class="sep">›</span> <span aria-current="page">Protected Index</span></nav>
 <h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">115,236 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-09-05T22:34:33Z" title="2026-09-05 22:34 UTC" class="relative-time">2026-09-05</time></p>
+<p class="head-meta"><a href="site-stats/">115,574 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-09-06T05:22:10Z" title="2026-09-06 05:22 UTC" class="relative-time">2026-09-06</time></p>
 <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
 <div class="cat-chips" role="group" aria-label="Filter by category">
   <button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button>
+  <button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button>
   <div class="cat-chips__body" hidden>
   <button type="button" class="cat-chip" data-cat="art" aria-pressed="false">🪅 Art</button>
+  <button type="button" class="cat-chip" data-cat="chemistry" aria-pressed="false">⚗️ Chemistry</button>
   <button type="button" class="cat-chip" data-cat="geography" aria-pressed="false">🗺️ Geography</button>
   <button type="button" class="cat-chip" data-cat="linguistics" aria-pressed="false">🔤 Linguistics</button>
   <button type="button" class="cat-chip" data-cat="maths" aria-pressed="false">📐 Maths</button>
   <button type="button" class="cat-chip" data-cat="music" aria-pressed="false">🎵 Music</button>
   <button type="button" class="cat-chip" data-cat="personal" aria-pressed="false">👤 Personal</button>
+  <button type="button" class="cat-chip" data-cat="pharmacology" aria-pressed="false">💊 Pharmacology</button>
   <button type="button" class="cat-chip" data-cat="philosophy" aria-pressed="false">🕯️ Philosophy</button>
   <button type="button" class="cat-chip" data-cat="politics" aria-pressed="false">🏛️ Politics</button>
   <button type="button" class="cat-chip" data-cat="practical" aria-pressed="false">🪪 Practical</button>
@@ -1203,6 +1221,7 @@ a.app-card:hover {
   <li data-categories="personal"><a href="../public/personal-info/">Personal Info</a></li>
   <li data-categories="linguistics politics"><a href="../protected/chinese-languages/">Chinese Language(s)</a></li>
   <li data-categories="practical"><a href="../protected/itinerary-calendar/">Itinerary Calendar</a></li>
+  <li data-categories="chemistry pharmacology"><a href="../protected/molecule-lookup/">Molecule Lookup</a></li>
 </ul>
 </div>
 <div class="side">
@@ -1216,8 +1235,8 @@ a.app-card:hover {
     </select>
   </li>
   <li aria-hidden="true"><a style="visibility:hidden">&nbsp;</a></li>
-  <li>
-    <a class="app-card" href="../protected/launchbolt/">
+  <li class="dev-entry">
+    <a class="app-card dev-entry" href="../protected/launchbolt/">
       <img class="app-card__icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlApw1AAAAElBMVEUAAAD/gi3LZyMzGglqNhKjUxzabGxSAAAACXBIWXMAAAPoAAAD6AG1e1JrAAACCklEQVR42u2ci26DMBAEfXv2//9ym7ZSgsLDSFS5QTtfwIhdQ4J9rRljjDHGGGOMMcYYY4wxxhhj/ocudfT1xzdgg3xcf4grILjACLbAb4DAAoIL/AUIK9ADLhBwAcEFngFiCmTABQQXGMEWWASIKCC4wDJAPIEecIGACwgu8BYgmEAGXEBwgRFsgbUAoQQEF1gNEEigB1wg4AKCC2wFiCKQARcQXGAEW2AnQAwBwQX2AkQQ6AEXCLiA4AIHASovkAEXEFxgBFvgOEDFBQQXmAhQaYEecIGACwguMBegugIZcAHBBUawBaYDVFVA8wLBDlDNjaM9TpHQR/DLPUhuAbYYnACVM8hLrv+Dq6uuEeiIFbTgDbgoQJ9bWgc8QBcJjMZegz77fpcrDPq7RQv4292ph8NobAH8D5yECxQ9Fyd0AU4IlP2bTugCzAvUPRgqdAFmBSp/qxG6AJMCpU9GC12AG3zvnhBIuED10QBCF+BYoP6uLaELcCgAmI0hdAEOBBB7j4UuwL4AYziM0AW4wfmNbYGEC2CmIwldgBsc4tsQSLgAaTyY0AVYF2CdpRe6AKsCsPl4QhdgRQA3UEXoArwL8AZECl2AGwylWgokXAA5IVXoAiwEoKMVhS7AqwB1RLDQBXgK4AcEZ0OPyCbPyP65Begp5Y/dmM0YY4wxxhhjjDHGGGOMMWX5Asa6EEZ29joCAAAAAElFTkSuQmCC" alt="" />
       <div class="app-card__body">
         <div class="app-card__name">Launchbolt</div>
