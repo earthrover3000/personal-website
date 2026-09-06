@@ -60,8 +60,13 @@
   <h2>Great Circle Mapper</h2>
   <p class="lede">
     A world map you can re-project live, entirely in the browser. Pick a coordinate framing
-    (Eastern / Western / Northern / Southern) and a projection (<strong>Winkel Tripel</strong>
-    or Hǎo's <strong>等差分多圆锥</strong> vertical map), toggle country borders (plus state/province
+    (Eastern / Western / Northern / Southern) and a projection. It opens on
+    <strong>Equal Earth</strong>, the one here that holds area — every country covers the pixels its
+    ground area deserves, and nothing on the map is drawn larger or smaller than it is. The
+    alternatives distort area to buy something else: Hǎo's <strong>等差分多圆锥</strong>
+    vertical map parks its stretch out in the open ocean to keep the polar routes honest, and
+    <strong>Web Mercator</strong> trades area away for angle, drawing a place at 85°N some 41 times
+    its true size. Toggle country borders (plus state/province
     lines for the seven largest countries), and draw
     great-circle flight paths — the preset routes, or your own: type 3-letter IATA codes such as
     <code>PEK-JFK, LHR-HND-SIN</code>. Add terrain with <strong>Ocean depth</strong> (graded bathymetry
@@ -82,7 +87,7 @@
 
   <div id="region-explorer"></div>
   <!-- The Region Map Explorer is initialised at END OF BODY (not here): its empty
-       state mounts a static Northern-Hǎo overview built with createWorldMap, which
+       state mounts a static Northern Equal Earth overview built with createWorldMap, which
        the projection toolkit below defines. -->
 
   <h2>Administrative Divisions</h2>
@@ -214,9 +219,9 @@
                                  regions: '../../../../../引擎 Engines/map-projection/un-regions.js',
                                  admin1: '../../../../../引擎 Engines/map-projection/admin1.js' } });
 
-  // Region Map Explorer — its empty state mounts a static Northern-Hǎo map. The dropdown rests on a
+  // Region Map Explorer — its empty state mounts a static Northern Equal Earth map. The dropdown rests on a
   // re-selectable "Select location…" option; while it's chosen the display shows that overview, with
-  // each region's exact Web-Mercator crop circle outlined on the Hǎo map (PROJ.mercatorDisc). Pick a
+  // each region's exact Web-Mercator crop circle outlined on that map (PROJ.mercatorDisc). Pick a
   // region → the Leaflet Mercator crop; pick the prompt again → back to the overview. COARSE (110m)
   // basemap detail — it's a small static picker, so the fine 50m data is wasteful here.
   createMapExplorer({
@@ -227,10 +232,10 @@
     placeholder: 'Select location…',
     locations: WORLD_REGIONS.regions,
     overview: function (el, api) {
-      // Static (disablePan) Northern-Hǎo map; clicking a region's enclosed area selects it
+      // Static (disablePan) Northern Equal Earth map; clicking a region's enclosed area selects it
       // (api.selectLocation → the Leaflet crop for that region).
       var h = createWorldMap({
-        mount: el, controls: false, coordinate: 'north', projection: 'hao', detail: 'coarse',
+        mount: el, controls: false, coordinate: 'north', projection: 'equalearth', detail: 'coarse',
         regions: WORLD_REGIONS.regions,
         disablePan: true,
         onRegionClick: function (rg) { api.selectLocation(rg.value); }

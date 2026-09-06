@@ -8,8 +8,8 @@
 // PROJECTION_CONFIG from the same root.
 //
 // Conventions (matching the Python):
-//   - pBase (Hǎo polyconic) natively returns [north, east]; winkel returns
-//     [east, north]. baseProject() NORMALISES both to [east, north].
+//   - pBase (Hǎo polyconic) natively returns [north, east]; equalEarth and
+//     mercator return [east, north]. baseProject() NORMALISES all to [east, north].
 //   - Vertical (N/S) framings: oblique rotation then PORTRAIT screen
 //     (screenX = -north, screenY = east).  Horizontal (E/W): central-meridian
 //     shift then LANDSCAPE screen (screenX = east, screenY = north).
@@ -44,14 +44,23 @@
     return [x0 + rho * (1 - Math.cos(delta)), rho * Math.sin(delta)];   // Eq (5)/(6) -> [north, east]
   }
 
-  // Winkel Tripel: mean of Aitoff and the equirectangular. Returns [east, north].
-  function winkel(phiDeg, lamDeg) {
-    var phi = phiDeg * D2R, lam = lamDeg * D2R;
-    var p1 = Math.acos(2 / Math.PI);
-    var a = Math.acos(clamp1(Math.cos(phi) * Math.cos(lam / 2)));
-    var sinca = Math.abs(a) < 1e-12 ? 1.0 : Math.sin(a) / a;
-    return [0.5 * (lam * Math.cos(p1) + 2 * Math.cos(phi) * Math.sin(lam / 2) / sinca),
-            0.5 * (phi + Math.sin(phi) / sinca)];
+  // Equal Earth (Šavrič, Patterson & Jenny 2019, "The Equal Earth map projection",
+  // Int. J. Geographical Information Science 33(3)). Equal-AREA pseudocylindrical: the
+  // parametric latitude θ = asin(√3/2·sin φ) is run through a fitted odd polynomial in the
+  // vertical, and the horizontal is that polynomial's derivative — which is exactly what makes
+  // the Jacobian constant, so every country covers the pixels its ground area deserves. The four
+  // A-coefficients ARE the projection (they were least-squares fitted to look like Robinson while
+  // staying equal-area), so like the polyconic's Eq (1)-(6) constants they live here, not in
+  // config.yaml. Poles are a line 0.5925 × the equator, so — as with the polyconic —
+  // map-geometry.js's poleCut applies. Returns [east, north].
+  var EQUAL_EARTH = { A1: 1.340264, A2: -0.081106, A3: 0.000893, A4: 0.003796 };
+  function equalEarth(phiDeg, lamDeg) {
+    var E = EQUAL_EARTH;
+    var th = Math.asin(clamp1(Math.sqrt(3) / 2 * Math.sin(phiDeg * D2R)));
+    var t2 = th * th, t6 = t2 * t2 * t2, t8 = t6 * t2;
+    var dydt = E.A1 + 3 * E.A2 * t2 + 7 * E.A3 * t6 + 9 * E.A4 * t8;          // d(north)/dθ — the equal-area denominator
+    return [2 * Math.sqrt(3) * (lamDeg * D2R) * Math.cos(th) / (3 * dydt),
+            th * (E.A1 + E.A2 * t2 + E.A3 * t6 + E.A4 * t8)];
   }
 
   // Web (spherical) Mercator. Latitude clamped to ±85.0511° (the standard web-map cutoff). Returns [east, north].
@@ -114,7 +123,7 @@
   // Normalise any base projection to [east, north].
   function baseProject(projId, phiDeg, lamDeg) {
     var p = projById(projId);
-    if (p.kind === 'winkel') return winkel(phiDeg, lamDeg);
+    if (p.kind === 'equalearth') return equalEarth(phiDeg, lamDeg);
     if (p.kind === 'mercator') return mercator(phiDeg, lamDeg);
     if (p.kind === 'polyconic') { var ne = pBase(phiDeg, lamDeg, POLYCONIC); return [ne[1], ne[0]]; }
     throw new Error('unknown projection kind: ' + p.kind);
@@ -211,7 +220,7 @@
   root.PROJ = {
     cfg: cfg, projById: projById, coordById: coordById,
     EARTH_RADIUS_KM: EARTH_RADIUS_KM, MERCATOR_MAXLAT: MERCATOR_MAXLAT,
-    pBase: pBase, winkel: winkel, baseProject: baseProject,
+    pBase: pBase, equalEarth: equalEarth, baseProject: baseProject,
     mercator: mercator, mercatorInverse: mercatorInverse, mercatorDisc: mercatorDisc,
     mercatorDiscGeom: mercatorDiscGeom, mercatorDiscContains: mercatorDiscContains,
     genCoords: genCoords, wrap180: wrap180, greatCircle: greatCircle,

@@ -23,13 +23,13 @@ projections:
   - id: hao
     label: "郝晓光 等差分多圆锥"
     kind: polyconic         # Hǎo's equal-difference parallel polyconic, 《经纬跨越四百年》附录1 Eq (1)-(6)
-  - id: winkel
-    label: "Winkel Tripel"
-    kind: winkel            # mean of Aitoff + equirectangular; std parallel = acos(2/pi)
+  - id: equalearth
+    label: "Equal Earth"
+    kind: equalearth        # Šavrič–Patterson–Jenny 2019 equal-area pseudocylindrical; θ=asin(√3/2·sin φ) through a fitted odd polynomial
   - id: mercator
     label: "Web Mercator"
     kind: mercator          # spherical Mercator (web-map standard); latitude clamped to ±85.0511°
-default_projection: hao
+default_projection: equalearth
 
 # ----------------------------------------------------------------------------
 # Coordinate framings, defined by geography (hand-editable):

@@ -10,7 +10,7 @@
 // cut loci, both handled exactly, in domain space, BEFORE projection:
 //   · the seam b=±180 (the lens edge) — cut with the exact crossing point;
 //   · the domain poles a=±90, which project to ARCS (not points) in the
-//     polyconic/Winkel kernels — a path across a pole tears on the map, so it
+//     polyconic/Equal Earth kernels — a path across a pole tears on the map, so it
 //     is cut with both cut-ends placed ON the pole arc (poleCut mode, lines
 //     only). This replaced the old screen-space spikeBreak heuristic (drop any
 //     projected segment > 4% of the lens span), whose failure modes were gaps

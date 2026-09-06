@@ -8,7 +8,7 @@
 //   createWorldMap({ mount: '#great-circle-mapper', controls: true });
 // Usage (embed, e.g. travel-calendar — fixed framing + own routes, no UI):
 //   createWorldMap({ mount: el, controls: false, coordinate: 'north',
-//                    projection: 'winkel', routes: [['LHR','HND'], ...] });
+//                    projection: 'equalearth', routes: [['LHR','HND'], ...] });
 
 (function (root) {
   'use strict';
@@ -52,12 +52,12 @@
   var ROUTE_COLORS = ['#c0392b', '#1f6f3d', '#6c3483', '#b9770e', '#1a5276', '#7b241c'];
   var REGION_COLOR = '#e91e63';   // region-disc outline — vivid pink, distinct from the route palette + seam belts, legible on land/ocean in both themes
   // Mercator-limit overlay — marks Web Mercator's ±PROJ.MERCATOR_MAXLAT (85.05°) coverage limit. On
-  // Hǎo/Winkel the two geographic polar caps are CUT OUT (punched transparent, crimson-ringed) so the
+  // Hǎo/Equal Earth the two geographic polar caps are CUT OUT (punched transparent, crimson-ringed) so the
   // bit Mercator can't show reads as a literal hole. On the Mercator projection itself the caps are
   // already off-map, so instead a translucent crimson belt shades its own ±85.05° top/bottom clamp edge.
   var MERC_BAND = 3;                          // band width, degrees of latitude (the shaded belt on Mercator's own clamp edge)
   var MERC_FILL = 'rgba(192,57,43,0.22)';     // the shaded belt — translucent crimson (drawn on the Mercator projection's own top/bottom clamp)
-  var MERC_EDGE = '#c0392b';                  // crimson ring on ±MERCATOR_MAXLAT — the cut-out cap boundary on Hǎo/Winkel
+  var MERC_EDGE = '#c0392b';                  // crimson ring on ±MERCATOR_MAXLAT — the cut-out cap boundary on Hǎo/Equal Earth
   var GRAT = 15;            // graticule spacing, degrees
   var NSAMP = 500;          // samples per graticule line / arc
   // Terrain-grid bin lower bounds — MUST match scripts/make_terrain_grid.py.
@@ -186,8 +186,8 @@
       bathymetry: opts.bathymetry != null ? opts.bathymetry : !!uiDefaults.bathymetry,   // ocean-depth tint bands (WORLD_TERRAIN_GRID codes 0..11)
       topography: opts.topography != null ? opts.topography : !!uiDefaults.topography,    // land elevation shade bands (WORLD_TERRAIN_GRID codes 16..)
       regions: opts.regions != null ? opts.regions : !!uiDefaults.regions,                // UN-subregion 4-colour shading (WORLD_UN_REGIONS); mutually exclusive with topography (both shade land)
-      mercatorEdge: opts.mercatorEdge != null ? opts.mercatorEdge : !!uiDefaults.mercator_edge,   // STANDARD Web Mercator's ±85.05° limit: cut the GEOGRAPHIC polar caps out of Hǎo/Winkel; band the equatorial-Mercator clamp
-      mercatorEdgeGen: opts.mercatorEdgeGen != null ? opts.mercatorEdgeGen : !!uiDefaults.mercator_edge_gen,   // the OBLIQUE Mercator's own ±85.05° limit (GENERALIZED poles) — separate toggle; band on the Mercator projection's clamp, cut out on Hǎo/Winkel
+      mercatorEdge: opts.mercatorEdge != null ? opts.mercatorEdge : !!uiDefaults.mercator_edge,   // STANDARD Web Mercator's ±85.05° limit: cut the GEOGRAPHIC polar caps out of Hǎo/Equal Earth; band the equatorial-Mercator clamp
+      mercatorEdgeGen: opts.mercatorEdgeGen != null ? opts.mercatorEdgeGen : !!uiDefaults.mercator_edge_gen,   // the OBLIQUE Mercator's own ±85.05° limit (GENERALIZED poles) — separate toggle; band on the Mercator projection's clamp, cut out on Hǎo/Equal Earth
       edges: !!opts.edges,                                // overlay the Hǎo Northern & Southern map edges (seam half-meridians) as geographic curves
       middleLine: !!opts.middleLine,                      // draw the central meridian (the straight middle axis a centred route lies on) at graticule weight
       flightMode: opts.flightMode || uiDefaults.flight_paths || 'selected',
@@ -1248,7 +1248,7 @@
         ctx2.restore();
         stroke(G.edgeN, '#8e24aa', 0.6); stroke(G.edgeS, '#ef6c00', 0.6);   // solid seam centre line, as thin as a graticule line (empty on its own framing)
       }
-      if (state.mercatorEdge || state.mercatorEdgeGen) {                   // the 3°-wide band on the COVERED side of each enabled cutoff: frames the cut-out cap (Hǎo/Winkel) or shades the clamp belt (Mercator)
+      if (state.mercatorEdge || state.mercatorEdgeGen) {                   // the 3°-wide band on the COVERED side of each enabled cutoff: frames the cut-out cap (Hǎo/Equal Earth) or shades the clamp belt (Mercator)
         ctx2.save(); poly(G.b); ctx2.clip();                               // clip to the lens so no fill (or its anti-aliased edge) escapes the boundary
         if (state.mercatorEdge)    { fillAll(G.mercGeoSet.band.north, MERC_FILL); fillAll(G.mercGeoSet.band.south, MERC_FILL); }
         if (state.mercatorEdgeGen) { fillAll(G.mercGenSet.band.north, MERC_FILL); fillAll(G.mercGenSet.band.south, MERC_FILL); }

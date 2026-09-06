@@ -560,6 +560,39 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
 .tier-nav option:checked { color: var(--text); }
 /* .filter rule is in base.css; only the row layout below stays index-specific. */
 
+/* SEARCH + INDEX SWITCHER, one line, half each (user decision 2026-09-06).
+   The switcher was the side column's first row, which spent a full row and
+   the blank separator beneath it on a control that belongs beside the page's
+   other control rather than atop a list of links.
+
+   Emitted only where there IS a switcher — the website's three tier indexes.
+   The five consoles on this engine pass no `index_entries`, so their search
+   input stays exactly as it was, full width and unwrapped. */
+.filter-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: stretch;
+  margin-bottom: 1rem;
+}
+/* Halves. `min-width: 0` because a flex item's default `min-width: auto`
+   refuses to shrink below its content — a long option label would otherwise
+   push the select past its half and squeeze the search box. */
+.filter-row > .filter, .filter-row > .tier-nav {
+  flex: 1 1 50%;
+  min-width: 0;
+  margin-bottom: 0;
+}
+/* In this row the select is a sibling of the search box, so it takes the
+   search box's typography rather than the side column's row metrics (1.1rem,
+   padding tuned to the 2.4375rem side-row pitch — see .tier-nav above, whose
+   height math only makes sense inside that column). */
+.filter-row > .tier-nav {
+  width: auto;
+  font-size: 1rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 6px;
+}
+
 /* Category chips — derived filter row between the search input and .row,
    led by a muted "Filter:" label. One chip per category present among the
    index's entries; multi-select with OR semantics (an entry shows while it
@@ -750,6 +783,100 @@ html[data-show-planned][data-show-parked] .planned-row.parked-row { display: blo
    own padding to avoid doubling; colour stays muted — clickable, still a
    teaser, not a live page. */
 .planned-row--linked, .parked-row--linked { padding: 0; }
+
+/* The divider between the live section and the planned one. It carries the
+   teaser kinds' own `-row` classes, so the reveal rules above hide and show
+   it exactly like the teasers it introduces — a plain spacer would sit under
+   the live rows as a stray gap whenever the switch is off.
+
+   Height is ONE ROW (2.25rem = the 36px a .planned-row occupies: 1.1rem text
+   at line-height 1.4, plus 0.35rem padding top and bottom). An empty line
+   should be exactly that — a line — and anything else breaks the pitch the
+   list and the side column share. */
+.teaser-gap { padding: 0; height: 2.25rem; }
+
+/* TEASER CARDS — a planned APP keeps its card shape (user decision
+   2026-09-06). What a thing IS does not change because it has not shipped:
+   dropping an app to a row among the pages says "page" about an app, and the
+   shelf is where a reader looks for apps whether or not they can open one
+   yet.
+
+   Same reveal contract as the teaser ROWS above, and the same AND rule for a
+   card wearing both kinds — a card is hidden until its switch, so the pair
+   below must not show a both-kinds card when only one switch is on. The
+   display value differs (rows are `block`, a card is the flex box .app-card
+   already declares) which is why these cannot simply join the rules above. */
+/* VISIBILITY IS THE <li>'s JOB, not the card's. A teaser card sits in the
+   list among the other teasers (user decision 2026-09-06), and its wrapping
+   row already carries the `<kind>-row` classes — so the reveal rules above
+   hide and show it with everything else, and the AND rule for a both-kinds
+   teaser is inherited rather than restated. The card below is APPEARANCE
+   only.
+
+   This replaced a set of display rules on the card itself, which had to be
+   double-classed to outrank `.app-card`'s own `display: flex` and were a
+   second visibility mechanism for one case. */
+.planned-row--card, .parked-row--card {
+  /* The row's padding would inset the card inside its own list item; the
+     card brings its own box. Same reason `--linked` zeroes it. */
+  padding: 0;
+}
+
+/* INERT ONLY WHERE IT REALLY IS. A teaser card is an <a> when it has
+   somewhere to go — on the private tier it links its placeholder page, the
+   same as a `--linked` teaser row — and a <div> when it does not, which is
+   what the shipped tiers get since placeholders never leave private.
+
+   Keying on the ELEMENT rather than the modifier is what keeps those two
+   apart. A blanket `cursor: default` here made the private card read as dead
+   when it was in fact a working link, hover feedback and all; the engine
+   already decides the tag from the href, so the CSS can just follow it.
+
+   The COLOUR stays muted either way, matching `.planned-row--linked > a`
+   above: grey says nothing is built yet, and the link only opens the plan. */
+div.app-card--planned, div.app-card--parked { cursor: default; }
+.app-card--planned .app-card__name, .app-card--parked .app-card__name {
+  color: var(--muted);
+}
+/* The icon of an app that does not run yet: present, so the card is
+   recognisably that app, but held back from competing with the live shelf. */
+.app-card--planned .app-card__icon, .app-card--parked .app-card__icon {
+  opacity: 0.55;
+}
+/* The pill rides INSIDE the name row (user decision 2026-09-06), to the right
+   of the name.
+
+   SCOPED TO THE TEASER CARDS, not to .app-card__name at large. The canonical
+   rule below gives every card name `white-space: nowrap; overflow: hidden;
+   text-overflow: ellipsis`, and turning that box into a flex container
+   changes how a long name truncates on every LIVE card — and would clip the
+   pill instead of the text, since the pill is the last thing in the box. One
+   new case is not a reason to alter the shelf's existing typography.
+
+   So: flex only where a pill exists — and the NAME TEXT gets its own box so
+   it can ellipsis while the pill stays pinned. An earlier version traded the
+   ellipsis for wrapping instead, which let "Chromatic Camelot" + its pill
+   take two lines and pushed the card to 99px against the 74.8px every other
+   card holds — visible as a lump in the grid. A bare text node cannot be the
+   flex item that truncates, which is why the engine wraps the name in a span
+   whenever there is a pill. */
+.app-card--planned .app-card__name, .app-card--parked .app-card__name {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+.app-card__name-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-card--planned .app-card__name > .planned-tag,
+.app-card--parked .app-card__name > .parked-tag,
+.app-card--planned .app-card__name > .shelved-tag,
+.app-card--parked .app-card__name > .unscheduled-tag {
+  flex: none;
+}
 /* COLOUR SAYS WHETHER THERE IS ANYTHING ON DISK (user decision 2026-08-25).
    Grey for a row with no folder behind it — an idea, and the link only opens
    its plan. Link-blue for a row that HAS a folder: parked is still real code
@@ -832,7 +959,22 @@ li.has-folder:hover .row-folder { opacity: 0.75; }
    2 and drifted the page list ~0.4rem lower per card. */
 .apps { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.2rem 0 0; }
 
-a.app-card {
+/* `a.app-card, div.app-card` (2026-09-06). A planned app has nowhere to go so
+   it renders as a <div>, and under the original `a.app-card` alone it
+   inherited none of the box below — bare text beside an icon.
+   
+   The obvious fix, dropping to a bare `.app-card`, is WRONG and was tried:
+   `.row a` (0,1,1) sits earlier in this sheet and sets `display: block`, so a
+   single-class `.app-card` (0,1,0) loses to it and every LIVE card fell out
+   of its flex box — 131px tall instead of the 4.675rem the grid below is
+   built on. The element qualifier was load-bearing, not incidental. Naming
+   both elements keeps the (0,1,1) that outranks `.row a` and covers the new
+   case. Caught by measuring the rendered cards in a browser; the source read
+   fine both times.
+   
+   :hover stays on the anchor alone — feedback belongs where there is
+   something to click. */
+a.app-card, div.app-card {
   display: flex;
   align-items: center;
   gap: 0.9rem;
@@ -1180,18 +1322,28 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="home/">Home</a> <span class="sep">›</span> <span aria-current="page">Protected Index</span></nav>
 <h1>Charlie 丁志成's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">116,222 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-09-06T09:27:51Z" title="2026-09-06 09:27 UTC" class="relative-time">2026-09-06</time></p>
-<input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
+<p class="head-meta"><a href="site-stats/">119,580 lines · 21,527 words · 922 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-09-06T20:58:07Z" title="2026-09-06 20:58 UTC" class="relative-time">2026-09-06</time></p>
+<div class="filter-row">
+  <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
+  <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
+    <option value="home/">Home</option>
+    <option value="highlights/">Highlights</option>
+    <option value="../public/">Public Index</option>
+    <option value="" selected>Protected Index</option>
+  </select>
+</div>
 <div class="cat-chips" role="group" aria-label="Filter by category">
   <button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button>
   <button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button>
   <div class="cat-chips__body" hidden>
+  <button type="button" class="cat-chip" data-cat="__none__" aria-pressed="false">❓ Uncategorised</button>
+  <span class="cat-chips__divider" aria-hidden="true"></span>
   <button type="button" class="cat-chip" data-cat="art" aria-pressed="false">🪅 Art</button>
   <button type="button" class="cat-chip" data-cat="chemistry" aria-pressed="false">⚗️ Chemistry</button>
   <button type="button" class="cat-chip" data-cat="geography" aria-pressed="false">🗺️ Geography</button>
   <button type="button" class="cat-chip" data-cat="linguistics" aria-pressed="false">🔤 Linguistics</button>
   <button type="button" class="cat-chip" data-cat="maths" aria-pressed="false">📐 Maths</button>
-  <button type="button" class="cat-chip" data-cat="music" aria-pressed="false">🎵 Music</button>
+  <button type="button" class="cat-chip cat-chip--planned-only" data-cat="music" aria-pressed="false">🎵 Music</button>
   <button type="button" class="cat-chip" data-cat="personal" aria-pressed="false">👤 Personal</button>
   <button type="button" class="cat-chip" data-cat="pharmacology" aria-pressed="false">💊 Pharmacology</button>
   <button type="button" class="cat-chip" data-cat="philosophy" aria-pressed="false">🕯️ Philosophy</button>
@@ -1204,14 +1356,6 @@ a.app-card:hover {
 <div class="row">
 <div class="main">
 <div class="apps">
-  <a class="app-card" href="../public/chromatic-camelot/" data-categories="personal music">
-    <img class="app-card__icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlApw1AAAAQlBMVEX7uKtAOjlnVVHYppgB0mo/X//vrqYvLy/3C42OZcWHamTCkoimf3dTR0X5ZZ23jsLWn7aRw49Iy32Kgt5abPOedZx5ETv/AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAFOElEQVR42u2ci5biIAyGA2gcabFV5/2fdXV2dsdpaQmQtHhO8gLN11y4/3B6cwMFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFaADAPO0NAYz1feccwj/Druu9DW8BEHz34/jE0PU+tAxgVpx/iYY3TQI8vAequT60BmDp3n8z8MahEsA6KLDONwLgi9z/qge2MMDWf/8/Qm/2BTA91BoLQimAR6g3jkQqAzAd8Bj6XQBs6vePw8NGWlcN2wP4xF8dzt82oHwpFAAkqnc8vxgpCs5uCZBK/1/+Ewmg3w7AuCz/qQTllQC8/sN5ZsR2ZLcBSLXPcQ4wUoe1LQCS7X/u/3kgT/GMOEBy9oARgDN9om2EAXzShTEGQJ90lJRyBoCFMoAxY2YRBAGMA+kIlBAAXwEv1UDWvDWbABgTKN6Fzpnz0yADYGj/cahoo2W9CLg66GIOZa988giIAIH69aGiB/0f0QQA6CuwoS6BsmcVUFHBiLi2nCn2H8BzA0QCcPn4a5e1wWCEwqVy4AWwi+4/DSNL4q+/X+r+s5B5Abo1/2NBqLeeE8Cs+y9DYBkB+oT/sSyqNscIMHVv5v+eSQT5JTwPgEgIIHAB9ASA/UIAHBkkA0ALAeQPApsBdDwAngLwIQFAaqWQP4rxRuBxgmyt9dGTzo4FAEGwiF9OXU3kxM0wAAQAsTbahUS2egaAyGYQVwDmfTJg9nAMBWtJpqlErM9PCWw9QKy4WCZzHaVp9/UA0e0sBv/RUCLu6gHin79UF4Cn7d8YIQDAS10DRUMrOl8LYFZ8uFwuyD9NCHlFAFwbQnz7DphVBMCyJco60/zV97BVAEMdeUyjAOShM7w7gG20iM27A1CLuFkAahutBjBCANSBrLqITygDQJ1KVLfR09rhKgrs+kwmcyiyHnja9XZ42s0xh6DPXNdD2eme++t+DQJpQVM/mYtfkLgeXu3Kl0TTJWV6TQklx2O//T8cHBfB7Dok1i9oIisad5haYTUnt1U41sSRKr7NAK4gs7HFsSsxr+J5AIpDkNhaZNkXmhfBNQJwhb12dyH/iO+2GQDP5u6sCCL+H24i043AA+D3AvBMR0yGkEK3vQ5oSMes3S414PjOiX26Czl+/w3jVYPJDHeLDCJf24KC+2ZX+QDQryGTAFJlzF0ByH7haRICvIkmUNYNZCi68/eLgPn/O3/a4tLf9Va5IFtKfitzczeyPYTXp+HCI6yS62ZFD46ZL74+vLh/Hr/snmLAn/fervzhOvPVYxiOP3Zfeoxrg9n+Oa4n+X8/vtonCr0ALbp+7zL/fzQGaE+nvQAI27zjcWpD4V1EkScoPjOBIknUnXZVNUglER6PiRD4fQEC5lXAvArszroSPjeDHjnUUgRSw1kM4Mj1anWLt5RpADS7S5O4qhQSyCHO98TpIk4fuMi/6F5rRck2KhCC/Df1weUMZLOxogF5nuUsws9UAPhDUCLLsEwwpiZzOa9jBIUxlgmGlP/so3GhtsriiDb+ZNHnwC3BwCoOs9xM79/uL7QrbESiak1fBcex+mmJvEBS6IQfWMlLVBVqDLUDUCgzFFqSaSsJgmlKZy5fasu1pvSXW8y+Pa3FLAQ0LYpFZugV+kblOqkIrmG90V5GPGVDxVeT1F7k959bc9euCqcK+M8vGrwi/tqbd1E9tr1jOP3aV3fa2If8sbDc7gbC2SY8rpOJqjar8rcCKIACKIACKIACKIACKIACKIACKIACKIACKIACKIACKEA+wB8bUQlg1rEn3gAAAABJRU5ErkJggg==" alt="" />
-    <div class="app-card__body">
-      <div class="app-card__name">Chromatic Camelot</div>
-      <div class="app-card__desc">Click a key, hear some songs, see the colour I see</div>
-    </div>
-    <div class="app-card__open">Open</div>
-  </a>
   <a class="app-card" href="../protected/lifespan-atlas/" data-categories="art personal maths philosophy">
     <img class="app-card__icon" src="data:image/png;base64,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" alt="" />
     <div class="app-card__body">
@@ -1229,19 +1373,21 @@ a.app-card:hover {
   <li data-categories="linguistics politics"><a href="../protected/chinese-languages/">Chinese Language(s)</a></li>
   <li data-categories="practical"><a href="../protected/itinerary-calendar/">Itinerary Calendar</a></li>
   <li data-categories="chemistry pharmacology"><a href="../protected/molecule-lookup/">Molecule Lookup</a></li>
+  <li class="planned-row teaser-gap" aria-hidden="true"></li>
+  <li class="planned-row planned-row--card" data-categories="personal music">
+    <a class="app-card app-card--planned" href="../protected/chromatic-camelot/" data-categories="personal music">
+      <img class="app-card__icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlApw1AAAAQlBMVEX7uKtAOjlnVVHYppgB0mo/X//vrqYvLy/3C42OZcWHamTCkoimf3dTR0X5ZZ23jsLWn7aRw49Iy32Kgt5abPOedZx5ETv/AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAFOElEQVR42u2ci5biIAyGA2gcabFV5/2fdXV2dsdpaQmQtHhO8gLN11y4/3B6cwMFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFUAAFaADAPO0NAYz1feccwj/Druu9DW8BEHz34/jE0PU+tAxgVpx/iYY3TQI8vAequT60BmDp3n8z8MahEsA6KLDONwLgi9z/qge2MMDWf/8/Qm/2BTA91BoLQimAR6g3jkQqAzAd8Bj6XQBs6vePw8NGWlcN2wP4xF8dzt82oHwpFAAkqnc8vxgpCs5uCZBK/1/+Ewmg3w7AuCz/qQTllQC8/sN5ZsR2ZLcBSLXPcQ4wUoe1LQCS7X/u/3kgT/GMOEBy9oARgDN9om2EAXzShTEGQJ90lJRyBoCFMoAxY2YRBAGMA+kIlBAAXwEv1UDWvDWbABgTKN6Fzpnz0yADYGj/cahoo2W9CLg66GIOZa988giIAIH69aGiB/0f0QQA6CuwoS6BsmcVUFHBiLi2nCn2H8BzA0QCcPn4a5e1wWCEwqVy4AWwi+4/DSNL4q+/X+r+s5B5Abo1/2NBqLeeE8Cs+y9DYBkB+oT/sSyqNscIMHVv5v+eSQT5JTwPgEgIIHAB9ASA/UIAHBkkA0ALAeQPApsBdDwAngLwIQFAaqWQP4rxRuBxgmyt9dGTzo4FAEGwiF9OXU3kxM0wAAQAsTbahUS2egaAyGYQVwDmfTJg9nAMBWtJpqlErM9PCWw9QKy4WCZzHaVp9/UA0e0sBv/RUCLu6gHin79UF4Cn7d8YIQDAS10DRUMrOl8LYFZ8uFwuyD9NCHlFAFwbQnz7DphVBMCyJco60/zV97BVAEMdeUyjAOShM7w7gG20iM27A1CLuFkAahutBjBCANSBrLqITygDQJ1KVLfR09rhKgrs+kwmcyiyHnja9XZ42s0xh6DPXNdD2eme++t+DQJpQVM/mYtfkLgeXu3Kl0TTJWV6TQklx2O//T8cHBfB7Dok1i9oIisad5haYTUnt1U41sSRKr7NAK4gs7HFsSsxr+J5AIpDkNhaZNkXmhfBNQJwhb12dyH/iO+2GQDP5u6sCCL+H24i043AA+D3AvBMR0yGkEK3vQ5oSMes3S414PjOiX26Czl+/w3jVYPJDHeLDCJf24KC+2ZX+QDQryGTAFJlzF0ByH7haRICvIkmUNYNZCi68/eLgPn/O3/a4tLf9Va5IFtKfitzczeyPYTXp+HCI6yS62ZFD46ZL74+vLh/Hr/snmLAn/fervzhOvPVYxiOP3Zfeoxrg9n+Oa4n+X8/vtonCr0ALbp+7zL/fzQGaE+nvQAI27zjcWpD4V1EkScoPjOBIknUnXZVNUglER6PiRD4fQEC5lXAvArszroSPjeDHjnUUgRSw1kM4Mj1anWLt5RpADS7S5O4qhQSyCHO98TpIk4fuMi/6F5rRck2KhCC/Df1weUMZLOxogF5nuUsws9UAPhDUCLLsEwwpiZzOa9jBIUxlgmGlP/so3GhtsriiDb+ZNHnwC3BwCoOs9xM79/uL7QrbESiak1fBcex+mmJvEBS6IQfWMlLVBVqDLUDUCgzFFqSaSsJgmlKZy5fasu1pvSXW8y+Pa3FLAQ0LYpFZugV+kblOqkIrmG90V5GPGVDxVeT1F7k959bc9euCqcK+M8vGrwi/tqbd1E9tr1jOP3aV3fa2If8sbDc7gbC2SY8rpOJqjar8rcCKIACKIACKIACKIACKIACKIACKIACKIACKIACKIACKEA+wB8bUQlg1rEn3gAAAABJRU5ErkJggg==" alt="" />
+      <div class="app-card__body">
+        <div class="app-card__name"><span class="app-card__name-text">Chromatic Camelot</span><span class="planned-tag">planned</span></div>
+        <div class="app-card__desc">Click a key, hear some songs, see the colour I see</div>
+      </div>
+      <div class="app-card__open">Open</div>
+    </a>
+  </li>
 </ul>
 </div>
 <div class="side">
 <ul>
-  <li class="tier-nav-row">
-    <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
-      <option value="home/">Home</option>
-      <option value="highlights/">Highlights</option>
-      <option value="../public/">Public Index</option>
-      <option value="" selected>Protected Index</option>
-    </select>
-  </li>
-  <li aria-hidden="true"><a style="visibility:hidden">&nbsp;</a></li>
   <li class="dev-entry">
     <a class="app-card dev-entry" href="../protected/launchbolt/">
       <img class="app-card__icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlApw1AAAAElBMVEUAAAD/gi3LZyMzGglqNhKjUxzabGxSAAAACXBIWXMAAAPoAAAD6AG1e1JrAAACCklEQVR42u2ci26DMBAEfXv2//9ym7ZSgsLDSFS5QTtfwIhdQ4J9rRljjDHGGGOMMcYYY4wxxhhj/ocudfT1xzdgg3xcf4grILjACLbAb4DAAoIL/AUIK9ADLhBwAcEFngFiCmTABQQXGMEWWASIKCC4wDJAPIEecIGACwgu8BYgmEAGXEBwgRFsgbUAoQQEF1gNEEigB1wg4AKCC2wFiCKQARcQXGAEW2AnQAwBwQX2AkQQ6AEXCLiA4AIHASovkAEXEFxgBFvgOEDFBQQXmAhQaYEecIGACwguMBegugIZcAHBBUawBaYDVFVA8wLBDlDNjaM9TpHQR/DLPUhuAbYYnACVM8hLrv+Dq6uuEeiIFbTgDbgoQJ9bWgc8QBcJjMZegz77fpcrDPq7RQv4292ph8NobAH8D5yECxQ9Fyd0AU4IlP2bTugCzAvUPRgqdAFmBSp/qxG6AJMCpU9GC12AG3zvnhBIuED10QBCF+BYoP6uLaELcCgAmI0hdAEOBBB7j4UuwL4AYziM0AW4wfmNbYGEC2CmIwldgBsc4tsQSLgAaTyY0AVYF2CdpRe6AKsCsPl4QhdgRQA3UEXoArwL8AZECl2AGwylWgokXAA5IVXoAiwEoKMVhS7AqwB1RLDQBXgK4AcEZ0OPyCbPyP65Begp5Y/dmM0YY4wxxhhjjDHGGGOMMWX5Asa6EEZ29joCAAAAAElFTkSuQmCC" alt="" />
@@ -1252,7 +1398,6 @@ a.app-card:hover {
       <div class="app-card__open">Open</div>
     </a>
   </li>
-  <li aria-hidden="true"><a style="visibility:hidden">&nbsp;</a></li>
   <li><a href="site-stats/">Site Stats</a></li>
   <li><a href="site-roadmap/">Site Roadmap</a></li>
   <li><a href="category-matrix/">Category Matrix</a></li>
@@ -1424,10 +1569,22 @@ a.app-card:hover {
   // behaviour; a copy of this block would have been the fourth place the same
   // six lines lived.
   const wire = (kind) => {
-    if (!document.querySelector('.' + kind + '-row')) return;
+    // Bail only when there is genuinely nothing to do. This used to test for
+    // a `.<kind>-row` alone, which broke the moment a teaser stopped being a
+    // row: a planned APP renders as `.app-card--planned` (2026-09-06), so on
+    // a tier whose only planned entry is an app there were no rows, the wire
+    // returned early, and the switch sat there doing nothing.
+    //
+    // The switch ITSELF is now reason enough to wire — it is a fixture on
+    // every website index whether or not that tier has anything to reveal
+    // yet, and an inert-looking control that silently does nothing is worse
+    // than one that flips an attribute nothing matches.
+    const sw = document.querySelector('.' + kind + '-switch');
+    const revealable = document.querySelector(
+      '.' + kind + '-row, .app-card--' + kind + ', .' + kind + '-entry');
+    if (!sw && !revealable) return;
     const K = 'site-show-' + kind;
     const ATTR = 'data-show-' + kind;
-    const sw = document.querySelector('.' + kind + '-switch');
     const stamp = () => {
       const on = localStorage.getItem(K) === 'on';
       document.documentElement.toggleAttribute(ATTR, on);
@@ -1446,6 +1603,13 @@ a.app-card:hover {
   };
   wire('planned');
   wire('parked');
+  // 'dev' rides the same wiring, and needs it for a reason the other two do
+  // not have: its ONLY control lives on the Settings page, so without the
+  // storage listener below an index already open kept showing the developer
+  // entries until it was reloaded. The keys line up by construction —
+  // site-show-dev / data-show-dev / .dev-entry — which is why this is one
+  // more call rather than a second mechanism.
+  wire('dev');
 })();
 </script>
 <script src="../../../界面 UI/page-widgets/version-check.js" defer></script>

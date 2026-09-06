@@ -558,6 +558,39 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
 .tier-nav option:checked { color: var(--text); }
 /* .filter rule is in base.css; only the row layout below stays index-specific. */
 
+/* SEARCH + INDEX SWITCHER, one line, half each (user decision 2026-09-06).
+   The switcher was the side column's first row, which spent a full row and
+   the blank separator beneath it on a control that belongs beside the page's
+   other control rather than atop a list of links.
+
+   Emitted only where there IS a switcher — the website's three tier indexes.
+   The five consoles on this engine pass no `index_entries`, so their search
+   input stays exactly as it was, full width and unwrapped. */
+.filter-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: stretch;
+  margin-bottom: 1rem;
+}
+/* Halves. `min-width: 0` because a flex item's default `min-width: auto`
+   refuses to shrink below its content — a long option label would otherwise
+   push the select past its half and squeeze the search box. */
+.filter-row > .filter, .filter-row > .tier-nav {
+  flex: 1 1 50%;
+  min-width: 0;
+  margin-bottom: 0;
+}
+/* In this row the select is a sibling of the search box, so it takes the
+   search box's typography rather than the side column's row metrics (1.1rem,
+   padding tuned to the 2.4375rem side-row pitch — see .tier-nav above, whose
+   height math only makes sense inside that column). */
+.filter-row > .tier-nav {
+  width: auto;
+  font-size: 1rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 6px;
+}
+
 /* Category chips — derived filter row between the search input and .row,
    led by a muted "Filter:" label. One chip per category present among the
    index's entries; multi-select with OR semantics (an entry shows while it
@@ -748,6 +781,100 @@ html[data-show-planned][data-show-parked] .planned-row.parked-row { display: blo
    own padding to avoid doubling; colour stays muted — clickable, still a
    teaser, not a live page. */
 .planned-row--linked, .parked-row--linked { padding: 0; }
+
+/* The divider between the live section and the planned one. It carries the
+   teaser kinds' own `-row` classes, so the reveal rules above hide and show
+   it exactly like the teasers it introduces — a plain spacer would sit under
+   the live rows as a stray gap whenever the switch is off.
+
+   Height is ONE ROW (2.25rem = the 36px a .planned-row occupies: 1.1rem text
+   at line-height 1.4, plus 0.35rem padding top and bottom). An empty line
+   should be exactly that — a line — and anything else breaks the pitch the
+   list and the side column share. */
+.teaser-gap { padding: 0; height: 2.25rem; }
+
+/* TEASER CARDS — a planned APP keeps its card shape (user decision
+   2026-09-06). What a thing IS does not change because it has not shipped:
+   dropping an app to a row among the pages says "page" about an app, and the
+   shelf is where a reader looks for apps whether or not they can open one
+   yet.
+
+   Same reveal contract as the teaser ROWS above, and the same AND rule for a
+   card wearing both kinds — a card is hidden until its switch, so the pair
+   below must not show a both-kinds card when only one switch is on. The
+   display value differs (rows are `block`, a card is the flex box .app-card
+   already declares) which is why these cannot simply join the rules above. */
+/* VISIBILITY IS THE <li>'s JOB, not the card's. A teaser card sits in the
+   list among the other teasers (user decision 2026-09-06), and its wrapping
+   row already carries the `<kind>-row` classes — so the reveal rules above
+   hide and show it with everything else, and the AND rule for a both-kinds
+   teaser is inherited rather than restated. The card below is APPEARANCE
+   only.
+
+   This replaced a set of display rules on the card itself, which had to be
+   double-classed to outrank `.app-card`'s own `display: flex` and were a
+   second visibility mechanism for one case. */
+.planned-row--card, .parked-row--card {
+  /* The row's padding would inset the card inside its own list item; the
+     card brings its own box. Same reason `--linked` zeroes it. */
+  padding: 0;
+}
+
+/* INERT ONLY WHERE IT REALLY IS. A teaser card is an <a> when it has
+   somewhere to go — on the private tier it links its placeholder page, the
+   same as a `--linked` teaser row — and a <div> when it does not, which is
+   what the shipped tiers get since placeholders never leave private.
+
+   Keying on the ELEMENT rather than the modifier is what keeps those two
+   apart. A blanket `cursor: default` here made the private card read as dead
+   when it was in fact a working link, hover feedback and all; the engine
+   already decides the tag from the href, so the CSS can just follow it.
+
+   The COLOUR stays muted either way, matching `.planned-row--linked > a`
+   above: grey says nothing is built yet, and the link only opens the plan. */
+div.app-card--planned, div.app-card--parked { cursor: default; }
+.app-card--planned .app-card__name, .app-card--parked .app-card__name {
+  color: var(--muted);
+}
+/* The icon of an app that does not run yet: present, so the card is
+   recognisably that app, but held back from competing with the live shelf. */
+.app-card--planned .app-card__icon, .app-card--parked .app-card__icon {
+  opacity: 0.55;
+}
+/* The pill rides INSIDE the name row (user decision 2026-09-06), to the right
+   of the name.
+
+   SCOPED TO THE TEASER CARDS, not to .app-card__name at large. The canonical
+   rule below gives every card name `white-space: nowrap; overflow: hidden;
+   text-overflow: ellipsis`, and turning that box into a flex container
+   changes how a long name truncates on every LIVE card — and would clip the
+   pill instead of the text, since the pill is the last thing in the box. One
+   new case is not a reason to alter the shelf's existing typography.
+
+   So: flex only where a pill exists — and the NAME TEXT gets its own box so
+   it can ellipsis while the pill stays pinned. An earlier version traded the
+   ellipsis for wrapping instead, which let "Chromatic Camelot" + its pill
+   take two lines and pushed the card to 99px against the 74.8px every other
+   card holds — visible as a lump in the grid. A bare text node cannot be the
+   flex item that truncates, which is why the engine wraps the name in a span
+   whenever there is a pill. */
+.app-card--planned .app-card__name, .app-card--parked .app-card__name {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+.app-card__name-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-card--planned .app-card__name > .planned-tag,
+.app-card--parked .app-card__name > .parked-tag,
+.app-card--planned .app-card__name > .shelved-tag,
+.app-card--parked .app-card__name > .unscheduled-tag {
+  flex: none;
+}
 /* COLOUR SAYS WHETHER THERE IS ANYTHING ON DISK (user decision 2026-08-25).
    Grey for a row with no folder behind it — an idea, and the link only opens
    its plan. Link-blue for a row that HAS a folder: parked is still real code
@@ -830,7 +957,22 @@ li.has-folder:hover .row-folder { opacity: 0.75; }
    2 and drifted the page list ~0.4rem lower per card. */
 .apps { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.2rem 0 0; }
 
-a.app-card {
+/* `a.app-card, div.app-card` (2026-09-06). A planned app has nowhere to go so
+   it renders as a <div>, and under the original `a.app-card` alone it
+   inherited none of the box below — bare text beside an icon.
+   
+   The obvious fix, dropping to a bare `.app-card`, is WRONG and was tried:
+   `.row a` (0,1,1) sits earlier in this sheet and sets `display: block`, so a
+   single-class `.app-card` (0,1,0) loses to it and every LIVE card fell out
+   of its flex box — 131px tall instead of the 4.675rem the grid below is
+   built on. The element qualifier was load-bearing, not incidental. Naming
+   both elements keeps the (0,1,1) that outranks `.row a` and covers the new
+   case. Caught by measuring the rendered cards in a browser; the source read
+   fine both times.
+   
+   :hover stays on the anchor alone — feedback belongs where there is
+   something to click. */
+a.app-card, div.app-card {
   display: flex;
   align-items: center;
   gap: 0.9rem;

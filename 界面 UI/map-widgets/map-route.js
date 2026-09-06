@@ -11,8 +11,8 @@
        so the gate and the drawn circle always agree), via createWorldMap's
        `crop` option on the engine's own Mercator projection. Fine (50m)
        coastline — a close-up needs the detail.
-     · WHOLE-WORLD — everything else: the small Northern-Hǎo world map,
-       coarse basemap, as before.
+     · WHOLE-WORLD — everything else: the small Northern Equal Earth world
+       map, coarse basemap, as before.
 
    The projection choice is internal policy — hence the projection-neutral
    renderer name 'flight-route'. Registered into map-popover.js's renderer
@@ -145,10 +145,10 @@
     // hover A(close-up) → B(long-haul) → A never rebuilds a widget or leaks —
     // both are built at most once and re-rendered by mutating their opts
     // (routes / crop) + render(), exactly like the old single-instance path.
-    var haoMount = document.createElement('div');
+    var worldMount = document.createElement('div');
     var merMount = document.createElement('div');
-    root.appendChild(haoMount); root.appendChild(merMount);
-    var hao = null, haoOpts = null;   // whole-world Northern-Hǎo (default path)
+    root.appendChild(worldMount); root.appendChild(merMount);
+    var world = null, worldOpts = null;   // whole-world Northern Equal Earth (default path)
     var mer = null, merOpts = null;   // close-up Web-Mercator region crop
 
     return {
@@ -187,19 +187,19 @@
               // means ONE extent everywhere it appears.
               merOpts.crop = { lat: rg.lat, lon: rg.lon, radiusKm: rg.defaultRadiusKm, fill: 1 };
               merOpts.routes = [[props.origin, props.dest]];
-            } else if (!hao) {
-              haoOpts = {
-                mount: haoMount, controls: false, coordinate: 'north',
-                projection: 'hao', detail: 'coarse', disablePan: true,
+            } else if (!world) {
+              worldOpts = {
+                mount: worldMount, controls: false, coordinate: 'north',
+                projection: 'equalearth', detail: 'coarse', disablePan: true,
                 size: size, routes: [],
                 routeArrows: true,   // direction arrow always on (origin → destination)
               };
-              hao = window.createWorldMap(haoOpts);
+              world = window.createWorldMap(worldOpts);
             }
-            if (!rg) haoOpts.routes = [[props.origin, props.dest]];
-            haoMount.style.display = rg ? 'none' : '';   // display-toggle BEFORE render so the live mount measures real
+            if (!rg) worldOpts.routes = [[props.origin, props.dest]];
+            worldMount.style.display = rg ? 'none' : '';   // display-toggle BEFORE render so the live mount measures real
             merMount.style.display = rg ? '' : 'none';
-            (rg ? mer : hao).render();
+            (rg ? mer : world).render();
           });
         }).catch(function (err) {
           // Either stage failed to load (the stage promise is already cleared
