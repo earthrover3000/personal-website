@@ -123,6 +123,76 @@
     el.className = baseClass + (stage ? ' planstage ' + stage : ' unset');
   }
 
+  // ---- The agent axis (引擎 Engines/plan-fields/fields.json, `agent`) ----
+  // A SECOND axis on a leaf, and deliberately not a fourth rung of the stage
+  // ladder: `stage` answers WHEN an entry is due, this answers WHO can take
+  // it. The two are independent — a task can be up next and unsuitable for an
+  // agent, or not scheduled at all and perfect for one. Its consumer is the
+  // Planning Hub's Overnight view, which gathers every `overnight` leaf across
+  // every plan so the queue is read in one place instead of eight documents.
+  //
+  // THREE STATES, TWO WRITTEN. `overnight` and `no` are authored; the third is
+  // the ABSENCE of the key, exactly as a stage-less entry omits `stage:` (see
+  // extractItemsFromUl, which writes that absence back as an absence).
+  // `unjudged` is this module's name for the hole, never a value you author —
+  // the same relationship PlanOrder.UNSET has to a missing `stage:`.
+  //
+  // WHY `no` IS WORTH A CHIP. Without it, "judged and not suitable" and "never
+  // looked at" are one state, so every triage sweep re-reads the whole plan.
+  // It is what makes the sweep converge, which is why it is written to the
+  // file rather than inferred.
+  //
+  // NO BRIEF IS STORED (user decision 2026-09-07). The tag marks CANDIDACY and
+  // nothing else — what the agent is actually to do gets settled in
+  // conversation before the handover, so there is no content field here and
+  // none is coming.
+  //
+  // THE VOCABULARY IS THE REGISTRY'S, mirrored here rather than fetched:
+  // plan-fields/fields.json declares `agent`'s `values` and its `unset`, and
+  // 📝 Agenda's picker reads them from there. This side cannot — a leaf renders
+  // synchronously and a fetch would make every chip wait on the network — so
+  // it mirrors, exactly as plan-order.js mirrors stages.json's `unset` key for
+  // the same reason. Change the tokens in the registry and change them here.
+  const AGENT_UNSET = 'unjudged';
+  const AGENT_RING = [AGENT_UNSET, 'overnight', 'no'];
+  // Chip face + tooltip. The chip is the TOKEN, as on the stage axis — but
+  // that axis has a legend to decode it and this one does not (the legend is
+  // built from plan-versions.json, which is the stage vocabulary), so the
+  // decoding rides a `title` instead of a second legend block.
+  const AGENT_LABELS = {
+    unjudged: '—', overnight: 'overnight', no: 'no',
+  };
+  const AGENT_TITLES = {
+    unjudged: 'agent: not judged yet — click to cycle',
+    overnight: 'agent: overnight — a candidate for a long unattended run',
+    no: 'agent: no — judged, not a candidate',
+  };
+
+  // An authored value this build has never heard of is KEPT, not normalised
+  // away: it styles as the bare chip, shows itself in the tooltip, and
+  // round-trips through Save untouched. A typo in a YAML should look wrong on
+  // the page, not disappear from the file.
+  function styleAgentEl(el, token) {
+    const t = token || AGENT_UNSET;
+    el.className = 'tag agent agent-' + t;
+    el.textContent = AGENT_LABELS[t] || t;
+    el.title = AGENT_TITLES[t] || ('agent: ' + t);
+  }
+
+  // Cycle — → overnight → no → —, shift-click to walk it backwards, exactly
+  // like the stage chip beside it. Edit mode only, for the same reason.
+  function toggleAgent(tag, e) {
+    if (!isEditing()) return;
+    const li = tag.closest('li');
+    if (!li) return;
+    let i = AGENT_RING.indexOf(li.dataset.agent || AGENT_UNSET);
+    if (i < 0) i = 0;
+    const step = (e && e.shiftKey) ? -1 : 1;
+    const next = AGENT_RING[(i + step + AGENT_RING.length) % AGENT_RING.length];
+    li.dataset.agent = next;
+    styleAgentEl(tag, next);
+  }
+
   function buildTocOl(pages, prefix, parentPageId) {
     // Append both real sub-pages (manifest sub-pages) and entries.yaml-defined
     // sub-groups (titled entry clusters under a page). Pages get linked anchors;
@@ -777,6 +847,14 @@
       if (li.dataset.status && !PlanOrder.isUnset(li.dataset.status)) {
         item.stage = li.dataset.status;
       }
+      // The agent axis, under the same absence rule and for the same reason:
+      // `unjudged` is this module's name for a missing key, so an unjudged
+      // entry saves with no `agent:` — a Save must not stamp one across every
+      // leaf you have not triaged. Written second so the file's key order
+      // matches the registry's field order (stage, agent, summary, …).
+      if (li.dataset.agent && li.dataset.agent !== AGENT_UNSET) {
+        item.agent = li.dataset.agent;
+      }
       const textEl = li.querySelector(':scope > .li-text');
       if (textEl) {
         // DIRECT children only: an optional .li-title carries its own .zh, and
@@ -870,6 +948,7 @@
     styleVersionEl, buildTocOl, slugify, appendAddRow, escHtml,
     appendLinkedText, renumberLis, setLiNum, isEditing, sortList,
     toggleStatus, legendRows, buildLegend, buildFilterBar,
+    AGENT_UNSET, styleAgentEl, toggleAgent,
     filterItems, liAtPoint, firstLiAbovePoint, emptyUlAtPoint, onDragMove,
     onDragEnd, addHandle, dropZone, showIndicator, doMove, clearIndicators,
     addControls, moveLi, addBelow, deleteLi, addItemToSection,

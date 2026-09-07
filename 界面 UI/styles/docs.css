@@ -17,6 +17,12 @@
   --tag-yellow-text: light-dark(#7a5200, #f5d07e);
   --tag-teal:        light-dark(#d0f0ee, #1a3e3e);
   --tag-teal-text:   light-dark(#1a5a54, #7ecfc4);
+  /* Indigo is the agent axis's, and its own colour for a reason: it sits
+     directly beside a stage chip, so borrowing blue (near-identical to teal in
+     this palette, and `next` is teal) would have read as a fourth rung of the
+     ladder rather than a second axis. */
+  --tag-indigo:      light-dark(#e0dcf7, #2c2547);
+  --tag-indigo-text: light-dark(#4b3a99, #b3a7f0);
 }
 
 /* ---- Page-level extras ---- */
@@ -178,6 +184,27 @@ section li.dragging:hover { background: none; box-shadow: none; }
 .tag.stage-now,    .filter-btn.stage-now    { background: var(--tag-green);  color: var(--tag-green-text); }
 .tag.stage-next,   .filter-btn.stage-next   { background: var(--tag-teal);   color: var(--tag-teal-text); }
 .tag.stage-later,  .filter-btn.stage-later  { background: var(--tag-yellow); color: var(--tag-yellow-text); }
+/* The agent axis (page-widgets/plan-chrome.js, the AGENT block) — whether
+   an entry is a candidate for a long unattended agent run. A SECOND chip on
+   the same row as the stage one, never a rung of it: they answer different
+   questions and an entry carries both.
+
+   No fixed width, unlike the stage chips above. Those are a column of
+   interchangeable tokens and align as one; this one hangs off the right of
+   whichever stage chip precedes it, so a width would only pad `no` out to the
+   size of `overnight`.
+
+   UNJUDGED IS INVISIBLE WHILE READING. The third state is the absence of a
+   judgement, and an absence should not put a chip on all several hundred
+   untriaged leaves. Edit mode brings it back as an outline you can click,
+   because a state with no chip is a state the cycle can never reach. */
+.tag.agent-overnight { background: var(--tag-indigo); color: var(--tag-indigo-text); }
+.tag.agent-no { background: var(--border); color: var(--muted); }
+.tag.agent-unjudged { display: none; }
+.editing .tag.agent-unjudged {
+  display: inline-block; background: none; color: var(--muted);
+  border: 1px dashed var(--border); padding: calc(0.15rem - 1px) calc(0.5rem - 1px);
+}
 .tag.growth { background: var(--tag-green); color: var(--tag-green-text); }
 .tag.stabilising { background: var(--tag-blue); color: var(--tag-blue-text); }
 .tag.festival { background: var(--tag-yellow); color: var(--tag-yellow-text); }

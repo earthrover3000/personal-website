@@ -32,6 +32,13 @@
     "flags a live field with no entry in this file — the drift check now has",
     "something cross-language to check against.",
     "",
+    "values: an enum field's VOCABULARY, in display order, as",
+    "plan-order/stages.json declares the stage ladder's. Present only on a",
+    "field whose values are a fixed, authored set. `unset` beside it names the",
+    "ABSENCE of a value, which is authored by omitting the key entirely — the",
+    "same relationship stages.json's `unset` has to a missing `stage:`, and it",
+    "sits in its own key for the same reason: it is not a rung.",
+    "",
     "both_languages: 'required' — an audit failure to write only one side;",
     "'optional' — mono is a normal state (you may translate it, you are not owed",
     "a second side). Absent on a field that is not bilingual at all.",
@@ -59,6 +66,16 @@
       "base": "stage",
       "kind": "enum",
       "note": "when the entry is due: a roadmap version token (v1.0, p0.3 — the website's plans) or a rung of the named ladder (see plan-order/stages.json). Absent means no stage chosen."
+    },
+    {
+      "base": "agent",
+      "kind": "enum",
+      "note": "whether the entry is a candidate for a long UNATTENDED agent run — the overnight queue 规划中心 Planning Hub's Overnight view gathers. `overnight` = yes; `no` = judged and not one. Absent means not judged yet, which is why `no` is worth writing: it is what stops a triage sweep re-reading the same entry every time. An axis of its OWN, orthogonal to `stage` — that one answers WHEN, this one answers WHO, and a task can be up next and unsuitable, or not scheduled and perfect. Carries no brief: what the agent is to do is settled in conversation before the handover, not stored here (user decision 2026-09-07).",
+      "values": [
+        { "token": "overnight", "title": "A candidate for a long unattended run" },
+        { "token": "no",        "title": "Judged — not a candidate" }
+      ],
+      "unset": { "token": "unjudged", "title": "Not judged yet" }
     },
     {
       "base": "summary",
