@@ -191,17 +191,19 @@ section li.dragging:hover { background: none; box-shadow: none; }
 
    No fixed width, unlike the stage chips above. Those are a column of
    interchangeable tokens and align as one; this one hangs off the right of
-   whichever stage chip precedes it, so a width would only pad `no` out to the
-   size of `overnight`.
+   whichever stage chip precedes it, so a width would only pad the hole out to
+   the size of `overnight`.
 
-   UNJUDGED IS INVISIBLE WHILE READING. The third state is the absence of a
-   judgement, and an absence should not put a chip on all several hundred
-   untriaged leaves. Edit mode brings it back as an outline you can click,
-   because a state with no chip is a state the cycle can never reach. */
+   THE UNSET STATE IS INVISIBLE WHILE READING, and since 2026-09-07 it is also
+   the only other state: `overnight` or nothing, where nothing means NOT a
+   candidate. An absence should not put a chip on all several hundred leaves
+   that are simply not overnight work. Edit mode brings it back as an outline
+   you can click, because a state with no chip is a state the toggle can never
+   reach. (A grey `agent-no` chip lived here for one day, for a token that no
+   longer exists.) */
 .tag.agent-overnight { background: var(--tag-indigo); color: var(--tag-indigo-text); }
-.tag.agent-no { background: var(--border); color: var(--muted); }
-.tag.agent-unjudged { display: none; }
-.editing .tag.agent-unjudged {
+.tag.agent-unset { display: none; }
+.editing .tag.agent-unset {
   display: inline-block; background: none; color: var(--muted);
   border: 1px dashed var(--border); padding: calc(0.15rem - 1px) calc(0.5rem - 1px);
 }

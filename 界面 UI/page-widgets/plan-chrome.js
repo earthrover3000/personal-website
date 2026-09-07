@@ -131,16 +131,20 @@
   // Planning Hub's Overnight view, which gathers every `overnight` leaf across
   // every plan so the queue is read in one place instead of eight documents.
   //
-  // THREE STATES, TWO WRITTEN. `overnight` and `no` are authored; the third is
-  // the ABSENCE of the key, exactly as a stage-less entry omits `stage:` (see
+  // TWO STATES, ONE WRITTEN. `overnight` is authored; the other is the
+  // ABSENCE of the key, exactly as a stage-less entry omits `stage:` (see
   // extractItemsFromUl, which writes that absence back as an absence).
-  // `unjudged` is this module's name for the hole, never a value you author —
+  // `unset` is this module's name for the hole, never a value you author —
   // the same relationship PlanOrder.UNSET has to a missing `stage:`.
   //
-  // WHY `no` IS WORTH A CHIP. Without it, "judged and not suitable" and "never
-  // looked at" are one state, so every triage sweep re-reads the whole plan.
-  // It is what makes the sweep converge, which is why it is written to the
-  // file rather than inferred.
+  // ABSENCE MEANS NOT A CANDIDATE, not "never looked at" (user decision
+  // 2026-09-07). A `no` token stood here for one day, on the argument that
+  // separating "judged and unsuitable" from "unexamined" is what makes a
+  // triage sweep converge. It went because almost every entry in a plan is
+  // not an overnight candidate, so `no` was a chip you would write hundreds
+  // of times to record the answer nobody looks up — and the ring made you
+  // pass through it to get back to nothing. The common case is the silent
+  // one, and the cycle is now a toggle.
   //
   // NO BRIEF IS STORED (user decision 2026-09-07). The tag marks CANDIDACY and
   // nothing else — what the agent is actually to do gets settled in
@@ -153,19 +157,18 @@
   // synchronously and a fetch would make every chip wait on the network — so
   // it mirrors, exactly as plan-order.js mirrors stages.json's `unset` key for
   // the same reason. Change the tokens in the registry and change them here.
-  const AGENT_UNSET = 'unjudged';
-  const AGENT_RING = [AGENT_UNSET, 'overnight', 'no'];
+  const AGENT_UNSET = 'unset';
+  const AGENT_RING = [AGENT_UNSET, 'overnight'];
   // Chip face + tooltip. The chip is the TOKEN, as on the stage axis — but
   // that axis has a legend to decode it and this one does not (the legend is
   // built from plan-versions.json, which is the stage vocabulary), so the
   // decoding rides a `title` instead of a second legend block.
   const AGENT_LABELS = {
-    unjudged: '—', overnight: 'overnight', no: 'no',
+    unset: '—', overnight: 'overnight',
   };
   const AGENT_TITLES = {
-    unjudged: 'agent: not judged yet — click to cycle',
+    unset: 'agent: not a candidate — click to mark it overnight',
     overnight: 'agent: overnight — a candidate for a long unattended run',
-    no: 'agent: no — judged, not a candidate',
   };
 
   // An authored value this build has never heard of is KEPT, not normalised
@@ -848,10 +851,11 @@
         item.stage = li.dataset.status;
       }
       // The agent axis, under the same absence rule and for the same reason:
-      // `unjudged` is this module's name for a missing key, so an unjudged
-      // entry saves with no `agent:` — a Save must not stamp one across every
-      // leaf you have not triaged. Written second so the file's key order
-      // matches the registry's field order (stage, agent, summary, …).
+      // `unset` is this module's name for a missing key, so an entry that is
+      // not an overnight candidate saves with no `agent:` at all — which is
+      // the whole vocabulary now, and a Save must never stamp a key across
+      // every leaf that simply is not one. Written second so the file's key
+      // order matches the registry's field order (stage, agent, summary, …).
       if (li.dataset.agent && li.dataset.agent !== AGENT_UNSET) {
         item.agent = li.dataset.agent;
       }

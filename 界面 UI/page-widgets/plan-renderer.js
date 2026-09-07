@@ -548,11 +548,14 @@
     // token the same way, so the two read as one row of state rather than a
     // chip and an ornament.
     //
-    // AN UNJUDGED ENTRY SHOWS NOTHING outside edit mode (docs.css hides it),
-    // so reading a plan looks exactly as it did before this axis existed and
-    // only the tagged rows carry a mark. In edit mode every leaf shows its
-    // chip, including the unjudged ones — triage is what edit mode is for,
-    // and a state you cannot click is a state you cannot leave.
+    // AN ENTRY THAT IS NOT A CANDIDATE SHOWS NOTHING outside edit mode
+    // (docs.css hides it), so reading a plan looks exactly as it did before
+    // this axis existed and only the tagged rows carry a mark. Which is most
+    // of them: since 2026-09-07 the axis is `overnight` or an absent key, so
+    // the silent state is the normal one rather than a backlog. In edit mode
+    // every leaf shows its chip, unmarked ones included — marking is what
+    // edit mode is for, and a state you cannot click is one you cannot
+    // leave.
     const agent = item.agent || PC.AGENT_UNSET;
     li.dataset.agent = agent;
     const agentTag = document.createElement('span');

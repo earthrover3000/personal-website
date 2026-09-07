@@ -70,12 +70,11 @@
     {
       "base": "agent",
       "kind": "enum",
-      "note": "whether the entry is a candidate for a long UNATTENDED agent run — the overnight queue 规划中心 Planning Hub's Overnight view gathers. `overnight` = yes; `no` = judged and not one. Absent means not judged yet, which is why `no` is worth writing: it is what stops a triage sweep re-reading the same entry every time. An axis of its OWN, orthogonal to `stage` — that one answers WHEN, this one answers WHO, and a task can be up next and unsuitable, or not scheduled and perfect. Carries no brief: what the agent is to do is settled in conversation before the handover, not stored here (user decision 2026-09-07).",
+      "note": "whether the entry is a candidate for a long UNATTENDED agent run — the overnight queue 规划中心 Planning Hub's Overnight view gathers. ONE WRITTEN VALUE, `overnight`, and ABSENCE MEANS NOT A CANDIDATE (user decision 2026-09-07). A `no` token existed for one day, on the argument that separating 'judged and unsuitable' from 'never looked at' is what makes a triage sweep converge; it went because almost every entry in a plan is not an overnight candidate, and writing that on each of them is a tax paid to record the answer nobody needs to look up. The common case is the silent one. An axis of its OWN, orthogonal to `stage` — that one answers WHEN, this one answers WHO, and a task can be up next and unsuitable, or not scheduled and perfect. Carries no brief: what the agent is to do is settled in conversation before the handover, not stored here (user decision 2026-09-07).",
       "values": [
-        { "token": "overnight", "title": "A candidate for a long unattended run" },
-        { "token": "no",        "title": "Judged — not a candidate" }
+        { "token": "overnight", "title": "A candidate for a long unattended run" }
       ],
-      "unset": { "token": "unjudged", "title": "Not judged yet" }
+      "unset": { "token": "unset", "title": "Not a candidate" }
     },
     {
       "base": "summary",
