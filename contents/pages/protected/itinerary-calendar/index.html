@@ -7,14 +7,14 @@
   <title>Itinerary Calendar</title>
   <!-- Site-wide theme (manual dark/light/auto): stamps <html data-theme>
        before paint so navigation never flashes the wrong theme. -->
-  <script src="../../../../../界面 UI/page-widgets/theme-init.js"></script>
-  <link rel="stylesheet" href="../../../../../界面 UI/styles/base.css">
-  <link rel="stylesheet" href="../../../../../界面 UI/styles/docs.css">
+  <script src="../../../../界面 UI/page-widgets/theme-init.js"></script>
+  <link rel="stylesheet" href="../../../../界面 UI/styles/base.css">
+  <link rel="stylesheet" href="../../../../界面 UI/styles/docs.css">
   <!-- Shared floating map popover (shell + flight-route renderer): shows a
        flight's great-circle arc bottom-right — hover to preview, click to
        pin. Leaflet is NOT loaded on this page — the popover's leaflet-point
        renderer is never used. -->
-  <link rel="stylesheet" href="../../../../../界面 UI/map-widgets/map-popover.css">
+  <link rel="stylesheet" href="../../../../界面 UI/map-widgets/map-popover.css">
 
   <!-- FullCalendar -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.11/index.global.min.css" rel="stylesheet">
@@ -433,9 +433,9 @@
   <!-- Shared floating map popover: shell first, then the flight-route renderer
        (which registers itself into the shell). The map-projection engine
        stays LAZY — map-route.js only fetches it on the first flight hover. -->
-  <script src="../../../../../界面 UI/map-widgets/map-basemap.js"></script>
-  <script src="../../../../../界面 UI/map-widgets/map-popover.js"></script>
-  <script src="../../../../../界面 UI/map-widgets/map-route.js"></script>
+  <script src="../../../../界面 UI/map-widgets/map-basemap.js"></script>
+  <script src="../../../../界面 UI/map-widgets/map-popover.js"></script>
+  <script src="../../../../界面 UI/map-widgets/map-route.js"></script>
 
   <script type="module">
     // Flight route mini-map glue. The heavy lifting now lives in the shared

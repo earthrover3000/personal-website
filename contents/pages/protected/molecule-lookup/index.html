@@ -7,8 +7,8 @@
   <title>Molecule Lookup</title>
   <!-- Site-wide theme (manual dark/light/auto): stamps <html data-theme>
        before paint so navigation never flashes the wrong theme. -->
-  <script src="../../../../../界面 UI/page-widgets/theme-init.js"></script>
-  <link rel="stylesheet" href="../../../../../界面 UI/styles/base.css">
+  <script src="../../../../界面 UI/page-widgets/theme-init.js"></script>
+  <link rel="stylesheet" href="../../../../界面 UI/styles/base.css">
   <!-- Ketcher (draw surface) is NOT loaded here — it lives in the vendored
        ketcher/ folder next to this page and is embedded below as a same-origin
        iframe; the wiring script talks to its window.ketcher API once the app
@@ -20,7 +20,7 @@
   <!-- page-nav.js auto-injects search + Contents nav whenever the page has
        2+ <h2> children. No-op here (single section) but kept for consistency
        with the other content pages. -->
-  <script src="../../../../../界面 UI/page-widgets/page-nav.js" defer></script>
+  <script src="../../../../界面 UI/page-widgets/page-nav.js" defer></script>
   <style>
     /* Page-specific rules — scoped to .container > * per the css-leak-defense
        rule so they don't leak into shared components. */

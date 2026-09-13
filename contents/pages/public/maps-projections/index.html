@@ -7,16 +7,16 @@
   <title>Maps &amp; Projections · Great Circle Mapper</title>
   <!-- Site-wide theme (manual dark/light/auto): stamps <html data-theme>
        before paint so navigation never flashes the wrong theme. -->
-  <script src="../../../../../界面 UI/page-widgets/theme-init.js"></script>
-  <link rel="stylesheet" href="../../../../../界面 UI/styles/base.css">
+  <script src="../../../../界面 UI/page-widgets/theme-init.js"></script>
+  <link rel="stylesheet" href="../../../../界面 UI/styles/base.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <!-- Shared map widget (markup + Leaflet wiring) and the lossless-PNG
        exporter it depends on. Single source of truth in 界面 UI/map-widgets/;
        the cities-transport page uses the same two files. -->
-  <script src="../../../../../界面 UI/map-widgets/map-basemap.js"></script>
-  <script src="../../../../../界面 UI/map-widgets/map-export.js"></script>
-  <script src="../../../../../界面 UI/map-widgets/map-explorer.js"></script>
+  <script src="../../../../界面 UI/map-widgets/map-basemap.js"></script>
+  <script src="../../../../界面 UI/map-widgets/map-export.js"></script>
+  <script src="../../../../界面 UI/map-widgets/map-explorer.js"></script>
   <!-- Shared region data (window.WORLD_REGIONS = { regions }) — single source
        of truth in the engine module (was a page-local sibling here). Also read
        by the flight-route popover's close-up gate (界面 UI/map-widgets/
@@ -24,7 +24,7 @@
   <script src="../../../../../引擎 Engines/map-projection/regions.js"></script>
   <!-- page-nav.js auto-injects a search bar + Contents nav whenever the
        page has 2+ <h2> direct children — active here (three sections). -->
-  <script src="../../../../../界面 UI/page-widgets/page-nav.js" defer></script>
+  <script src="../../../../界面 UI/page-widgets/page-nav.js" defer></script>
   <style>
     /* Page-specific element rules — scoped to .container > * per the
        css-leak-defense rule so they don't leak into shared components.

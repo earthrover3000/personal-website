@@ -7,22 +7,22 @@
   <title>Cities & Transport</title>
   <!-- Site-wide theme (manual dark/light/auto): stamps <html data-theme>
        before paint so navigation never flashes the wrong theme. -->
-  <script src="../../../../../界面 UI/page-widgets/theme-init.js"></script>
-  <link rel="stylesheet" href="../../../../../界面 UI/styles/base.css">
+  <script src="../../../../界面 UI/page-widgets/theme-init.js"></script>
+  <link rel="stylesheet" href="../../../../界面 UI/styles/base.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <!-- Shared map widget (markup + Leaflet wiring) and the lossless-PNG
        exporter it depends on. Single source of truth in 界面 UI/map-widgets/;
        the maps-projections page uses the same two files. -->
-  <script src="../../../../../界面 UI/map-widgets/map-basemap.js"></script>
-  <script src="../../../../../界面 UI/map-widgets/map-export.js"></script>
-  <script src="../../../../../界面 UI/map-widgets/map-explorer.js"></script>
+  <script src="../../../../界面 UI/map-widgets/map-basemap.js"></script>
+  <script src="../../../../界面 UI/map-widgets/map-export.js"></script>
+  <script src="../../../../界面 UI/map-widgets/map-explorer.js"></script>
   <!-- Curated-GeoJSON viewer for the three map sections (legend, schematic/
        base toggle, hover labels, PNG export, lazy data loading) — SSOT in
        界面 UI/map-widgets/, distilled from the research previews in
        创作 Creation/cities-transport/. road-palette.js is the page-local synced
        copy of that project's style SSOT (colours/weights + roadStyle). -->
-  <script src="../../../../../界面 UI/map-widgets/roadmap-viewer.js"></script>
+  <script src="../../../../界面 UI/map-widgets/roadmap-viewer.js"></script>
   <script src="road-palette.js"></script>
   <!-- Shared city reference data — single source of truth in
        引擎 Engines/map-projection/cities.js (the maps-projections Great Circle
@@ -31,7 +31,7 @@
   <!-- page-nav.js auto-injects a search bar + Contents nav whenever the
        page has 2+ <h2> direct children — live here since the section
        stubs took the page to three. -->
-  <script src="../../../../../界面 UI/page-widgets/page-nav.js" defer></script>
+  <script src="../../../../界面 UI/page-widgets/page-nav.js" defer></script>
   <style>
     /* Page-specific element rules — scoped to .container > * per the
        css-leak-defense rule so they don't leak into shared components.
