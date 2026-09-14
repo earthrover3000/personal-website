@@ -24,6 +24,12 @@
   "asset": true
  },
  {
+  "glyph": "📏",
+  "cps": "1f4cf",
+  "count": 6,
+  "asset": true
+ },
+ {
   "glyph": "⏳",
   "cps": "23f3",
   "count": 6,
@@ -32,12 +38,6 @@
  {
   "glyph": "👤",
   "cps": "1f464",
-  "count": 5,
-  "asset": true
- },
- {
-  "glyph": "📏",
-  "cps": "1f4cf",
   "count": 5,
   "asset": true
  },
@@ -78,6 +78,18 @@
   "asset": true
  },
  {
+  "glyph": "🎯",
+  "cps": "1f3af",
+  "count": 4,
+  "asset": true
+ },
+ {
+  "glyph": "👁️",
+  "cps": "1f441-fe0f",
+  "count": 4,
+  "asset": true
+ },
+ {
   "glyph": "📐",
   "cps": "1f4d0",
   "count": 4,
@@ -92,6 +104,12 @@
  {
   "glyph": "📚",
   "cps": "1f4da",
+  "count": 4,
+  "asset": true
+ },
+ {
+  "glyph": "🕕",
+  "cps": "1f555",
   "count": 4,
   "asset": true
  },
@@ -116,12 +134,6 @@
  {
   "glyph": "🎞️",
   "cps": "1f39e-fe0f",
-  "count": 3,
-  "asset": true
- },
- {
-  "glyph": "🎯",
-  "cps": "1f3af",
   "count": 3,
   "asset": true
  },
@@ -162,14 +174,20 @@
   "asset": true
  },
  {
-  "glyph": "🕕",
-  "cps": "1f555",
+  "glyph": "🛞",
+  "cps": "1f6de",
   "count": 3,
   "asset": true
  },
  {
-  "glyph": "🛞",
-  "cps": "1f6de",
+  "glyph": "🥚",
+  "cps": "1f95a",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "🧪",
+  "cps": "1f9ea",
   "count": 3,
   "asset": true
  },
@@ -188,6 +206,12 @@
  {
   "glyph": "⏯️",
   "cps": "23ef-fe0f",
+  "count": 3,
+  "asset": true
+ },
+ {
+  "glyph": "☄️",
+  "cps": "2604-fe0f",
   "count": 3,
   "asset": true
  },
@@ -354,6 +378,12 @@
   "asset": true
  },
  {
+  "glyph": "🔵",
+  "cps": "1f535",
+  "count": 2,
+  "asset": true
+ },
+ {
   "glyph": "🕒",
   "cps": "1f552",
   "count": 2,
@@ -390,20 +420,8 @@
   "asset": true
  },
  {
-  "glyph": "🥚",
-  "cps": "1f95a",
-  "count": 2,
-  "asset": true
- },
- {
   "glyph": "🧠",
   "cps": "1f9e0",
-  "count": 2,
-  "asset": true
- },
- {
-  "glyph": "🧪",
-  "cps": "1f9ea",
   "count": 2,
   "asset": true
  },
@@ -756,12 +774,6 @@
   "asset": true
  },
  {
-  "glyph": "🔵",
-  "cps": "1f535",
-  "count": 1,
-  "asset": true
- },
- {
   "glyph": "🕐",
   "cps": "1f550",
   "count": 1,
@@ -980,12 +992,6 @@
  {
   "glyph": "⏪",
   "cps": "23ea",
-  "count": 1,
-  "asset": true
- },
- {
-  "glyph": "☄️",
-  "cps": "2604-fe0f",
   "count": 1,
   "asset": true
  },

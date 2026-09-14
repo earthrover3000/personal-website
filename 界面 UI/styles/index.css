@@ -458,6 +458,16 @@ li.has-folder:hover .row-folder { opacity: 0.75; }
 .row-folder:hover,
 .row-folder:focus-visible { opacity: 1; background: var(--surface); }
 
+/* Entry count on a console's plan rows (page-widgets/plan-counts.js): the
+   widget reads both authored halves off the plan store and stamps the total
+   as `data-count`; this draws it, in the same muted form the plan page's
+   own headings wear (docs.css). No attribute, no badge — a stub, a locked
+   vault and an offline machine all render the plain row. */
+.row a[data-count]::after {
+  content: " (" attr(data-count) ")";
+  color: var(--muted); font-size: 0.8rem;
+}
+
 .row { display: flex; gap: 2rem; align-items: flex-start; }
 /* Both columns flex:1 → they divide the row's available width evenly,
    minus the 2 rem gap. No hardcoded width on either side. */

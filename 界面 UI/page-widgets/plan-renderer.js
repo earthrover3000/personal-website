@@ -47,6 +47,9 @@
     // These pages set zh inline after the English and stack it only when it
     // will not fit, so the break has to be measured — see updateZhBreaks.
     zhBreaks: true,
+    // Every heading and TOC row carries a live entry count — see
+    // PlanChrome.updateCounts for what "live" means here.
+    entryCounts: true,
   });
 
   // Ordering + numbering come from the shared plan-order engine (loaded as a

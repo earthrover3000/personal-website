@@ -78,6 +78,10 @@
     // unconditionally, so measuring would fight the stylesheet and leave
     // inline styles behind. Off by default: a host opts in, never inherits.
     zhBreaks: false,
+    // Does this page want an entry COUNT on every heading and TOC row? The
+    // plan pages do (user decision 2026-09-15) — see updateCounts. Off by
+    // default for the same reason zhBreaks is: a host opts in.
+    entryCounts: false,
   };
   function configure(hooks) { _hooks = Object.assign({}, _hooks, hooks || {}); }
 
@@ -309,6 +313,104 @@
         step.numbers.forEach((num, j) => setLiNum(lis[j], num));
       });
     });
+    updateCounts();
+  }
+
+  // ---- Entry counts on headings and TOC rows ----
+  // How many entries sit beneath each heading, stamped as `data-count` and
+  // drawn by docs.css (`[data-count]::after`) — NEVER as text inside the
+  // heading. The save path reads a heading's textContent back as its title
+  // (extractDevData, walkSectionForEntries), so a "(12)" written into the
+  // heading would be written into the YAML at the next save.
+  //
+  // LIVE, not fixed (user decision 2026-09-15): the count is of the entries
+  // SHOWING under the heading right now, so it follows the stage filter —
+  // toggle a chip and every number on the page says what that chip left. A
+  // fixed total would match the terminal editor's `(n)` tally, but the
+  // terminal has no filter; here the two numbers would disagree the moment a
+  // chip was pressed, and the visible one is the question the reader asked.
+  // Recomputed wherever the lists change: renumberLis (every edit path ends
+  // there, and render() ends with it) and filterItems.
+  //
+  // A heading counts everything until the next heading at ITS level or
+  // above, so a page's number includes its sub-pages' entries and a
+  // section's h2 carries the whole section. Zero stamps nothing: an empty
+  // stub reads as an empty heading rather than "(0)" — the terminal's rule.
+  // The TOC reads the same map by anchor, so the two never drift, and its
+  // "Contents" header carries the whole page's total (user decision
+  // 2026-09-15) — the one number for the plan, sitting directly above the
+  // per-section numbers it sums.
+  //
+  // THE FILTER CHIPS COUNT DIFFERENTLY (user decision 2026-09-15): each
+  // stage chip says how many entries on the page are IN that stage, hidden
+  // or not — a number on the control tells you what pressing it will show.
+  // The heading counts follow the filter because the filter is a question
+  // about headings ("what is left under here?"); a filter is a question
+  // about stages, so the chips are where the answer has to stay whole —
+  // filtered to 'later', chips that followed along would read later=3 and
+  // every other stage 0, which says nothing the press did not. The `All`
+  // chip stays bare: the Contents header already carries the total. Edits
+  // still move it: a status toggle or a deleted row ends in renumberLis like
+  // everything else. The chips rather than the legend because every plan
+  // page has chips and only a page whose build supplied a ladder has a
+  // legend; and the legend floats off the reading column on a wide screen.
+  // A chip DOES say "(0)" (user decision 2026-09-15), unlike a heading: an
+  // empty stage in a row of counted ones would otherwise read as uncounted.
+  function updateCounts() {
+    if (!_hooks.entryCounts) return;
+    const counts = {};                       // section / heading id → n
+    let grand = 0;
+    const stamp = (el, n) => {
+      if (!el) return;
+      if (n) el.dataset.count = n; else delete el.dataset.count;
+    };
+    const sectionEls = [
+      ...document.querySelectorAll('#dev-container > section'),
+      ...document.querySelectorAll('#sections-container > section'),
+    ];
+    sectionEls.forEach(sec => {
+      const open = [];                       // headings still accumulating
+      let total = 0;
+      const closeTo = lvl => {
+        while (open.length && open[open.length - 1].level >= lvl) {
+          const h = open.pop();
+          counts[h.el.id] = h.n;
+          stamp(h.el, h.n);
+        }
+      };
+      (function walk(el) {
+        for (const c of el.children) {
+          const m = /^H([3-6])$/.exec(c.tagName);
+          if (m) {
+            closeTo(+m[1]);
+            open.push({ el: c, level: +m[1], n: 0 });
+          } else if (c.tagName === 'UL') {
+            const n = [...c.children].filter(x =>
+              x.tagName === 'LI' && !x.classList.contains('hidden')).length;
+            total += n;
+            open.forEach(h => { h.n += n; });
+          } else if (c.children.length) {
+            walk(c);
+          }
+        }
+      })(sec);
+      closeTo(0);
+      counts[sec.id] = total;
+      grand += total;
+      stamp(sec.querySelector(':scope > h2'), total);
+    });
+    stamp(document.querySelector('.toc-header > h2'), grand);
+    const byStage = {};
+    document.querySelectorAll('section li[data-status]').forEach(li => {
+      byStage[li.dataset.status] = (byStage[li.dataset.status] || 0) + 1;
+    });
+    document.querySelectorAll('.filter-btn[data-filter]').forEach(b => {
+      if (b.dataset.filter !== 'all') b.dataset.count = byStage[b.dataset.filter] || 0;
+    });
+    document.querySelectorAll('.toc a[href^="#"]').forEach(a => {
+      const id = decodeURIComponent(a.getAttribute('href').slice(1));
+      stamp(a, counts[id] || 0);
+    });
   }
 
   function setLiNum(li, num) {
@@ -508,6 +610,7 @@
     document.querySelectorAll('li[data-status]').forEach(li => {
       li.classList.toggle('hidden', status !== 'all' && li.dataset.status !== status);
     });
+    updateCounts();
   }
 
   function liAtPoint(x, y) {
@@ -950,7 +1053,7 @@
     activeFilter, beginExtract, extractWarnings, carryForwardUnrendered,
     selectedRow, clearSelection,
     styleVersionEl, buildTocOl, slugify, appendAddRow, escHtml,
-    appendLinkedText, renumberLis, setLiNum, isEditing, sortList,
+    appendLinkedText, renumberLis, updateCounts, setLiNum, isEditing, sortList,
     toggleStatus, legendRows, buildLegend, buildFilterBar,
     AGENT_UNSET, styleAgentEl, toggleAgent,
     filterItems, liAtPoint, firstLiAbovePoint, emptyUlAtPoint, onDragMove,
