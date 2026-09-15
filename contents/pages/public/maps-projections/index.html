@@ -21,7 +21,7 @@
        of truth in the engine module (was a page-local sibling here). Also read
        by the flight-route popover's close-up gate (界面 UI/map-widgets/
        map-route.js), so adding a region there updates both. -->
-  <script src="../../../../../引擎 Engines/map-projection/regions.js"></script>
+  <script src="../../../../引擎 Engines/map-projection/regions.js"></script>
   <!-- page-nav.js auto-injects a search bar + Contents nav whenever the
        page has 2+ <h2> direct children — active here (three sections). -->
   <script src="../../../../界面 UI/page-widgets/page-nav.js" defer></script>
@@ -182,10 +182,10 @@
      The heavy geo-data globals (~3 MB) are `defer` so they parse AFTER first paint; each map's first
      projection+draw waits until then (createWorldMap renders on DOMContentLoaded). Order matters:
      config (window.PROJECTION_CONFIG) → kernels → geometry → widget. -->
-<script src="../../../../../引擎 Engines/map-projection/projection-config.js"></script>
-<script src="../../../../../引擎 Engines/map-projection/projection.js"></script>
-<script src="../../../../../引擎 Engines/map-projection/map-geometry.js"></script>
-<script src="../../../../../引擎 Engines/map-projection/world-map.js"></script>
+<script src="../../../../引擎 Engines/map-projection/projection-config.js"></script>
+<script src="../../../../引擎 Engines/map-projection/projection.js"></script>
+<script src="../../../../引擎 Engines/map-projection/map-geometry.js"></script>
+<script src="../../../../引擎 Engines/map-projection/world-map.js"></script>
 <!-- Page-local config (preset route groups + initial control state) — needed by the init below, so
      synchronous too. The engine above is projection-agnostic; great-circle.js is what this page feeds it. -->
 <script src="great-circle.js"></script>
@@ -197,13 +197,13 @@
 <!-- Shared city data (window.WORLD_CITIES = { world, lived }) — single source of truth in the engine
      module, also loaded by the cities-transport page. Synchronous (≈9 KB) so the city-layer toggles
      are present when the controls build in the init below. -->
-<script src="../../../../../引擎 Engines/map-projection/cities.js"></script>
+<script src="../../../../引擎 Engines/map-projection/cities.js"></script>
 <!-- Heavy basemap data — deferred so the big parse happens after the UI paints. Read only at render
      time (DOMContentLoaded), never when the boxes are built. -->
-<script defer src="../../../../../引擎 Engines/map-projection/coastline.js"></script>
-<script defer src="../../../../../引擎 Engines/map-projection/boundaries.js"></script>
-<script defer src="../../../../../引擎 Engines/map-projection/lakes.js"></script>
-<script defer src="../../../../../引擎 Engines/map-projection/airports.js"></script>
+<script defer src="../../../../引擎 Engines/map-projection/coastline.js"></script>
+<script defer src="../../../../引擎 Engines/map-projection/boundaries.js"></script>
+<script defer src="../../../../引擎 Engines/map-projection/lakes.js"></script>
+<script defer src="../../../../引擎 Engines/map-projection/airports.js"></script>
 <!-- The terrain grid (ocean depth + land elevation, one combined band-index file — see
      引擎 Engines/map-projection/scripts/make_terrain_grid.py) is OFF by default, so it is NOT loaded
      here — createWorldMap lazy-fetches it via opts.lazyLayers on the first Ocean-depth / Land-
@@ -215,9 +215,9 @@
   // CSS; the region overview's box is pre-sized in createWorldMap's embed branch.
   createWorldMap({ mount: '#great-circle-mapper', controls: true, presets: GREAT_CIRCLE.routes, uiDefaults: GREAT_CIRCLE.defaults,
                    cities: WORLD_CITIES,
-                   lazyLayers: { terrain: '../../../../../引擎 Engines/map-projection/terrain-grid.js',
-                                 regions: '../../../../../引擎 Engines/map-projection/un-regions.js',
-                                 admin1: '../../../../../引擎 Engines/map-projection/admin1.js' } });
+                   lazyLayers: { terrain: '../../../../引擎 Engines/map-projection/terrain-grid.js',
+                                 regions: '../../../../引擎 Engines/map-projection/un-regions.js',
+                                 admin1: '../../../../引擎 Engines/map-projection/admin1.js' } });
 
   // Region Map Explorer — its empty state mounts a static Northern Equal Earth map. The dropdown rests on a
   // re-selectable "Select location…" option; while it's chosen the display shows that overview, with
@@ -278,7 +278,7 @@
   createDivisionMap({
     mount: '#division-explorer',
     filenamePrefix: 'counties',
-    dataSrc: '../../../../../引擎 Engines/map-projection/admin-divisions.js'
+    dataSrc: '../../../../引擎 Engines/map-projection/admin-divisions.js'
   });
 </script>
 
