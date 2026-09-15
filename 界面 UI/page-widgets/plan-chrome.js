@@ -55,8 +55,9 @@
   // ---- Chrome state (see STATE above) ----
   let _versionOrder = [];
   let _versionColors = {};
-  let _legend = null;      // [{token, title}] from plan-versions.json, or null
+  let _legend = null;      // [{token, title, description?, past?}] from plan-versions.json, or null
   let _legendMeta = {};    // {label, href} — the legend's own heading
+  let _legendOpen = false; // details shown? (descriptions + the past rows unfolded)
   let _activeFilter = 'all';
   let dragSrc = null;
   let _dragging = false;
@@ -506,8 +507,16 @@
   // is the absence of a stage, which every plan can have — so it is appended
   // here rather than emitted into plan-versions.json by two separate builds.
   function legendRows() {
-    const rows = (_legend || []).filter(v => !PlanOrder.isUnset(v.token));
+    const rows = (_legend || []).filter(v => !PlanOrder.isUnset(v.token) && !v.past);
     return rows.concat([PlanOrder.UNSET]);
+  }
+  // The stages BEFORE the current one — `past: true` in the website's payload
+  // (since 2026-09-15); a console payload never flags any. They are here so a
+  // reader can see where the site has been, not to decode any tag: no live
+  // entry carries a shipped stage, so they take no colour, no filter button
+  // and no place in the edit-cycle (plan-renderer keeps them out of the order).
+  function legendPastRows() {
+    return (_legend || []).filter(v => v.past && !PlanOrder.isUnset(v.token));
   }
 
   // Legend (token → meaning) so a compact tag like "p0.3" — or a bare grey chip
@@ -555,19 +564,81 @@
       label.rel = 'noopener';
     }
     el.appendChild(label);
-    legendRows().forEach((v) => {
-      const item = document.createElement('span');
-      item.className = 'plan-legend-item';
+
+    // DETAILS ON DEMAND (user decision 2026-09-15). A stage may carry a
+    // `description` (a sentence or two) and the payload may carry past
+    // stages. Shown always, eight-odd rows of prose would push the fixed
+    // legend past the viewport, so both fold behind one toggle: folded, a
+    // row is chip + title and the past stages are a single line of muted
+    // chips; open, every row grows its description and the past stages
+    // become full rows. A description is ALSO the row's tooltip, so a mouse
+    // reads it without opening anything. The toggle only appears when there
+    // is something to unfold.
+    const past = legendPastRows();
+    const rows = legendRows();
+    const hasDetails = past.length > 0 || rows.some(v => v.description);
+    if (hasDetails) {
+      const tog = document.createElement('button');
+      tog.type = 'button';
+      tog.className = 'plan-legend-toggle';
+      tog.textContent = _legendOpen ? 'less' : 'more';
+      tog.title = _legendOpen ? 'Hide stage descriptions and earlier stages'
+                              : 'Show stage descriptions and earlier stages';
+      tog.setAttribute('aria-expanded', String(_legendOpen));
+      tog.addEventListener('click', () => { _legendOpen = !_legendOpen; buildLegend(); });
+      label.insertAdjacentElement('afterend', tog);
+      el.classList.toggle('plan-legend-open', _legendOpen);
+    }
+
+    const mkChip = (v, cls) => {
       const chip = document.createElement('span');
       styleVersionEl(chip, 'tag', v.token);
+      if (cls) chip.classList.add(cls);
       chip.textContent = PlanOrder.tokenLabel(v.token);
+      return chip;
+    };
+    const mkRow = (v, cls) => {
+      const item = document.createElement('span');
+      item.className = 'plan-legend-item' + (cls ? ' ' + cls : '');
+      if (v.description) item.title = v.description;
+      item.appendChild(mkChip(v, cls && 'plan-legend-past-chip'));
       const title = document.createElement('span');
       title.className = 'plan-legend-title';
       title.textContent = v.title || '';
-      item.appendChild(chip);
       item.appendChild(title);
-      el.appendChild(item);
-    });
+      if (_legendOpen && v.description) {
+        const desc = document.createElement('span');
+        desc.className = 'plan-legend-desc';
+        desc.textContent = v.description;
+        item.appendChild(desc);
+      }
+      return item;
+    };
+
+    if (past.length) {
+      if (_legendOpen) {
+        const head = document.createElement('span');
+        head.className = 'plan-legend-earlier-label';
+        head.textContent = 'Earlier:';
+        el.appendChild(head);
+        past.forEach(v => el.appendChild(mkRow(v, 'plan-legend-past')));
+        const now = document.createElement('span');
+        now.className = 'plan-legend-earlier-label';
+        now.textContent = 'Now and next:';
+        el.appendChild(now);
+      } else {
+        const line = document.createElement('span');
+        line.className = 'plan-legend-earlier';
+        line.title = past.map(v => PlanOrder.tokenLabel(v.token) + ' ' + (v.title || '')).join('\n');
+        const head = document.createElement('span');
+        head.className = 'plan-legend-earlier-label';
+        head.textContent = 'Earlier:';
+        line.appendChild(head);
+        past.forEach(v => line.appendChild(mkChip(v, 'plan-legend-past-chip')));
+        el.appendChild(line);
+      }
+    }
+    rows.forEach(v => el.appendChild(mkRow(v)));
   }
 
   // Filter bar built from the canonical version order: All, one button per

@@ -18,7 +18,9 @@
     "This file is the same idea for everything else, and the console builds",
     "serialise it to the same filename so the SAME renderer draws both legends.",
     "",
-    "THE SHAPE IS plan-versions.json's, deliberately: [{token, title}].",
+    "THE SHAPE IS plan-versions.json's, deliberately: [{token, title}], plus an",
+    "optional `description` per rung (2026-09-15) — the legend shows it on",
+    "demand behind its 'more' toggle, exactly as it shows the website's.",
     "page-widgets/plan-renderer.js already fetches that file and builds a legend",
     "from it — 'a page without it (e.g. a console plan) simply has no legend'.",
     "Matching the shape is what makes the legend appear with no renderer change.",
@@ -36,9 +38,9 @@
     "which is what makes this one file rather than two copies."
   ],
   "stages": [
-    { "token": "now",   "title": "In progress" },
-    { "token": "next",  "title": "Up next" },
-    { "token": "later", "title": "Not scheduled" }
+    { "token": "now",   "title": "In progress",   "description": "Being worked on right now." },
+    { "token": "next",  "title": "Up next",       "description": "Queued to start when the current work is done." },
+    { "token": "later", "title": "Not scheduled", "description": "Wanted, but with no slot decided yet." }
   ],
 
   "_unset_comment": [

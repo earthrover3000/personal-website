@@ -237,7 +237,12 @@
     document.getElementById('loading-msg').style.display = 'none';
     document.getElementById('toc-search').style.display = '';
     document.getElementById('toc-container').style.display = '';
-    PC.setVersionOrder(PC.legend() ? PC.legend().map(v => v.token)
+    // Past (shipped) stages ride the legend payload for orientation only —
+    // `past: true`, since 2026-09-15 — and stay OUT of the order: no live
+    // entry carries a shipped stage (entries are deleted as they complete),
+    // so they would only crowd the filter bar and the edit-cycle and shift
+    // every live hue. See plan-chrome buildLegend for how they show.
+    PC.setVersionOrder(PC.legend() ? PC.legend().filter(v => !v.past).map(v => v.token)
                                    : computeVersionOrder());
     buildLegend();
     document.getElementById('filter-bar').style.display = '';
