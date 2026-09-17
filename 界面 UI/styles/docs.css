@@ -295,10 +295,12 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
 .plan-legend-item .tag { cursor: default; flex-shrink: 0; }
 .plan-legend-title { color: var(--muted); }
 /* Details on demand (plan-chrome buildLegend, 2026-09-15): the 'more' toggle
-   sits on the heading line; open, each row wraps and grows a description
-   line, and the past stages unfold from one line of muted chips into rows.
-   Past chips are muted rather than coloured — they decode no tag. */
-.plan-legend-toggle { align-self: flex-start; margin: -0.15rem 0 0.15rem; padding: 0 0.4rem; font: inherit; font-size: 0.72rem; line-height: 1.5; color: var(--muted); background: none; border: 1px solid var(--border); border-radius: 999px; cursor: pointer; }
+   sits under the heading; open, each row wraps and grows a description
+   line. Beside it since 2026-09-16, an 'N earlier' toggle unfolds the past
+   stages as ordinary rows above the live ones — hidden by default. Past
+   chips are muted rather than coloured — they decode no tag. */
+.plan-legend-toggles { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: -0.15rem 0 0.15rem; }
+.plan-legend-toggle { padding: 0 0.4rem; font: inherit; font-size: 0.72rem; line-height: 1.5; color: var(--muted); background: none; border: 1px solid var(--border); border-radius: 999px; cursor: pointer; }
 .plan-legend-toggle:hover { color: var(--text); border-color: var(--text); }
 /* Open, a row is a two-column grid (chip | title) so a long title wraps
    BESIDE its chip rather than under it, and the description spans both.
@@ -307,8 +309,6 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
 .plan-legend-open .plan-legend-item { display: grid; grid-template-columns: auto 1fr; column-gap: 0.45rem; align-items: center; }
 .plan-legend-open { max-height: calc(100vh - 6rem); overflow-y: auto; }
 .plan-legend-desc { grid-column: 1 / -1; margin: 0.05rem 0 0.25rem; padding-left: 0.2rem; font-size: 0.74rem; line-height: 1.4; color: var(--muted); opacity: 0.85; }
-.plan-legend-earlier { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
-.plan-legend-earlier-label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.15rem; }
 .plan-legend-past-chip { opacity: 0.45; filter: saturate(0.4); }
 @media (max-width: 1200px) {
   .plan-legend { position: static; max-width: none; margin-bottom: 1.2rem; box-shadow: none; }
