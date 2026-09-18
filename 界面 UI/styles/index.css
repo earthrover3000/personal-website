@@ -420,7 +420,7 @@ div.app-card--planned, div.app-card--parked { cursor: default; }
    sharing a flex line; .has-folder supplies the containing block and the
    z-index lifts it above the block anchor it overlaps.
    MUTED, NOT HIDDEN-UNTIL-HOVER: an affordance nobody can see is one nobody
-   uses, and for 创作 Creation's benches this is the only route to the folder
+   uses, and for 创作 Creation's benches (素材 Source Material) this is the only route to the folder
    from a browser at all — they sit in the data vault, which the local server
    does not serve. */
 /* Group heading inside a row list — see index_page's `group` entry key. A
