@@ -4,7 +4,8 @@
    refresh). Markup vocabulary it styles: .stats-table (+ .section-bar /
    .others / .agg / .group-divider / .totals rows, .num cells, th .th-label /
    .th-qual), .view-toggle radios, .group-toggle, .section-heading,
-   .touched-date/-block/-ago triplets, .line-history-svg, .site-log-rings. */
+   .touched-date/-block/-ago triplets, .line-history-svg, .ledger-table,
+   .site-log-rings. */
 
 /* ---- Stats-page theme tokens ----
    base.css's rule, followed here: each colour declared EXACTLY ONCE via
@@ -259,6 +260,31 @@ body:has(#group-categories:not(:checked)) #project-outline .section-bar { displa
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* A disabled radio (the scale pair while the Table view shows — there is
+   nothing to scale) fades like a disabled series checkbox does. */
+.view-toggle input[type="radio"]:disabled + label {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Ledger table (the chart's Table view) ────────────────────────────────
+   Built at runtime by stats-table.js from the chart's own data-chart-points
+   and swapped in for .chart-hover-wrap when the Chart/Table radio says so.
+   One row per x-axis period, newest first. Wears the .stats-table skin; the
+   rules here are only what differs from the project outline above. */
+.ledger-table { margin-top: 0.5rem; }
+/* No section bars, so no indent under them: back to the base cell padding.
+   (The body:has(#group-categories) rule above lands on the same value.) */
+.stats-table.ledger-table tbody tr:not(.section-bar) td:first-child { padding-left: 0.8rem; }
+/* Each series' headers wear its colour, as the chart legend and the series
+   checkboxes do, so a column reads as "that curve, at each close". */
+.ledger-table th.col-lines .th-label { color: var(--accent); }
+.ledger-table th.col-words .th-label { color: var(--chart-words); }
+/* The period still running has no close yet; its row says "so far" where the
+   others carry their last day, and its figures are provisional. */
+.ledger-table .ledger-sofar { color: var(--muted); font-style: italic; }
+.ledger-table td.delta { color: var(--muted); }
 
 /* Lock all three spans to the same minimum width so column sizing
    stays stable when the toggle swaps which one is visible. The widest

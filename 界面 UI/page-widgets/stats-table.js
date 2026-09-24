@@ -410,6 +410,14 @@
       });
       [showLines, showWords].forEach(cb => cb && cb.addEventListener('change', applyVisibility));
 
+      // Count / delta formatting, shared by the hover readout below and the
+      // ledger table. U+2212 MINUS, not a hyphen: the deltas sit in the same
+      // tabular-nums column as the counts, and a hyphen is narrower than a digit.
+      const DASH = '—';
+      const fmtDelta = d =>
+        (d > 0 ? '+' : d < 0 ? '−' : '') + Math.abs(d).toLocaleString();
+      const fmtCount = v => v == null ? DASH : v.toLocaleString();
+
       // ── X-axis: block / month / week boundary labels ─────────────────────
       // Mirrors the lifespan-atlas clock view: a faint boundary gridline at each
       // period START + the unit label (block no. / month / ISO week no.) centred
@@ -427,40 +435,47 @@
       let phaseBnd = [];
       try { phaseBnd = JSON.parse(svg.dataset.chartPhaseBoundaries || '[]'); } catch (e) { phaseBnd = []; }
 
-      import('../../引擎 Engines/event-marks/marks.js').then(marks => {
+      // The ledger (event-marks/ledger.js) is the marks engine's sibling: it
+      // slices the range into periods of one unit (the same walk the axis
+      // labels use) and reads the series at each period's close for the
+      // Table view further down. One Promise.all so the axis and the table
+      // agree on which periods exist, and fail together if the engine is
+      // unreachable.
+      Promise.all([
+        import('../../引擎 Engines/event-marks/marks.js'),
+        import('../../引擎 Engines/event-marks/ledger.js'),
+      ]).then(([marks, ledger]) => {
         // Engine loaded → the server date fallbacks give way to unit labels.
         svg.querySelectorAll('.x-date-fallback').forEach(el => el.remove());
         const blockCtx = marks.computeBlockContext(boundaries, domainMaxMs);
         // Website version phases: [iso, label] pairs → { startMs, label }.
         const phases = phaseBnd.map(([iso, label]) => ({ startMs: marks.isoToDayMs(iso), label }));
         const labelY = H - padB + 16;
-        const ticksFor = mode => {
-          if (mode === 'months') {
-            return marks.getMonthMarksInRange(domainMinMs, domainMaxMs)
-              .map(m => ({ startMs: m.startMs, endMs: m.endMs, midMs: m.midMs, text: EN_MONTHS[m.monthIndex] }));
-          }
-          if (mode === 'weeks') {
-            return marks.getWeekMarksInRange(domainMinMs, domainMaxMs)
-              .map(w => ({ startMs: w.startMs, endMs: w.endMs, midMs: w.midMs, text: String(w.isoWeek) }));
-          }
-          if (mode === 'phases') {
-            return marks.getPhaseMarksInRange(domainMinMs, domainMaxMs, phases)
-              .map(p => ({ startMs: p.startMs, endMs: p.endMs, midMs: p.midMs, text: p.label }));
-          }
-          return marks.getBlockMarksInRange(domainMinMs, domainMaxMs, blockCtx)
-            .map(b => ({ startMs: b.startMs, endMs: b.endMs, midMs: b.midMs, text: b.label }));
+        // The engine returns numbers (month index, ISO week, block label);
+        // naming is ours. `long` is the table's form, which must stand alone
+        // in a column — "Sep" under an axis is fine, "Sep 2026" in a row is
+        // needed — while the axis keeps the short form it always had.
+        const p2 = n => String(n).padStart(2, '0');
+        const labelFor = (p, long) => {
+          if (p.unit === 'months') return long ? `${EN_MONTHS[p.monthIndex]} ${p.calendarYear}` : EN_MONTHS[p.monthIndex];
+          if (p.unit === 'weeks') return long ? `${p.isoYear}-W${p2(p.isoWeek)}` : String(p.isoWeek);
+          if (p.unit === 'blocks') return long ? `Block ${p.label}` : p.label;
+          return p.label; // phases carry their own "p0.4"
         };
+        // Periods of one unit overlapping the data range, already filtered to
+        // those that overlap: the engine emits one period early (for the Atlas
+        // ring's midpoint labels), which on a linear axis would otherwise clamp
+        // a non-overlapping label (e.g. a month before the first snapshot)
+        // onto the left edge.
+        const periodsFor = mode =>
+          ledger.periodsFor(mode, domainMinMs, domainMaxMs, { blockCtx, phases });
+        const ticksFor = mode => periodsFor(mode).map(p => ({ ...p, text: labelFor(p, false) }));
         function drawXAxis(mode) {
           const existing = svg.querySelector('.x-axis-layer');
           if (existing) existing.remove();
           const layer = document.createElementNS(SVGNS, 'g');
           layer.setAttribute('class', 'x-axis-layer');
-          // Only periods whose window actually overlaps the data range. The
-          // engine emits one period early (for the Atlas ring's midpoint labels),
-          // which on a linear axis would otherwise clamp a non-overlapping label
-          // (e.g. a month before the first snapshot) onto the left edge.
-          const visible = ticksFor(mode).filter(t => t.endMs > domainMinMs && t.startMs < domainMaxMs);
-          for (const t of visible) {
+          for (const t of ticksFor(mode)) {
             const bx = xForMs(t.startMs);
             // Boundary gridline — only when it lands strictly inside the plot.
             if (bx > padL + 0.5 && bx < W - padR - 0.5) {
@@ -495,9 +510,85 @@
         document.querySelectorAll('input[name="chart-xaxis"]').forEach(radio => {
           radio.addEventListener('change', () => drawXAxis(xMode()));
         });
+
+        // ── Table view: the series at the close of each period ──────────────
+        // Same points as the chart, read as a step function at each x-axis
+        // boundary (ledger.ledgerRows — see that file for why "at the close"
+        // is exact rather than approximate). One row per period, NEWEST FIRST:
+        // a ledger is consulted for the latest balance, unlike the axis, which
+        // is read left to right. The x-axis radios choose the rows, the series
+        // checkboxes the columns, and the scale radios go inert — there is
+        // nothing to scale. Only when the control bar offers the Table radio;
+        // a page without it keeps its chart alone.
+        //
+        // Runs inside the engine import's .then, so by the time any of this
+        // executes the crosshair block below has finished declaring the
+        // helpers it shares (linesOn / wordsOn / the .chart-hover-wrap).
+        const viewTableRadio = document.querySelector('#view-table');
+        if (viewTableRadio) {
+          const ledgerPts = points.map((p, i) => ({ ms: dates[i].getTime(), total: p.total, words: p.words }));
+          const table = document.createElement('table');
+          table.className = 'stats-table ledger-table';
+          table.hidden = true;
+          const wrapEl = svg.closest('.chart-hover-wrap') || svg;
+          wrapEl.parentNode.insertBefore(table, wrapEl.nextSibling);
+          const scaleRadios = document.querySelectorAll('input[name="chart-scale"]');
+          // Last calendar day of a period: endMs is 00:00 UTC of the day AFTER,
+          // so one millisecond back lands on the last day itself.
+          const lastDay = ms => new Date(ms - 1).toISOString().slice(0, 10);
+          const th = (label, qual, cls) =>
+            `<th${cls ? ` class="${cls}"` : ''}><span class="th-label">${label}</span>` +
+            (qual ? `<span class="th-qual">${qual}</span>` : '') + '</th>';
+          const num = (v, cls) => `<td class="num${cls ? ' ' + cls : ''}">${v}</td>`;
+          function renderLedger(mode) {
+            const lOn = linesOn(), wOn = wordsOn();
+            const rows = ledger.ledgerRows(ledgerPts, periodsFor(mode), +now).reverse();
+            let html = '<thead><tr>' + th('Period') + th('Last day');
+            if (lOn) html += th('Lines', '(at close)', 'num col-lines') + th('Change', '(in period)', 'num col-lines');
+            if (wOn) html += th('Words', '(at close)', 'num col-words') + th('Change', '(in period)', 'num col-words');
+            html += '</tr></thead><tbody>';
+            for (const r of rows) {
+              html += `<tr${r.open ? ' class="ledger-open"' : ''}>` +
+                `<td>${labelFor(r.period, true)}</td>` +
+                (r.open ? '<td class="ledger-sofar">so far</td>' : `<td>${lastDay(r.period.endMs)}</td>`);
+              if (lOn) {
+                html += num(fmtCount(r.closing.total)) +
+                  num(r.movement.total == null ? DASH : fmtDelta(r.movement.total), 'delta');
+              }
+              if (wOn) {
+                html += num(fmtCount(r.closing.words)) +
+                  num(r.movement.words == null ? DASH : fmtDelta(r.movement.words), 'delta');
+              }
+              html += '</tr>';
+            }
+            table.innerHTML = html + '</tbody>';
+          }
+          const tableOn = () => viewTableRadio.checked;
+          function applyView() {
+            const on = tableOn();
+            wrapEl.style.display = on ? 'none' : '';
+            table.hidden = !on;
+            scaleRadios.forEach(r => { r.disabled = on; });
+            if (on) renderLedger(xMode());
+          }
+          applyView();
+          document.querySelectorAll('input[name="chart-view"]').forEach(radio => {
+            radio.addEventListener('change', applyView);
+          });
+          // Rows follow the x-axis unit, columns the series checkboxes — but
+          // only re-render while the table is the thing on screen.
+          const refreshLedger = () => { if (tableOn()) renderLedger(xMode()); };
+          document.querySelectorAll('input[name="chart-xaxis"]').forEach(radio => {
+            radio.addEventListener('change', refreshLedger);
+          });
+          [showLines, showWords].forEach(cb => cb && cb.addEventListener('change', refreshLedger));
+        }
       }).catch(() => {
         // Engine unavailable → keep the server date fallbacks; refresh the
         // right-edge label to the live "now" (its old build-time behaviour).
+        // The Table view needs the engine too, so its radio goes inert.
+        const tableRadio = document.querySelector('#view-table');
+        if (tableRadio) tableRadio.disabled = true;
         const lbl = svg.querySelector('text.x-label-right');
         if (lbl) {
           const yyyy = now.getUTCFullYear();
@@ -600,7 +691,6 @@
       // doesn't smear the window — it means the baseline is a fortnight old
       // and the 24h delta is correctly zero.
       const DAY_MS = 86400000;
-      const DASH = '—';
       // baseOf[i] — the newest snapshot at or before (t_i − 24h), or -1 where
       // the history doesn't reach a full day back. Precomputed in one forward
       // sweep: the cutoff only ever moves right, so the baseline pointer never
@@ -620,11 +710,6 @@
         if (!b || b[key] == null || points[i][key] == null) return null;
         return points[i][key] - b[key];
       };
-      // U+2212 MINUS, not a hyphen: the deltas sit in the same tabular-nums
-      // column as the counts above them, and a hyphen is narrower than a digit.
-      const fmtDelta = d =>
-        (d > 0 ? '+' : d < 0 ? '−' : '') + Math.abs(d).toLocaleString();
-      const fmtCount = v => v == null ? DASH : v.toLocaleString();
 
       // ── Pinned value columns ──────────────────────────────────
       // Counts are not all the same width (41,578 → 115,793), so an auto track
