@@ -1224,7 +1224,7 @@ a.app-card:hover {
 <p class="head-meta"><span class="t-live">10</span><span class="t-all">11</span> categories · <span class="proj-tally"><span class="t-live">7</span><span class="t-all">8</span> projects</span></p>
 <div class="matrix-scroll">
 <table class="cat-matrix">
-<tr><th>Project<span class="col-sizer" aria-hidden="true"><span>Linguistics Dissertation</span><span>Chinese Language(s)</span><span>Cities &amp; Transport</span></span></th><th class="cat-col"><button type="button" class="cat-head" data-cat="art" aria-pressed="false" title="Art" aria-label="Art">🪅</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="chemistry" aria-pressed="false" title="Chemistry" aria-label="Chemistry">⚗️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="geography" aria-pressed="false" title="Geography" aria-label="Geography">🗺️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="linguistics" aria-pressed="false" title="Linguistics" aria-label="Linguistics">🔤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="maths" aria-pressed="false" title="Maths" aria-label="Maths">📐</button></th><th class="cat-col col-planned-only"><button type="button" class="cat-head" data-cat="music" aria-pressed="false" title="Music" aria-label="Music">🎵</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="personal" aria-pressed="false" title="Personal" aria-label="Personal">👤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="pharmacology" aria-pressed="false" title="Pharmacology" aria-label="Pharmacology">💊</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="philosophy" aria-pressed="false" title="Philosophy" aria-label="Philosophy">🕯️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="politics" aria-pressed="false" title="Politics" aria-label="Politics">🏛️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="transport" aria-pressed="false" title="Transport" aria-label="Transport">🚦</button></th></tr>
+<tr><th>Project<span class="col-sizer" aria-hidden="true"><span>Linguistics Dissertation</span><span>Chinese Language(s)</span><span>Maps &amp; Projections</span></span></th><th class="cat-col"><button type="button" class="cat-head" data-cat="art" aria-pressed="false" title="Art" aria-label="Art">🪅</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="chemistry" aria-pressed="false" title="Chemistry" aria-label="Chemistry">⚗️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="geography" aria-pressed="false" title="Geography" aria-label="Geography">🗺️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="linguistics" aria-pressed="false" title="Linguistics" aria-label="Linguistics">🔤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="maths" aria-pressed="false" title="Maths" aria-label="Maths">📐</button></th><th class="cat-col col-planned-only"><button type="button" class="cat-head" data-cat="music" aria-pressed="false" title="Music" aria-label="Music">🎵</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="personal" aria-pressed="false" title="Personal" aria-label="Personal">👤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="pharmacology" aria-pressed="false" title="Pharmacology" aria-label="Pharmacology">💊</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="philosophy" aria-pressed="false" title="Philosophy" aria-label="Philosophy">🕯️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="politics" aria-pressed="false" title="Politics" aria-label="Politics">🏛️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="transport" aria-pressed="false" title="Transport" aria-label="Transport">🚦</button></th></tr>
 <tr data-categories="linguistics politics"><td><a href="../chinese-languages/">Chinese Language(s)</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell col-planned-only"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td></tr>
 <tr data-categories="geography transport"><td><a href="../cities-transport/">Cities &amp; Transport</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell col-planned-only"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td></tr>
 <tr data-categories="art maths personal philosophy"><td><a href="../life-dial/">Life Dial</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell col-planned-only"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
@@ -1239,22 +1239,28 @@ a.app-card:hover {
 </div>
 <script>
 (function () {
-  var K = 'site-show-planned';
-  var sw = document.querySelector('.planned-switch');
-  function stamp() {
-    var on = localStorage.getItem(K) === 'on';
-    document.documentElement.toggleAttribute('data-show-planned', on);
-    if (sw) sw.setAttribute('aria-pressed', on ? 'true' : 'false');
-  }
-  stamp();
-  if (sw) sw.addEventListener('click', function () {
-    if (localStorage.getItem(K) === 'on') localStorage.removeItem(K);
-    else localStorage.setItem(K, 'on');
+  // One wiring per kind — 'planned' (with its on-page switch) and each
+  // Settings switch that has a row here (dev / topic; control on Settings
+  // only). The generator fills the list per page.
+  var KINDS = ['planned'];
+  KINDS.forEach(function (kind) {
+    var K = 'site-show-' + kind;
+    var sw = document.querySelector('.' + kind + '-switch');
+    function stamp() {
+      var on = localStorage.getItem(K) === 'on';
+      document.documentElement.toggleAttribute('data-show-' + kind, on);
+      if (sw) sw.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
     stamp();
-  });
-  window.addEventListener('pageshow', function (e) { if (e.persisted) stamp(); });
-  window.addEventListener('storage', function (e) {
-    if (e.key === K || e.key === null) stamp();
+    if (sw) sw.addEventListener('click', function () {
+      if (localStorage.getItem(K) === 'on') localStorage.removeItem(K);
+      else localStorage.setItem(K, 'on');
+      stamp();
+    });
+    window.addEventListener('pageshow', function (e) { if (e.persisted) stamp(); });
+    window.addEventListener('storage', function (e) {
+      if (e.key === K || e.key === null) stamp();
+    });
   });
 })();
 </script>
@@ -1267,16 +1273,26 @@ a.app-card:hover {
   var totalCells = Array.prototype.slice.call(table.querySelectorAll('.totals td[data-cat]'));
   var clearBtn = document.querySelector('.filter-clear');
   var tally = document.querySelector('.proj-tally');
-  var original = totalCells.map(function (td) { return td.innerHTML; });
-  var tallyOriginal = tally ? tally.innerHTML : '';
-
   function plannedShown() {
     return document.documentElement.hasAttribute('data-show-planned');
+  }
+  // A row behind a Settings switch (data-unlist = dev or a topic) is out of
+  // the population while its switch is off — hidden by CSS, and uncounted
+  // here so the totals and the tally match the grid.
+  function unlisted(tr) {
+    var k = tr.dataset.unlist;
+    return !!k && !document.documentElement.hasAttribute('data-show-' + k);
   }
   // Rows this tier is willing to show right now, filter aside — the
   // denominator of the count line and the population the totals count over.
   function eligible(tr) {
-    return plannedShown() || !tr.classList.contains('row-planned');
+    return !unlisted(tr) && (plannedShown() || !tr.classList.contains('row-planned'));
+  }
+  // The server's dual live/all form, so the one attribute keeps driving
+  // which figure shows (see .t-live / .t-all).
+  function dual(live, all) {
+    return live === all ? String(all)
+      : '<span class="t-live">' + live + '</span><span class="t-all">' + all + '</span>';
   }
   function active() {
     return heads.filter(function (h) {
@@ -1325,14 +1341,18 @@ a.app-card:hover {
       tr.classList.toggle('cat-hidden', !hit);
       if (eligible(tr)) { total++; if (hit) shown++; }
     });
-    totalCells.forEach(function (td, i) {
-      if (!sel.length) { td.innerHTML = original[i]; return; }
-      var c = td.dataset.cat, n = 0;
+    // Totals are always recomputed from the rows in the population (never
+    // restored from the server markup): a switched-off row must leave them
+    // too. Without a filter the figure keeps the server's dual live/all form.
+    totalCells.forEach(function (td) {
+      var c = td.dataset.cat, live = 0, all = 0;
       rows.forEach(function (tr) {
-        if (tr.classList.contains('cat-hidden') || !eligible(tr)) return;
-        if ((tr.dataset.categories || '').split(' ').indexOf(c) >= 0) n++;
+        if (tr.classList.contains('cat-hidden') || unlisted(tr)) return;
+        if ((tr.dataset.categories || '').split(' ').indexOf(c) < 0) return;
+        if (!tr.classList.contains('row-planned')) live++;
+        if (!sel.length || eligible(tr)) all++;
       });
-      td.textContent = String(n);
+      td.innerHTML = sel.length ? String(all) : dual(live, all);
     });
     if (clearBtn) clearBtn.classList.toggle('is-off', !sel.length);
     writeHash(sel);
@@ -1341,7 +1361,12 @@ a.app-card:hover {
         tally.textContent = shown + ' of ' + total +
           (total === 1 ? ' project' : ' projects');
       } else {
-        tally.innerHTML = tallyOriginal;
+        var live = 0, all = 0;
+        rows.forEach(function (tr) {
+          if (unlisted(tr)) return;
+          all++; if (!tr.classList.contains('row-planned')) live++;
+        });
+        tally.innerHTML = dual(live, all) + (all === 1 ? ' project' : ' projects');
       }
     }
   }
@@ -1363,8 +1388,10 @@ a.app-card:hover {
     heads.forEach(function (h) { h.setAttribute('aria-pressed', 'false'); });
     apply();
   });
-  new MutationObserver(apply).observe(document.documentElement,
-    { attributes: true, attributeFilter: ['data-show-planned'] });
+  // Any switch attribute flipping (planned, dev, a topic) re-runs the tally.
+  new MutationObserver(function (muts) {
+    if (muts.some(function (m) { return /^data-show-/.test(m.attributeName); })) apply();
+  }).observe(document.documentElement, { attributes: true });
   // A hash arriving after load — a pasted URL, or a second click on the same
   // category glyph from another page — re-presses the columns.
   window.addEventListener('hashchange', function () { pressFromHash(); apply(); });
