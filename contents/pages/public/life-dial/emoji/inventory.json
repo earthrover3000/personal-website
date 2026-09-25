@@ -6,6 +6,12 @@
   "asset": true
  },
  {
+  "glyph": "📍",
+  "cps": "1f4cd",
+  "count": 7,
+  "asset": true
+ },
+ {
   "glyph": "📏",
   "cps": "1f4cf",
   "count": 7,
@@ -20,12 +26,6 @@
  {
   "glyph": "🌱",
   "cps": "1f331",
-  "count": 6,
-  "asset": true
- },
- {
-  "glyph": "📍",
-  "cps": "1f4cd",
   "count": 6,
   "asset": true
  },
@@ -50,6 +50,18 @@
  {
   "glyph": "↩️",
   "cps": "21a9-fe0f",
+  "count": 5,
+  "asset": true
+ },
+ {
+  "glyph": "⏭️",
+  "cps": "23ed-fe0f",
+  "count": 5,
+  "asset": true
+ },
+ {
+  "glyph": "⏮️",
+  "cps": "23ee-fe0f",
   "count": 5,
   "asset": true
  },
@@ -120,14 +132,8 @@
   "asset": true
  },
  {
-  "glyph": "⏭️",
-  "cps": "23ed-fe0f",
-  "count": 4,
-  "asset": true
- },
- {
-  "glyph": "⏮️",
-  "cps": "23ee-fe0f",
+  "glyph": "⏯️",
+  "cps": "23ef-fe0f",
   "count": 4,
   "asset": true
  },
@@ -212,12 +218,6 @@
  {
   "glyph": "🪵",
   "cps": "1fab5",
-  "count": 3,
-  "asset": true
- },
- {
-  "glyph": "⏯️",
-  "cps": "23ef-fe0f",
   "count": 3,
   "asset": true
  },
@@ -560,6 +560,12 @@
  {
   "glyph": "🎨",
   "cps": "1f3a8",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🎮",
+  "cps": "1f3ae",
   "count": 1,
   "asset": true
  },

@@ -759,6 +759,14 @@ html:not([data-show-dev]) .dev-entry { display: none; }
 html[data-show-planned] .planned-row:not(.parked-row) { display: block; }
 html[data-show-parked] .parked-row:not(.planned-row) { display: block; }
 html[data-show-planned][data-show-parked] .planned-row.parked-row { display: block; }
+
+/* Topic switches (the website's site-structure.yaml `topic: <name>`) have
+   NO rule here on purpose. Their hide rule is the .dev-entry one with the
+   topic name as the kind, and the index engine emits it per page, only
+   where an entry on that page carries the topic — this file is inlined
+   into every edition, so a topic named here would ship in all of them,
+   and the switch is private-tier only (user decision 2026-09-25). See
+   index_page's `_topics` block. */
 /* ONE PILL PER CELL, not per kind. The two kinds are axes — is anything
    built, is it on the worklist — and each of the three dimmed cells they make
    gets a word of its own: 'shelved' (built, then put away), 'unscheduled'
