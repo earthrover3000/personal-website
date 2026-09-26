@@ -109,6 +109,45 @@ export function msToBlockString(ms, ctx) {
   return "?";
 }
 
+// ─── Position within a block (lifted from the atlas's lib/pointReadout) ──
+
+/** Position of the day `ms` inside the block that contains it — the row every
+ *  readout of "where in the cycle am I" prints: the atlas probe / dashboard
+ *  ("Block 20, Day 16/55 · 29%"), the Blocks view's current-block "Nd+", and
+ *  the Origin statusline's "📅 B20 D16/55 · 29%". Moved here from
+ *  lib/pointReadout.ts on 2026-09-26, the day the statusline's own Python port
+ *  was caught dividing by the AVERAGE while the atlas divided by the block's
+ *  real length (D47/54 vs D47/57): two copies of the same arithmetic, one
+ *  reader. Now there is one copy and every surface, JS or not, runs it.
+ *
+ *  `day` is the INCLUSIVE 1-based day-of-block (day 1 on the block's first
+ *  day — `today − start + 1`). `lenDays` is the block's REAL length for
+ *  CSV-defined blocks and ctx.avgLen (the projected slot length) for
+ *  synthesised / pre-genesis slots, so this can never disagree with the
+ *  `~Nd` slots msToBlockString labels. Block starts mirror msToBlock's slot
+ *  math exactly (its inverse), so `day` never exceeds `lenDays`.
+ *  `pct = Math.round(day / lenDays · 100)` — half rounds up. Returns null
+ *  when the context has no usable length (no blocks and no projection). */
+export function blockPosition(ms, ctx) {
+  const { blockMs, numBlocks, lastBoundaryMs, genesisMs, avgLen } = ctx;
+  const idx = msToBlock(ms, ctx);
+  let startMs;
+  let lenDays;
+  if (idx >= 0 && idx < numBlocks) {
+    startMs = blockMs[idx];
+    lenDays = Math.round((blockMs[idx + 1] - startMs) / MS_PER_DAY);
+  } else if (idx >= numBlocks) {
+    startMs = lastBoundaryMs + (idx - numBlocks) * avgLen * MS_PER_DAY;
+    lenDays = avgLen;
+  } else {
+    startMs = genesisMs + idx * avgLen * MS_PER_DAY;
+    lenDays = avgLen;
+  }
+  if (lenDays <= 0) return null;
+  const day = Math.round((ms - startMs) / MS_PER_DAY) + 1;
+  return { day, lenDays, pct: Math.round((day / lenDays) * 100) };
+}
+
 // ─── Boundary marks in a range (ms-based; ported from lib/marks.ts) ──────
 // Each mark carries the boundary at the period START (startMs) and the period
 // MIDPOINT (midMs) where the label centres — mirroring how month marks anchor

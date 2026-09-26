@@ -48,6 +48,21 @@ export declare function computeBlockContext(
 export declare function msToBlock(ms: number, ctx: BlockContext): number;
 export declare function msToBlockString(ms: number, ctx: BlockContext): string;
 
+/** Where a day sits inside its block — see marks.js blockPosition. */
+export type BlockPosition = {
+  /** Inclusive 1-based day-of-block: 1 on the block's first day. */
+  day: number;
+  /** The block's real length for CSV-defined blocks; avgLen for synthesised
+   *  / pre-genesis slots. */
+  lenDays: number;
+  /** Math.round(day / lenDays × 100). */
+  pct: number;
+};
+/** Position of `ms` within its block; null when the context has no usable
+ *  length (no blocks and no projection). The ONE implementation behind the
+ *  atlas readouts and the Origin statusline's 📅 segment. */
+export declare function blockPosition(ms: number, ctx: BlockContext): BlockPosition | null;
+
 export type MonthMarkMs = {
   startMs: number;
   midMs: number;
