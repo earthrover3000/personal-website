@@ -95,12 +95,21 @@ export type WeekMarkMs = {
   isoWeek: number;
   isoYear: number;
 };
+/** How long a period is — see marks.js periodDays. */
+export type PeriodDays = { days: number; kind: "length" | "elapsed" | "projected" };
+export declare function periodDays(
+  period: { startMs: number; endMs: number; open?: boolean; recorded?: boolean },
+  nowMs: number,
+): PeriodDays;
+
 export type BlockMarkMs = {
   startMs: number;
   midMs: number;
   endMs: number;
   label: string;
   blockIndex: number;
+  /** Both boundaries on file (false for synthesised slots). */
+  recorded: boolean;
 };
 
 export declare function getMonthMarksInRange(startTime: number, endTime: number): MonthMarkMs[];
@@ -124,6 +133,8 @@ export type PhaseMarkMs = {
   endMs: number;
   midMs: number;
   label: string;
+  /** The last phase: its endMs is the range clamp, not a dated boundary. */
+  open: boolean;
 };
 export declare function getPhaseMarksInRange(
   startTime: number,

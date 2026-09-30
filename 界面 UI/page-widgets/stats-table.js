@@ -480,11 +480,12 @@
           line.setAttribute('stroke', 'currentColor'); line.setAttribute('stroke-opacity', '0.08');
           return line;
         };
-        // …and marks that end with a boundary line like any other, so the
-        // chart always closes on the first block boundary after today. It
-        // lives outside the axis layer (whose gridlines stop short of the plot
-        // edges) so it stays put whichever unit the axis shows.
-        if (win && win.endMs >= domainMaxMs) {
+        // …and, in Blocks mode only, closes on a boundary line like any
+        // other: the right edge IS a block boundary, so the Blocks axis draws
+        // it (drawXAxis, below). Under Phases / Months / Weeks that edge is
+        // no boundary of theirs, so nothing is drawn there.
+        const currentBlocksEndLine = () => {
+          if (!win || win.endMs < domainMaxMs) return null;
           const endLine = boundaryLine(xForMs(win.endMs));
           endLine.setAttribute('class', 'current-blocks-end');
           const last = current[current.length - 1];
@@ -493,8 +494,8 @@
             + ` · ${new Date(win.endMs).toISOString().slice(0, 10)}`
             + (last.recorded ? '' : ' (projected)');
           endLine.appendChild(tip);
-          svg.insertBefore(endLine, svg.firstChild);
-        }
+          return endLine;
+        };
         // Website version phases: [iso, label] pairs → { startMs, label }.
         const phases = phaseBnd.map(([iso, label]) => ({ startMs: marks.isoToDayMs(iso), label }));
         const labelY = H - padB + 16;
@@ -517,12 +518,28 @@
         // `endMs` defaults to the chart's domain; the Table passes dataEndMs.
         const periodsFor = (mode, endMs = domainMaxMs) =>
           ledger.periodsFor(mode, domainMinMs, endMs, { blockCtx, phases });
-        const ticksFor = mode => periodsFor(mode).map(p => ({ ...p, text: labelFor(p, false) }));
+        // The day count under a Blocks / Phases mark and in the table's Days
+        // column — the engine's periodDays, printed the way the atlas Blocks
+        // view prints its rows: "57d" a known length, "12d+" still running
+        // (days so far), "~54d" a projected block. Months and weeks carry
+        // none: their lengths are a given, and a week is too narrow anyway.
+        const DAYS_UNITS = ['blocks', 'phases'];
+        const fmtDays = p => {
+          const r = marks.periodDays(p, +now);
+          return r.kind === 'elapsed' ? `${r.days}d+` : r.kind === 'projected' ? `~${r.days}d` : `${r.days}d`;
+        };
+        const ticksFor = mode => periodsFor(mode).map(p => ({
+          ...p, text: labelFor(p, false), days: DAYS_UNITS.includes(mode) ? fmtDays(p) : '',
+        }));
         function drawXAxis(mode) {
           const existing = svg.querySelector('.x-axis-layer');
           if (existing) existing.remove();
           const layer = document.createElementNS(SVGNS, 'g');
           layer.setAttribute('class', 'x-axis-layer');
+          if (mode === 'blocks') {
+            const endLine = currentBlocksEndLine();
+            if (endLine) layer.appendChild(endLine);
+          }
           for (const t of ticksFor(mode)) {
             const bx = xForMs(t.startMs);
             // Boundary gridline — only when it lands strictly inside the plot.
@@ -536,9 +553,26 @@
               txt.setAttribute('x', clampX(xForMs(t.midMs)).toFixed(1));
               txt.setAttribute('y', labelY);
               txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '10');
-              txt.setAttribute('fill', 'currentColor'); txt.setAttribute('fill-opacity', '0.55');
+              txt.setAttribute('fill', 'currentColor'); txt.setAttribute('fill-opacity', '0.75');
               txt.textContent = t.text;
               layer.appendChild(txt);
+            }
+            // Its length, smaller and fainter, on a second line — only where
+            // the period is wide enough to hold the text (a three-day phase
+            // at the start of the log is not), so counts never collide
+            // before the labels above them do.
+            if (t.days) {
+              const visW = xForMs(Math.min(t.endMs, domainMaxMs)) - xForMs(Math.max(t.startMs, domainMinMs));
+              if (visW >= t.days.length * 5 + 6) {
+                const sub = document.createElementNS(SVGNS, 'text');
+                sub.setAttribute('class', 'x-days');
+                sub.setAttribute('x', clampX(xForMs(t.midMs)).toFixed(1));
+                sub.setAttribute('y', labelY + 10);
+                sub.setAttribute('text-anchor', 'middle'); sub.setAttribute('font-size', '9');
+                sub.setAttribute('fill', 'currentColor'); sub.setAttribute('fill-opacity', '0.65');
+                sub.textContent = t.days;
+                layer.appendChild(sub);
+              }
             }
           }
           // Behind the series paths (first child) so gridlines don't cross them.
@@ -587,14 +621,16 @@
           function renderLedger(mode) {
             const lOn = linesOn(), wOn = wordsOn();
             const rows = ledger.ledgerRows(ledgerPts, periodsFor(mode, dataEndMs), +now).reverse();
-            let html = '<thead><tr>' + th('Period') + th('Last day');
+            const daysCol = DAYS_UNITS.includes(mode);
+            let html = '<thead><tr>' + th('Period') + th('Last day') + (daysCol ? th('Days', '', 'num') : '');
             if (lOn) html += th('Lines', '(at close)', 'num col-lines') + th('Change', '(in period)', 'num col-lines');
             if (wOn) html += th('Words', '(at close)', 'num col-words') + th('Change', '(in period)', 'num col-words');
             html += '</tr></thead><tbody>';
             for (const r of rows) {
               html += `<tr${r.open ? ' class="ledger-open"' : ''}>` +
                 `<td>${labelFor(r.period, true)}</td>` +
-                (r.open ? '<td class="ledger-sofar">so far</td>' : `<td>${lastDay(r.period.endMs)}</td>`);
+                (r.open ? '<td class="ledger-sofar">so far</td>' : `<td>${lastDay(r.period.endMs)}</td>`) +
+                (daysCol ? num(fmtDays(r.period)) : '');
               if (lOn) {
                 html += num(fmtCount(r.closing.total)) +
                   num(r.movement.total == null ? DASH : fmtDelta(r.movement.total), 'delta');

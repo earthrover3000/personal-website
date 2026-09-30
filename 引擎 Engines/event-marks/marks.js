@@ -328,6 +328,9 @@ export function getBlockMarksInRange(startTime, endTime, ctx) {
       endMs: e,
       label: msToBlockString((s + e) / 2, ctx),
       blockIndex: i,
+      // Both boundaries on file — a synthesised slot before genesis or past
+      // the file is not (periodDays reads this).
+      recorded: i >= 0 && i < numBlocks,
     });
     i++;
   }
@@ -347,7 +350,40 @@ export function getPhaseMarksInRange(startTime, endTime, phases) {
     const s = phases[i].startMs;
     const e = i + 1 < phases.length ? phases[i + 1].startMs : endTime;
     if (e <= startTime || s >= endTime) continue; // no overlap with the window
-    marks.push({ startMs: s, endMs: e, midMs: (s + Math.min(e, endTime)) / 2, label: phases[i].label });
+    // The last phase has no dated end: `open` says its endMs is the clamp,
+    // not a boundary (periodDays reads this).
+    marks.push({ startMs: s, endMs: e, midMs: (s + Math.min(e, endTime)) / 2, label: phases[i].label, open: i + 1 >= phases.length });
   }
   return marks;
+}
+
+// ─── How long a period is ───────────────────────────────────────────────
+
+/** The day count to print under a period's mark, as { days, kind }:
+ *
+ *    • "length"  — a period with both ends known: endMs − startMs in whole
+ *                  days (the boundary day opens the next period, so a block
+ *                  2026-08-11 → 2026-10-07 is 57, not 58). Every month and
+ *                  week; a recorded block; a phase that a later phase closed.
+ *    • "elapsed" — a period still running with no end on file: days from its
+ *                  start through today INCLUSIVE (today is its own first day
+ *                  on the day it opens, so never 0). The open phase, and
+ *                  today's block when its end is not recorded yet.
+ *    • "projected" — a synthesised block that does not contain today: its
+ *                  length on the projected grid.
+ *
+ *  The two counting rules differ on purpose — a length is a half-open
+ *  difference between two starts, an elapsed count is "how many days have I
+ *  been in it" — and they are the ones the atlas Blocks view prints
+ *  (blockSeries.durationDays, lib/blocks elapsedDaysInclusive). The "d",
+ *  "+" and "~" are the consumer's. */
+export function periodDays(period, nowMs) {
+  const length = Math.round((period.endMs - period.startMs) / MS_PER_DAY);
+  const elapsed = Math.max(1, Math.round((nowMs - period.startMs) / MS_PER_DAY) + 1);
+  if (period.open) return { days: elapsed, kind: "elapsed" };
+  if (period.recorded === false) {
+    const containsNow = nowMs >= period.startMs && nowMs < period.endMs;
+    return containsNow ? { days: elapsed, kind: "elapsed" } : { days: length, kind: "projected" };
+  }
+  return { days: length, kind: "length" };
 }
