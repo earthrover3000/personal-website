@@ -28,7 +28,8 @@ export type BlockContext = {
   lastBoundaryMs: number;
   /** True iff today >= last CSV boundary AND avgLen > 0. */
   synthesized: boolean;
-  /** End ms of the synthetic current block (== lastBoundaryMs when not synthesised). */
+  /** End ms of the synthetic current block — the end of the slot after
+   *  today's (== lastBoundaryMs when not synthesised). */
   syntheticEndMs: number;
   /** Anchor ms used by extrapolation past the synthetic/last block. */
   anchorMs: number;
@@ -62,6 +63,22 @@ export type BlockPosition = {
  *  length (no blocks and no projection). The ONE implementation behind the
  *  atlas readouts and the Origin statusline's 📅 segment. */
 export declare function blockPosition(ms: number, ctx: BlockContext): BlockPosition | null;
+
+/** One block of the atlas Blocks view's CURRENT section. */
+export type CurrentBlock = {
+  /** Block number on the msToBlock grid (synthesised slots continue past numBlocks). */
+  blockIndex: number;
+  startMs: number;
+  endMs: number;
+  /** True when endMs is a recorded boundary; false for synthesised slots. */
+  recorded: boolean;
+};
+/** The CURRENT section's blocks: [the recorded block containing today], or
+ *  past the file [today's slot N, projected N+1]; [] when none contains
+ *  today. See marks.js currentBlocks. */
+export declare function currentBlocks(ctx: BlockContext): CurrentBlock[];
+/** currentBlocks as one window [startMs, endMs); null when empty. */
+export declare function currentBlocksWindow(ctx: BlockContext): { startMs: number; endMs: number } | null;
 
 export type MonthMarkMs = {
   startMs: number;

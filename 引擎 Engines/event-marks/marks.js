@@ -27,8 +27,8 @@ export const isoToDayMs = (iso) => Date.parse(iso + "T00:00:00Z");
 
 /** Build a block context from raw boundary date strings (ISO YYYY-MM-DD) and
  *  the current "today" timestamp. Pure — no side effects. Synthesises a
- *  virtual current block past the last CSV boundary (length = 2 × slot-length
- *  days, extending in slot-length steps until it exceeds today).
+ *  virtual current block past the last CSV boundary, running through the slot
+ *  AFTER today's (see currentBlocks — the Blocks view's Current section).
  *
  *  `projLen` (optional, days) overrides the synthesised-slot length: when
  *  given and > 0, every projection/extrapolation uses it instead of the
@@ -59,8 +59,13 @@ export function computeBlockContext(boundaries, todayMs, projLen) {
   const synthesized = numBlocks > 0 && lastBoundaryMs <= todayMs && avgLen > 0;
   let syntheticEndMs = lastBoundaryMs;
   if (synthesized) {
-    syntheticEndMs = lastBoundaryMs + 2 * avgLen * MS_PER_DAY;
-    while (syntheticEndMs <= todayMs) syntheticEndMs += avgLen * MS_PER_DAY;
+    // Today's slot k, then k + 1: the end of the Current section. Until
+    // 2026-09-30 this was "2 slots, stepped until past today", which agrees
+    // only while today sits in the FIRST slot past the file — one slot
+    // further out, it ended at today's own slot and the Blocks view's
+    // "Block *N+1" line hung past the end of its own bar.
+    const k = Math.floor((todayMs - lastBoundaryMs) / (avgLen * MS_PER_DAY));
+    syntheticEndMs = lastBoundaryMs + (k + 2) * avgLen * MS_PER_DAY;
   }
   const anchorMs = synthesized ? syntheticEndMs : lastBoundaryMs;
   const anchorIdx = synthesized ? numBlocks : numBlocks - 1;
@@ -146,6 +151,55 @@ export function blockPosition(ms, ctx) {
   if (lenDays <= 0) return null;
   const day = Math.round((ms - startMs) / MS_PER_DAY) + 1;
   return { day, lenDays, pct: Math.round((day / lenDays) * 100) };
+}
+
+// ─── The CURRENT blocks (the atlas Blocks view's "Current" section) ─────
+
+/** The blocks the atlas Blocks view files under CURRENT, in order — THE
+ *  segmenting rule, shared by every surface that shows "the current blocks"
+ *  (the Blocks view's rows and count, the atlas near-future tint, the
+ *  site-stats chart's right edge). Each is { blockIndex, startMs, endMs,
+ *  recorded }.
+ *
+ *    • Today inside the file — ONE block, the one containing today, its end
+ *      a recorded boundary (recorded: true).
+ *    • Today past the file — the current block's end is not recorded yet, so
+ *      TWO: today's avgLen-day slot N and the projected slot N+1 after it
+ *      (recorded: false). The Blocks view shows them as "Block N" and
+ *      "Block *N+1"; ctx.syntheticEndMs is the end of N+1.
+ *    • No block contains today (no blocks, today before genesis, or past the
+ *      file with no slot length) — [].
+ *
+ *  Slot N starts on the avgLen grid from lastBoundaryMs, the same grid
+ *  msToBlock and getBlockMarksInRange walk, so blockIndex matches their
+ *  numbering. */
+export function currentBlocks(ctx) {
+  const { blockMs, numBlocks, lastBoundaryMs, synthesized, avgLen, todayMs } = ctx;
+  if (synthesized) {
+    const slotMs = avgLen * MS_PER_DAY;
+    const k = Math.floor((todayMs - lastBoundaryMs) / slotMs);
+    const s = lastBoundaryMs + k * slotMs;
+    return [
+      { blockIndex: numBlocks + k, startMs: s, endMs: s + slotMs, recorded: false },
+      { blockIndex: numBlocks + k + 1, startMs: s + slotMs, endMs: s + 2 * slotMs, recorded: false },
+    ];
+  }
+  for (let i = 0; i < numBlocks; i++) {
+    if (todayMs >= blockMs[i] && todayMs < blockMs[i + 1]) {
+      return [{ blockIndex: i, startMs: blockMs[i], endMs: blockMs[i + 1], recorded: true }];
+    }
+  }
+  return [];
+}
+
+/** currentBlocks as one window [startMs, endMs) — first block's start to the
+ *  last one's end — or null when there are none. The end is where the
+ *  site-stats Line & Word Counts chart stops, closing on a boundary line: the
+ *  first block boundary after today that the Blocks view shows. */
+export function currentBlocksWindow(ctx) {
+  const blocks = currentBlocks(ctx);
+  if (blocks.length === 0) return null;
+  return { startMs: blocks[0].startMs, endMs: blocks[blocks.length - 1].endMs };
 }
 
 // ─── Boundary marks in a range (ms-based; ported from lib/marks.ts) ──────

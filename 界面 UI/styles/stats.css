@@ -302,6 +302,16 @@ body:has(#group-categories:not(:checked)) #project-outline .section-bar { displa
   margin: 2.5rem 0 0.5rem;
 }
 .section-heading:first-of-type { margin-top: 1rem; }
+/* A chart section rendered collapsed (chart.render_section collapsed=True):
+   the heading IS the <summary>, wearing the section bars' chevron instead of
+   the browser's disclosure triangle. */
+details.chart-section > summary { list-style: none; cursor: pointer; }
+/* Inside the <summary> the h2 is its parent's first h2, so the rule above
+   would pull it up to the page-top spacing; restore the between-sections gap. */
+details.chart-section > summary .section-heading { margin-top: 2.5rem; }
+details.chart-section > summary::-webkit-details-marker { display: none; }
+details.chart-section > summary .section-heading::before { content: '▸ '; opacity: 0.55; }
+details.chart-section[open] > summary .section-heading::before { content: '▾ '; }
 .site-milestones { margin-top: 0; }
 /* Line-history chart sits beneath the heading like a table would —
    same top spacing, full width, modest max-height to keep proportions

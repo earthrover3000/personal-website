@@ -295,7 +295,9 @@
     el.textContent = fmtBuildAgo(secs);
   });
 
-  // Re-render the line-history chart so the time axis ends at now.
+  // Re-render the line-history chart so the time axis ends at now — or, once
+  // the event-marks engine has loaded (below), at the end of the CURRENT
+  // blocks, the same edge the atlas Blocks view's Current section ends at.
   const svg = document.querySelector('.line-history-svg[data-chart-points]');
   if (svg) {
     let points;
@@ -310,9 +312,15 @@
       const dates = points.map(p => new Date(p.ts));
       const xMin = dates[0];
       const last = dates[dates.length - 1];
-      const xMax = last > now ? last : now;
-      const xSecs = Math.max(1, (xMax - xMin) / 1000);
-      const xs = d => padL + chartW * ((d - xMin) / 1000) / xSecs;
+      // Where the DATA ends: the newest snapshot, or now. The Table view reads
+      // up to here and no further — a ledger has no rows for periods that have
+      // not happened. The chart's domain starts here too, and widens to the
+      // current blocks' end once the engine can say where that is.
+      const dataEndMs = +(last > now ? last : now);
+      const domainMinMs = +xMin;
+      let domainMaxMs = dataEndMs;
+      const xForMs = ms => padL + chartW * (ms - domainMinMs) / Math.max(1, domainMaxMs - domainMinMs);
+      const xs = d => xForMs(+d);
 
       // Two y-scale modes, selected by the Linear/Logarithmic toggle:
       //   • linear — raw counts against the server-rendered nice-max axis
@@ -427,8 +435,6 @@
       // engine-load failure disables only the x-axis, not the table sorting.
       const SVGNS = 'http://www.w3.org/2000/svg';
       const EN_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      const domainMinMs = +xMin, domainMaxMs = +xMax;
-      const xForMs = ms => padL + chartW * (ms - domainMinMs) / Math.max(1, domainMaxMs - domainMinMs);
       const clampX = x => Math.max(padL, Math.min(W - padR, x));
       let boundaries = [];
       try { boundaries = JSON.parse(svg.dataset.chartBlockBoundaries || '[]'); } catch (e) { boundaries = []; }
@@ -447,7 +453,48 @@
       ]).then(([marks, ledger]) => {
         // Engine loaded → the server date fallbacks give way to unit labels.
         svg.querySelectorAll('.x-date-fallback').forEach(el => el.remove());
-        const blockCtx = marks.computeBlockContext(boundaries, domainMaxMs);
+        // Today, not the domain end: the context's synthetic current block is
+        // sized off todayMs, exactly as the atlas Blocks view sizes it.
+        const blockCtx = marks.computeBlockContext(boundaries, +now);
+        // Draw to the end of the current blocks (user decision 2026-09-30):
+        // the engine's currentBlocks, the segmenting the atlas Blocks view's
+        // Current section uses — the block containing today, or, when its end
+        // is not recorded yet, today's slot N AND the projected N+1. So the
+        // chart can never stop short of or run past what the atlas calls
+        // current. Whatever unit the axis shows — the extent must not jump
+        // when the reader toggles Blocks → Months. No blocks (an unmounted
+        // data vault) → no window, and the axis ends at now as before.
+        const current = marks.currentBlocks(blockCtx);
+        const win = marks.currentBlocksWindow(blockCtx);
+        if (win && win.endMs > domainMaxMs) {
+          domainMaxMs = win.endMs;
+          redraw(currentMode());
+          refreshCrosshair();
+        }
+        // A period-boundary gridline at x: faint, solid, full plot height. ONE
+        // style for every boundary — the axis layer's and the chart's end.
+        const boundaryLine = x => {
+          const line = document.createElementNS(SVGNS, 'line');
+          line.setAttribute('x1', x.toFixed(1)); line.setAttribute('x2', x.toFixed(1));
+          line.setAttribute('y1', padT); line.setAttribute('y2', H - padB);
+          line.setAttribute('stroke', 'currentColor'); line.setAttribute('stroke-opacity', '0.08');
+          return line;
+        };
+        // …and marks that end with a boundary line like any other, so the
+        // chart always closes on the first block boundary after today. It
+        // lives outside the axis layer (whose gridlines stop short of the plot
+        // edges) so it stays put whichever unit the axis shows.
+        if (win && win.endMs >= domainMaxMs) {
+          const endLine = boundaryLine(xForMs(win.endMs));
+          endLine.setAttribute('class', 'current-blocks-end');
+          const last = current[current.length - 1];
+          const tip = document.createElementNS(SVGNS, 'title');
+          tip.textContent = `End of block ${last.blockIndex}`
+            + ` · ${new Date(win.endMs).toISOString().slice(0, 10)}`
+            + (last.recorded ? '' : ' (projected)');
+          endLine.appendChild(tip);
+          svg.insertBefore(endLine, svg.firstChild);
+        }
         // Website version phases: [iso, label] pairs → { startMs, label }.
         const phases = phaseBnd.map(([iso, label]) => ({ startMs: marks.isoToDayMs(iso), label }));
         const labelY = H - padB + 16;
@@ -467,8 +514,9 @@
         // ring's midpoint labels), which on a linear axis would otherwise clamp
         // a non-overlapping label (e.g. a month before the first snapshot)
         // onto the left edge.
-        const periodsFor = mode =>
-          ledger.periodsFor(mode, domainMinMs, domainMaxMs, { blockCtx, phases });
+        // `endMs` defaults to the chart's domain; the Table passes dataEndMs.
+        const periodsFor = (mode, endMs = domainMaxMs) =>
+          ledger.periodsFor(mode, domainMinMs, endMs, { blockCtx, phases });
         const ticksFor = mode => periodsFor(mode).map(p => ({ ...p, text: labelFor(p, false) }));
         function drawXAxis(mode) {
           const existing = svg.querySelector('.x-axis-layer');
@@ -479,11 +527,7 @@
             const bx = xForMs(t.startMs);
             // Boundary gridline — only when it lands strictly inside the plot.
             if (bx > padL + 0.5 && bx < W - padR - 0.5) {
-              const line = document.createElementNS(SVGNS, 'line');
-              line.setAttribute('x1', bx.toFixed(1)); line.setAttribute('x2', bx.toFixed(1));
-              line.setAttribute('y1', padT); line.setAttribute('y2', H - padB);
-              line.setAttribute('stroke', 'currentColor'); line.setAttribute('stroke-opacity', '0.08');
-              layer.appendChild(line);
+              layer.appendChild(boundaryLine(bx));
             }
             // Label centred at the period midpoint, clamped into the plot so an
             // edge period whose midpoint is off-range still shows its number.
@@ -542,7 +586,7 @@
           const num = (v, cls) => `<td class="num${cls ? ' ' + cls : ''}">${v}</td>`;
           function renderLedger(mode) {
             const lOn = linesOn(), wOn = wordsOn();
-            const rows = ledger.ledgerRows(ledgerPts, periodsFor(mode), +now).reverse();
+            const rows = ledger.ledgerRows(ledgerPts, periodsFor(mode, dataEndMs), +now).reverse();
             let html = '<thead><tr>' + th('Period') + th('Last day');
             if (lOn) html += th('Lines', '(at close)', 'num col-lines') + th('Change', '(in period)', 'num col-lines');
             if (wOn) html += th('Words', '(at close)', 'num col-words') + th('Change', '(in period)', 'num col-words');
@@ -847,6 +891,12 @@
       if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(() => { pinColumns(); refreshCrosshair(); });
       }
+      // Same again when a collapsed chart section opens: inside a closed
+      // <details> the probe has no layout, so every width above measured 0.
+      const fold = svg.closest('details');
+      if (fold) fold.addEventListener('toggle', () => {
+        if (fold.open) { pinColumns(); refreshCrosshair(); }
+      });
     }
   }
 })();
