@@ -180,6 +180,12 @@
   "asset": true
  },
  {
+  "glyph": "▶️",
+  "cps": "25b6-fe0f",
+  "count": 4,
+  "asset": true
+ },
+ {
   "glyph": "🎲",
   "cps": "1f3b2",
   "count": 3,
