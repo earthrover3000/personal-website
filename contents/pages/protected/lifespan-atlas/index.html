@@ -13,15 +13,43 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="preload" href="fonts/Fraunces-Regular.woff2" as="font" type="font/woff2" crossorigin />
-    <!-- Wordmark-candidate fonts loaded from Google Fonts for the in-app
-         Test page (Settings → Dev → Test). Mirrors the personal-website
-         test-page font tester so the same 5 candidates can be compared
-         inside the Atlas shell. The self-hosted Fraunces above remains
-         the production wordmark; these are evaluation-only. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=EB+Garamond:ital,wght@0,400;1,400&family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+    <!-- NO REQUEST TO THE INTERNET IN THIS HEAD (2026-10-01). The five
+         wordmark-candidate fonts used to be linked here from Google Fonts —
+         a render-blocking stylesheet on every load, for the benefit of the
+         dev Test page alone. From behind a proxy that request was measured
+         stalling for ten seconds, with the page blank until it returned.
+         The Test page loads them itself now (pages/shell/test/TestPage
+         useCandidateFonts); the production wordmark is the self-hosted
+         Fraunces above and needs nothing else. -->
     <title>Lifespan Atlas</title>
+    <!-- ASK FOR AN UPDATE BEFORE THE APP BOOTS (2026-10-01). The bundle
+         registers the service worker only once it has run — some 700 ms in
+         — and until then nobody had asked whether a newer build exists, so
+         a stale launch painted the old app first and replaced it a second
+         or two later. Asking here means the new worker is already installing
+         when the app mounts. And it TELLS the app: `__laUpdateFound` plus a
+         `la-update-found` event, which lib/reloadVeil reads at module scope,
+         so the "Updating…" veil is up in the app's first render and the old
+         app is never drawn. Only when a worker already controls the page —
+         a first install is not an update. A first visit has no registration
+         and this does nothing. -->
+    <script>
+      try {
+        if (navigator.serviceWorker) {
+          navigator.serviceWorker.getRegistration().then(function (r) {
+            if (!r) return;
+            var found = function () {
+              if (!navigator.serviceWorker.controller) return;
+              window.__laUpdateFound = true;
+              window.dispatchEvent(new Event("la-update-found"));
+            };
+            r.addEventListener("updatefound", found);
+            if (r.installing || r.waiting) found();
+            r.update().catch(function () {});
+          });
+        }
+      } catch (e) {}
+    </script>
     <!-- PRE-PAINT BRAND. Runs before the stylesheet below is used to paint,
          so the very first frame is already the reader's colour and there is
          no flash of a default on the way to it.
@@ -63,9 +91,27 @@
          falls back to the graphite DEFAULT rather than a retired colour. */
       html, body { margin: 0; padding: 0; min-height: 100vh; background: var(--la-brand, #33383D); }
     </style>
-    <script type="module" crossorigin src="./assets/index-DeUCk1Ss.js"></script>
+    <script type="module" crossorigin src="./assets/index-DpyEKDwh.js"></script>
   <link rel="manifest" href="./manifest.webmanifest"></head>
   <body>
     <div id="root"></div>
+    <!-- THE VEIL'S LABEL, ACROSS A RELOAD (2026-10-01). A reload made under
+         a labelled veil (an update: "Updating…") leaves the label in
+         sessionStorage (lib/reloadVeil). This paints it on the boot teal at
+         once, so the words do not vanish for the half second the bundle
+         takes to run; the app's own curtain then draws the same words in
+         the same place, removes this stand-in, and fades out with them.
+         Styled exactly as components/Curtain styles its label. -->
+    <div id="la-boot-label" role="status" style="position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;color:rgba(255,255,255,0.9);font-family:sans-serif;font-size:15px;font-weight:400;pointer-events:none"></div>
+    <script>
+      try {
+        var laCarry = sessionStorage.getItem("la-veil-carry");
+        if (laCarry) {
+          var laLabel = document.getElementById("la-boot-label");
+          laLabel.textContent = laCarry;
+          laLabel.style.display = "flex";
+        }
+      } catch (e) {}
+    </script>
   </body>
 </html>

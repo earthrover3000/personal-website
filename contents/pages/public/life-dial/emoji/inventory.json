@@ -12,6 +12,12 @@
   "asset": true
  },
  {
+  "glyph": "👤",
+  "cps": "1f464",
+  "count": 8,
+  "asset": true
+ },
+ {
   "glyph": "📍",
   "cps": "1f4cd",
   "count": 7,
@@ -26,12 +32,6 @@
  {
   "glyph": "🌱",
   "cps": "1f331",
-  "count": 6,
-  "asset": true
- },
- {
-  "glyph": "👤",
-  "cps": "1f464",
   "count": 6,
   "asset": true
  },
@@ -54,8 +54,20 @@
   "asset": true
  },
  {
+  "glyph": "⏸️",
+  "cps": "23f8-fe0f",
+  "count": 6,
+  "asset": true
+ },
+ {
   "glyph": "👁️",
   "cps": "1f441-fe0f",
+  "count": 5,
+  "asset": true
+ },
+ {
+  "glyph": "📖",
+  "cps": "1f4d6",
   "count": 5,
   "asset": true
  },
@@ -132,12 +144,6 @@
   "asset": true
  },
  {
-  "glyph": "📖",
-  "cps": "1f4d6",
-  "count": 4,
-  "asset": true
- },
- {
   "glyph": "📚",
   "cps": "1f4da",
   "count": 4,
@@ -170,12 +176,6 @@
  {
   "glyph": "⏯️",
   "cps": "23ef-fe0f",
-  "count": 4,
-  "asset": true
- },
- {
-  "glyph": "⏸️",
-  "cps": "23f8-fe0f",
   "count": 4,
   "asset": true
  },
@@ -366,6 +366,12 @@
   "asset": true
  },
  {
+  "glyph": "🐍",
+  "cps": "1f40d",
+  "count": 2,
+  "asset": true
+ },
+ {
   "glyph": "💡",
   "cps": "1f4a1",
   "count": 2,
@@ -452,6 +458,12 @@
  {
   "glyph": "🗓️",
   "cps": "1f5d3-fe0f",
+  "count": 2,
+  "asset": true
+ },
+ {
+  "glyph": "🗺️",
+  "cps": "1f5fa-fe0f",
   "count": 2,
   "asset": true
  },
@@ -654,12 +666,6 @@
   "asset": true
  },
  {
-  "glyph": "🐍",
-  "cps": "1f40d",
-  "count": 1,
-  "asset": true
- },
- {
   "glyph": "🐎",
   "cps": "1f40e",
   "count": 1,
@@ -734,6 +740,12 @@
  {
   "glyph": "📜",
   "cps": "1f4dc",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "📟",
+  "cps": "1f4df",
   "count": 1,
   "asset": true
  },
@@ -896,12 +908,6 @@
  {
   "glyph": "🗑️",
   "cps": "1f5d1-fe0f",
-  "count": 1,
-  "asset": true
- },
- {
-  "glyph": "🗺️",
-  "cps": "1f5fa-fe0f",
   "count": 1,
   "asset": true
  },
