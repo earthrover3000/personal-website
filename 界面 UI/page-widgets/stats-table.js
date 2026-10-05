@@ -8,6 +8,10 @@
 //   2. Live time refresh: "From today" cells, the "Last updated" head line,
 //      and the line-history chart's time axis all track the moment the page
 //      LOADED, not the moment the build ran.
+//
+// The two meet in one place: a table row carrying data-series is a click
+// target for the chart, which then draws that project's history alone (see
+// "One project at a time" below).
 
 // Click-to-sort table headers. Default order is what the server renders, so
 // crawlers + JS-disabled browsers see the canonical sort. JS only affects
@@ -295,19 +299,39 @@
     el.textContent = fmtBuildAgo(secs);
   });
 
-  // Re-render the line-history chart so the time axis ends at now — or, once
+  // Re-render each line-history chart so the time axis ends at now — or, once
   // the event-marks engine has loaded (below), at the end of the CURRENT
   // blocks, the same edge the atlas Blocks view's Current section ends at.
-  const svg = document.querySelector('.line-history-svg[data-chart-points]');
-  if (svg) {
+  //
+  // EVERY chart on the page, each with its own controls (2026-10-05). This
+  // took the first SVG and looked its controls up by document id until the
+  // Backlog page drew a second chart, which then had no crosshair, no unit
+  // axis, no table, and buttons that drove the chart above it. Nothing below
+  // may reach for a control through `document`: go through ctl / ctlGroup.
+  const charts = document.querySelectorAll('.line-history-svg[data-chart-points]');
+  charts.forEach(svg => {
+    // This chart's control bar: source_stats.chart.render_section emits it
+    // directly ahead of the SVG. A page that placed a lone bar elsewhere by
+    // hand still has only one to mean.
+    const prev = svg.previousElementSibling;
+    const controls = prev && prev.matches('.chart-controls') ? prev
+      : charts.length === 1 ? document.querySelector('.chart-controls') : null;
+    // Matched by id / name PREFIX: the engine suffixes both per chart so two
+    // bars stay two radio groups ('scale-log-open-todoist-tasks'), and a page
+    // built before it did carries the bare form. Both answer to 'scale-log'.
+    const ctl = id => controls ? controls.querySelector(`input[id^="${id}"]`) : null;
+    const ctlGroup = name => controls ? controls.querySelectorAll(`input[name^="${name}"]`) : [];
+    const isOn = id => { const el = ctl(id); return !!el && el.checked; };
     let points;
     try { points = JSON.parse(svg.dataset.chartPoints); } catch (e) { points = null; }
     if (points && points.length) {
       const W = +svg.dataset.chartW, H = +svg.dataset.chartH;
       const padL = +svg.dataset.chartPadLeft, padR = +svg.dataset.chartPadRight;
       const padT = +svg.dataset.chartPadTop, padB = +svg.dataset.chartPadBottom;
-      const yMaxLines = +svg.dataset.chartYMaxLines;
-      const yMaxWords = +svg.dataset.chartYMaxWords;
+      // The server sized these for the totals. `let`, like the log bounds
+      // below: showing one project re-measures both axes (measure()).
+      let yMaxLines = +svg.dataset.chartYMaxLines;
+      let yMaxWords = +svg.dataset.chartYMaxWords;
       const chartW = W - padL - padR, chartH = H - padT - padB;
       const dates = points.map(p => new Date(p.ts));
       const xMin = dates[0];
@@ -333,8 +357,10 @@
       //     move; only label text + path geometry do. (A nice step means the top
       //     isn't a tight ceil(ln max) — a little head-room buys clean numbers.)
       const ln = v => Math.log(Math.max(v, 1));
-      const totals = points.map(p => p.total);
-      const wordVals = points.map(p => p.words).filter(v => v != null);
+      // What is on screen, without its gaps. The totals have a count at every
+      // point; one project's series is null wherever the project was not.
+      let totals = points.map(p => p.total).filter(v => v != null);
+      let wordVals = points.map(p => p.words).filter(v => v != null);
       // Smallest 1-2-5 ladder value ≥ raw (…, 0.1, 0.2, 0.5, 1, 2, 5, 10, …).
       const niceStep = raw => {
         const p = Math.pow(10, Math.floor(Math.log10(raw)));
@@ -347,8 +373,8 @@
         const step = niceStep(raw);
         return { lo, hi: lo + step * 4, step };
       };
-      const lnLines = lnBounds(totals);
-      const lnWords = wordVals.length ? lnBounds(wordVals) : { lo: 0, hi: 2, step: 0.5 };
+      let lnLines = lnBounds(totals);
+      let lnWords = wordVals.length ? lnBounds(wordVals) : { lo: 0, hi: 2, step: 0.5 };
       // Label a tick with just enough decimals for its step (0.5→"9.5", 1→"9").
       const fmtStep = (v, step) => {
         const d = Math.max(0, -Math.floor(Math.log10(step) + 1e-9));
@@ -373,24 +399,34 @@
 
       const linesPath = svg.querySelector('path.lines-series');
       const wordsPath = svg.querySelector('path.words-series');
-      const wordsIdx = points.map((p, i) => p.words != null ? i : -1).filter(i => i >= 0);
+      // A words curve needs two points to be a curve — the server's own rule
+      // for emitting the path, asked again of whichever series is on screen.
+      const hasWords = () => !!wordsPath && wordVals.length >= 2;
       const leftLabels = svg.querySelectorAll('.y-label-left');
       const rightLabels = svg.querySelectorAll('.y-label-right');
       const legendLines = svg.querySelector('.legend-lines');
       const legendWords = svg.querySelector('.legend-words');
+      // What the left series IS, as the server named it in the legend — the
+      // readout and the table say the same word the chart does, rather than
+      // 'Lines' under a chart of open tasks.
+      const seriesName = (legendLines && legendLines.textContent) || 'Lines';
 
+      // One series as path data. The pen LIFTS over a null rather than
+      // bridging it: a project that left the log and came back did not hold a
+      // value in between, and a line across the gap would draw one.
+      const trace = (key, y) => {
+        let d = '', pen = false;
+        points.forEach((p, i) => {
+          if (p[key] == null) { pen = false; return; }
+          d += `${pen ? ' L ' : ' M '}${xs(dates[i]).toFixed(1)},${y(p[key]).toFixed(1)}`;
+          pen = true;
+        });
+        return d.trim();
+      };
       function redraw(mode) {
         const s = SCALES[mode] || SCALES.linear;
-        if (linesPath) {
-          linesPath.setAttribute('d', 'M ' + points.map((p, i) =>
-            `${xs(dates[i]).toFixed(1)},${s.yl(p.total).toFixed(1)}`
-          ).join(' L '));
-        }
-        if (wordsPath && wordsIdx.length >= 2) {
-          wordsPath.setAttribute('d', 'M ' + wordsIdx.map(i =>
-            `${xs(dates[i]).toFixed(1)},${s.yw(points[i].words).toFixed(1)}`
-          ).join(' L '));
-        }
+        if (linesPath) linesPath.setAttribute('d', trace('total', s.yl));
+        if (wordsPath) wordsPath.setAttribute('d', trace('words', s.yw));
         leftLabels.forEach((el, i) => { el.textContent = s.labL(i); });
         rightLabels.forEach((el, i) => { el.textContent = s.labR(i); });
       }
@@ -398,22 +434,22 @@
       // Series visibility — two orthogonal checkboxes. Each hides its path, that
       // axis's labels, and its legend swatch; unchecking both leaves a bare
       // gridded frame.
-      const showLines = document.querySelector('#series-lines');
-      const showWords = document.querySelector('#series-words');
+      const showLines = ctl('series-lines');
+      const showWords = ctl('series-words');
       const setVis = (els, on) => els.forEach(el => { if (el) el.style.display = on ? '' : 'none'; });
       function applyVisibility() {
         setVis([linesPath, legendLines, ...leftLabels], !showLines || showLines.checked);
-        setVis([wordsPath, legendWords, ...rightLabels], !showWords || showWords.checked);
+        setVis([wordsPath, legendWords, ...rightLabels], hasWords() && (!showWords || showWords.checked));
       }
       // No words series on this page → the Words checkbox controls nothing.
       if (!wordsPath && showWords) { showWords.checked = false; showWords.disabled = true; }
 
       // Initial y-scale draw + series visibility (Linear default), then wire the
       // scale + series controls to re-scale / re-filter in place.
-      const currentMode = () => document.querySelector('#scale-log:checked') ? 'log' : 'linear';
+      const currentMode = () => isOn('scale-log') ? 'log' : 'linear';
       redraw(currentMode());
       applyVisibility();
-      document.querySelectorAll('input[name="chart-scale"]').forEach(radio => {
+      ctlGroup('chart-scale').forEach(radio => {
         radio.addEventListener('change', () => redraw(currentMode()));
       });
       [showLines, showWords].forEach(cb => cb && cb.addEventListener('change', applyVisibility));
@@ -440,6 +476,11 @@
       try { boundaries = JSON.parse(svg.dataset.chartBlockBoundaries || '[]'); } catch (e) { boundaries = []; }
       let phaseBnd = [];
       try { phaseBnd = JSON.parse(svg.dataset.chartPhaseBoundaries || '[]'); } catch (e) { phaseBnd = []; }
+
+      // Re-render the Table view, if it is the one on screen. A no-op until
+      // the engine import below has built the table (and for good on a page
+      // without one); the project selection further down calls it blind.
+      let refreshTable = () => {};
 
       // The ledger (event-marks/ledger.js) is the marks engine's sibling: it
       // slices the range into periods of one unit (the same walk the axis
@@ -579,13 +620,13 @@
           svg.insertBefore(layer, svg.firstChild);
         }
         const xMode = () =>
-          document.querySelector('#xaxis-months:checked') ? 'months' :
-          document.querySelector('#xaxis-weeks:checked') ? 'weeks' :
-          document.querySelector('#xaxis-phases:checked') ? 'phases' :
-          document.querySelector('#xaxis-blocks:checked') ? 'blocks' :
+          isOn('xaxis-months') ? 'months' :
+          isOn('xaxis-weeks') ? 'weeks' :
+          isOn('xaxis-phases') ? 'phases' :
+          isOn('xaxis-blocks') ? 'blocks' :
           'months';  // no toggle present (e.g. app-stats) → sensible month labels
         drawXAxis(xMode());
-        document.querySelectorAll('input[name="chart-xaxis"]').forEach(radio => {
+        ctlGroup('chart-xaxis').forEach(radio => {
           radio.addEventListener('change', () => drawXAxis(xMode()));
         });
 
@@ -602,15 +643,14 @@
         // Runs inside the engine import's .then, so by the time any of this
         // executes the crosshair block below has finished declaring the
         // helpers it shares (linesOn / wordsOn / the .chart-hover-wrap).
-        const viewTableRadio = document.querySelector('#view-table');
+        const viewTableRadio = ctl('view-table');
         if (viewTableRadio) {
-          const ledgerPts = points.map((p, i) => ({ ms: dates[i].getTime(), total: p.total, words: p.words }));
           const table = document.createElement('table');
           table.className = 'stats-table ledger-table';
           table.hidden = true;
           const wrapEl = svg.closest('.chart-hover-wrap') || svg;
           wrapEl.parentNode.insertBefore(table, wrapEl.nextSibling);
-          const scaleRadios = document.querySelectorAll('input[name="chart-scale"]');
+          const scaleRadios = ctlGroup('chart-scale');
           // Last calendar day of a period: endMs is 00:00 UTC of the day AFTER,
           // so one millisecond back lands on the last day itself.
           const lastDay = ms => new Date(ms - 1).toISOString().slice(0, 10);
@@ -620,10 +660,13 @@
           const num = (v, cls) => `<td class="num${cls ? ' ' + cls : ''}">${v}</td>`;
           function renderLedger(mode) {
             const lOn = linesOn(), wOn = wordsOn();
+            // Built per render, not once: `points` holds whichever series is
+            // on screen, and that changes when a project is selected.
+            const ledgerPts = points.map((p, i) => ({ ms: dates[i].getTime(), total: p.total, words: p.words }));
             const rows = ledger.ledgerRows(ledgerPts, periodsFor(mode, dataEndMs), +now).reverse();
             const daysCol = DAYS_UNITS.includes(mode);
             let html = '<thead><tr>' + th('Period') + th('Last day') + (daysCol ? th('Days', '', 'num') : '');
-            if (lOn) html += th('Lines', '(at close)', 'num col-lines') + th('Change', '(in period)', 'num col-lines');
+            if (lOn) html += th(seriesName, '(at close)', 'num col-lines') + th('Change', '(in period)', 'num col-lines');
             if (wOn) html += th('Words', '(at close)', 'num col-words') + th('Change', '(in period)', 'num col-words');
             html += '</tr></thead><tbody>';
             for (const r of rows) {
@@ -652,22 +695,23 @@
             if (on) renderLedger(xMode());
           }
           applyView();
-          document.querySelectorAll('input[name="chart-view"]').forEach(radio => {
+          ctlGroup('chart-view').forEach(radio => {
             radio.addEventListener('change', applyView);
           });
           // Rows follow the x-axis unit, columns the series checkboxes — but
           // only re-render while the table is the thing on screen.
           const refreshLedger = () => { if (tableOn()) renderLedger(xMode()); };
-          document.querySelectorAll('input[name="chart-xaxis"]').forEach(radio => {
+          ctlGroup('chart-xaxis').forEach(radio => {
             radio.addEventListener('change', refreshLedger);
           });
           [showLines, showWords].forEach(cb => cb && cb.addEventListener('change', refreshLedger));
+          refreshTable = refreshLedger;
         }
       }).catch(() => {
         // Engine unavailable → keep the server date fallbacks; refresh the
         // right-edge label to the live "now" (its old build-time behaviour).
         // The Table view needs the engine too, so its radio goes inert.
-        const tableRadio = document.querySelector('#view-table');
+        const tableRadio = ctl('view-table');
         if (tableRadio) tableRadio.disabled = true;
         const lbl = svg.querySelector('text.x-label-right');
         if (lbl) {
@@ -728,7 +772,7 @@
       // Readouts follow the series checkboxes — a hidden series contributes
       // neither a marker nor a tooltip row.
       const linesOn = () => !showLines || showLines.checked;
-      const wordsOn = () => !!wordsPath && (!showWords || showWords.checked);
+      const wordsOn = () => hasWords() && (!showWords || showWords.checked);
 
       const p2 = n => String(n).padStart(2, '0');
       // Two labelling modes, set by the server:
@@ -835,7 +879,7 @@
           `<span class="ch-val">${val}</span></span>`;
         let html =
           `<span class="ch-when">${fmtWhen(i)}</span>` +
-          (lOn ? field('ch-f-lines', 'Lines', fmtCount(p.total)) : '') +
+          (lOn ? field('ch-f-lines', seriesName, fmtCount(p.total)) : '') +
           (wOn ? field('ch-f-words', 'Words', fmtCount(p.words)) : '');
 
         // The row is unconditional. Through the first day of any history there
@@ -873,7 +917,7 @@
         const x = xs(dates[i]);
         chLine.setAttribute('x1', x.toFixed(1));
         chLine.setAttribute('x2', x.toFixed(1));
-        const lOn = linesOn(), wOn = wordsOn() && p.words != null;
+        const lOn = linesOn() && p.total != null, wOn = wordsOn() && p.words != null;
         if (lOn) {
           chDotLines.setAttribute('cx', x.toFixed(1));
           chDotLines.setAttribute('cy', s.yl(p.total).toFixed(1));
@@ -918,10 +962,155 @@
       // are already settled by the time this runs.
       const refreshCrosshair = () =>
         activeIdx >= 0 ? showAt(activeIdx) : restCrosshair();
-      document.querySelectorAll('input[name="chart-scale"]').forEach(radio => {
+      ctlGroup('chart-scale').forEach(radio => {
         radio.addEventListener('change', refreshCrosshair);
       });
       [showLines, showWords].forEach(cb => cb && cb.addEventListener('change', refreshCrosshair));
+      // ── One project at a time ──────────────────────────────────────────
+      // The chart opens on the totals. Where the server also published
+      // per-project series (data-chart-series — source_stats.chart's
+      // `breakdown`), a table row carrying the matching data-series is a
+      // click target: the SAME chart redraws for that project alone — its own
+      // axes, readout, 24h row and ledger. A second click on the row, the
+      // Total row, or the picker's first option goes back to everything.
+      //
+      // Nothing above knows a selection exists. show() rewrites
+      // points[i].total / .words in place — `points` always holds the series
+      // ON SCREEN — then re-runs the measure → redraw → readout steps the
+      // page load ran, so the paths, the crosshair and the ledger all follow
+      // without a second code path. The time axis does NOT move: every
+      // project is drawn against the whole log, so a project begun in August
+      // starts two-thirds of the way across, where August is.
+      let series = {};
+      try { series = JSON.parse(svg.dataset.chartSeries || '{}'); } catch (e) { series = {}; }
+      if (Object.keys(series).length) {
+        const all = { total: points.map(p => p.total), words: points.map(p => p.words) };
+        const serverMax = { lines: yMaxLines, words: yMaxWords };
+        // Steps back to one value per point: [[i, v], …] says v holds from
+        // point i until the next step, and nothing (null) before the first.
+        const expand = steps => {
+          const out = new Array(points.length).fill(null);
+          (steps || []).forEach(([from, v], k) => {
+            out.fill(v, from, k + 1 < steps.length ? steps[k + 1][0] : points.length);
+          });
+          return out;
+        };
+        // The linear axis top for a series the server did not size: four
+        // equal whole-number steps, the smallest that cover the project's own
+        // maximum. A FINER ladder than the 1-2-5 the totals axis is sized on
+        // (source_stats.chart._round_up_axis_max): that one can leave a curve
+        // in the bottom 40% of the plot — 8,677 lines would sit under a
+        // 20,000 axis — which is tolerable for the one chart the page opens
+        // on and wrong for a view whose whole point is this project's shape.
+        // Here the same count gets 10,000, and no curve tops out below
+        // two-thirds of the height (bar a count too small for whole steps).
+        const AXIS_STEPS = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+        const niceMax = vals => {
+          const raw = Math.max(1, Math.max(0, ...vals) / 4);
+          const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+          return 4 * AXIS_STEPS.map(m => m * mag)
+            .find(step => Number.isInteger(step) && step >= raw - 1e-9);
+        };
+
+        // Rows that answer to this chart: a project it has a series for, or
+        // the empty key — the Total row, which IS the totals.
+        const rows = Array.from(document.querySelectorAll('tr[data-series]'))
+          .filter(r => r.dataset.series === '' || series[r.dataset.series]);
+        const rowOf = key => rows.find(r => r.dataset.series === key);
+        // The picker: the same choice from beside the chart, so comparing
+        // two projects is not a scroll back up to the table for each. It is
+        // also what says WHICH project the curve is, once the row that was
+        // clicked has scrolled away.
+        const picker = document.createElement('select');
+        picker.className = 'chart-scope';
+        picker.setAttribute('aria-label', 'Which project to chart');
+
+        let shown = '';
+        function show(key) {
+          const s = series[key];
+          shown = s ? key : '';
+          const t = s ? expand(s.lines) : all.total;
+          const w = s ? expand(s.words) : all.words;
+          points.forEach((p, i) => { p.total = t[i]; p.words = w[i]; });
+          totals = t.filter(v => v != null);
+          wordVals = w.filter(v => v != null);
+          lnLines = lnBounds(totals);
+          lnWords = wordVals.length ? lnBounds(wordVals) : { lo: 0, hi: 2, step: 0.5 };
+          yMaxLines = s ? niceMax(totals) : serverMax.lines;
+          yMaxWords = s ? niceMax(wordVals) : serverMax.words;
+          // A project with no prose has no words curve. Its checkbox goes
+          // inert rather than unchecked, so the choice it held is still the
+          // reader's when the totals come back.
+          if (showWords && wordsPath) showWords.disabled = !hasWords();
+          redraw(currentMode());
+          applyVisibility();
+          pinColumns();
+          refreshCrosshair();
+          refreshTable();
+          picker.value = shown;
+          picker.classList.toggle('scoped', !!shown);
+          rows.forEach(r => {
+            const on = !!shown && r.dataset.series === shown;
+            r.classList.toggle('series-selected', on);
+            if (on) r.setAttribute('aria-current', 'true'); else r.removeAttribute('aria-current');
+          });
+        }
+
+        // A row behind an off Settings switch (data-unlist — the site's
+        // "Unlisted projects" fold) is not named in the table, so it is not
+        // named in the picker either; and if the switch goes off under the
+        // project being shown, the chart goes back to the totals. Refilled
+        // on the events the fold itself re-reads the switches on — its
+        // listeners are registered ahead of this module's, so <html> is
+        // already re-stamped by the time these run.
+        const listed = key => {
+          const r = rowOf(key);
+          return !r || !r.dataset.unlist
+            || document.documentElement.hasAttribute('data-show-' + r.dataset.unlist);
+        };
+        function fillPicker() {
+          picker.textContent = '';
+          picker.add(new Option('All projects', ''));
+          Object.keys(series).filter(listed).forEach(key => {
+            const r = rowOf(key);
+            picker.add(new Option(r ? r.cells[0].textContent.trim() : key, key));
+          });
+          if (shown && !listed(shown)) show(''); else picker.value = shown;
+        }
+        fillPicker();
+        window.addEventListener('storage', fillPicker);
+        window.addEventListener('pageshow', e => { if (e.persisted) fillPicker(); });
+        picker.addEventListener('change', () => show(picker.value));
+        if (controls) controls.appendChild(picker);
+
+        const calm = window.matchMedia('(prefers-reduced-motion: reduce)');
+        rows.forEach(r => {
+          const key = r.dataset.series;
+          r.classList.add('series-row');
+          r.tabIndex = 0;
+          const pick = () => {
+            if (key && key === shown) { show(''); return; }
+            show(key);
+            // The chart sits below the table and renders folded: open it and
+            // bring it into view, or the click appears to have done nothing.
+            const fold = svg.closest('details');
+            if (fold) fold.open = true;
+            (fold || wrap).scrollIntoView({ block: 'nearest', behavior: calm.matches ? 'auto' : 'smooth' });
+          };
+          r.addEventListener('click', e => {
+            if (e.target.closest('a, button, input, label, select')) return;
+            // The end of a drag across the row's text is a selection, not a click.
+            if (String(window.getSelection())) return;
+            pick();
+          });
+          r.addEventListener('keydown', e => {
+            if (e.target !== r || (e.key !== 'Enter' && e.key !== ' ')) return;
+            e.preventDefault();
+            pick();
+          });
+        });
+      }
+
       // Re-pin once webfonts land: widths first measured against the fallback
       // face would sit a few pixels off the text that finally renders.
       if (document.fonts && document.fonts.ready) {
@@ -934,5 +1123,5 @@
         if (fold.open) { pinColumns(); refreshCrosshair(); }
       });
     }
-  }
+  });
 })();

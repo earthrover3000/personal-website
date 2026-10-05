@@ -5,7 +5,7 @@
    .others / .agg / .group-divider / .totals rows, .num cells, th .th-label /
    .th-qual), .view-toggle radios, .group-toggle, .section-heading,
    .touched-date/-block/-ago triplets, .line-history-svg, .ledger-table,
-   .site-log-rings. */
+   .series-row / .chart-scope (one project's history), .site-log-rings. */
 
 /* ---- Stats-page theme tokens ----
    base.css's rule, followed here: each colour declared EXACTLY ONCE via
@@ -248,11 +248,13 @@ body:has(#group-categories:not(:checked)) #project-outline .section-bar { displa
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
-.series-toggle #series-lines:checked + label {
+/* By id PREFIX: the engine suffixes each chart's control ids so two charts on
+   a page keep separate controls (source_stats/chart.py). */
+.series-toggle input[id^="series-lines"]:checked + label {
   color: var(--accent);
   border-color: var(--accent);
 }
-.series-toggle #series-words:checked + label {
+.series-toggle input[id^="series-words"]:checked + label {
   color: var(--chart-words);
   border-color: var(--chart-words);
 }
@@ -267,6 +269,38 @@ body:has(#group-categories:not(:checked)) #project-outline .section-bar { displa
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ── One project at a time ─────────────────────────────────────────────────
+   A table row whose project the chart has a series for is a click target
+   (stats-table.js adds .series-row; the server only supplies data-series).
+   The row being charted keeps the hover ground and wears the accent on its
+   name — the same colour its curve is drawn in. */
+.stats-table tr.series-row { cursor: pointer; }
+.stats-table tr.series-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.stats-table tbody tr.series-selected { background: var(--surface); }
+.stats-table tbody tr.series-selected td:first-child {
+  color: var(--accent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+/* The same choice from the chart's control bar, pushed to the row's right
+   edge like .fold-all above the table. Wears the pill look, and lights up
+   like a checked pill while it names a project rather than all of them. */
+.chart-scope {
+  margin-left: auto;
+  max-width: 100%;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+.chart-scope:hover { color: var(--text); }
+.chart-scope:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.chart-scope.scoped { color: var(--accent); border-color: var(--accent); }
 
 /* ── Ledger table (the chart's Table view) ────────────────────────────────
    Built at runtime by stats-table.js from the chart's own data-chart-points
