@@ -192,6 +192,23 @@ export function currentBlocks(ctx) {
   return [];
 }
 
+/** Whether the boundary that OPENS block `blockIndex` gets a drawn mark —
+ *  the Clock ring's radial tick (lifespan-atlas BlockLabels.tsx), the
+ *  site-stats chart's boundary gridline (page-widgets/stats-table.js). One
+ *  rule, here, so the two surfaces can never disagree about a line.
+ *
+ *  Every boundary is drawn except the one between TODAY'S block and the next
+ *  when that boundary is synthesised: past the file (today's block has no
+ *  recorded end yet — its close is the user's nearest forward projection) or
+ *  before genesis. A mark there would assert a transition nobody has dated;
+ *  the two labels stand either side of the unmarked boundary instead. The
+ *  last RECORDED boundary is drawn even when it is today's: it opens block
+ *  numBlocks, and only indices beyond that are projected. */
+export function boundaryTickShown(blockIndex, ctx) {
+  if (blockIndex !== msToBlock(ctx.todayMs, ctx) + 1) return true;
+  return blockIndex <= ctx.numBlocks && blockIndex >= 0;
+}
+
 /** currentBlocks as one window [startMs, endMs) — first block's start to the
  *  last one's end — or null when there are none. The end is where the
  *  site-stats Line & Word Counts chart stops, closing on a boundary line: the

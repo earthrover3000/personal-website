@@ -208,9 +208,10 @@ body:has(#group-categories:not(:checked)) #project-outline .section-bar { displa
   color: var(--accent);
   border-color: var(--accent);
 }
-/* Chart controls row: the Linear/Logarithmic scale toggle + the Lines/Words
-   series checkboxes, sitting on one line directly above the chart (which
-   supplies its own top margin). Wraps on narrow viewports. */
+/* Chart controls row: the Chart/Table view, Linear/Logarithmic scale,
+   Lines/Words series, x-axis unit and Snapshots/Days resolution toggles,
+   sitting on one line directly above the chart (which supplies its own top
+   margin). Wraps on narrow viewports. */
 .chart-controls {
   display: flex;
   flex-wrap: wrap;
@@ -366,6 +367,18 @@ details.chart-section[open] > summary .section-heading::before { content: '▾ '
 /* The layer must never eat its own pointer events — the guide sits under the
    cursor by construction, and a hit there would fight the pointermove. */
 .crosshair-layer { pointer-events: none; }
+/* Today — the you-are-here guide at now, behind the series. The hover
+   guide's dash rhythm, so the two read as one family of time markers, and
+   the atlas's anchor red (base.css --anchor-red) so it is never mistaken
+   for the grey hover guide or the faint solid boundary lines. Visible
+   because the x-axis runs past now to the end of the current blocks; this
+   is where the data stops and the projection starts. */
+.today-layer .today-line {
+  stroke: var(--anchor-red);
+  stroke-opacity: 0.7;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
 .crosshair-layer .ch-line {
   stroke: currentColor;
   stroke-opacity: 0.35;

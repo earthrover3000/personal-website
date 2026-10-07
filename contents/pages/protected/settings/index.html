@@ -102,6 +102,13 @@
      in the past too. Pairs with the lifespan-atlas theme's `futureGrey`, the
      SSOT for the same two registers on the app side — keep the two in step. */
   --future-grey: light-dark(#d3d3d3, #4a4a4a);
+  /* THE YOU-ARE-HERE RED — "now is here". The site-stats chart's today
+     guide (stats.css .today-line). One value in both themes, as the atlas
+     has it: it is a marker on top of whatever ground, not a ground. Pairs
+     with the lifespan-atlas's ANCHOR_MARKER_COLOR (lib/eventManifoldSpec),
+     the anchor / today marker red on every atlas surface — keep the two in
+     step, as --future-grey is kept with the theme's futureGrey. */
+  --anchor-red: #e53935;
 }
 :root[data-theme="light"] { color-scheme: light; }  /* forced light */
 :root[data-theme="dark"]  { color-scheme: dark;  }   /* forced dark  */

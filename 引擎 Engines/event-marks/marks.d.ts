@@ -79,6 +79,9 @@ export type CurrentBlock = {
 export declare function currentBlocks(ctx: BlockContext): CurrentBlock[];
 /** currentBlocks as one window [startMs, endMs); null when empty. */
 export declare function currentBlocksWindow(ctx: BlockContext): { startMs: number; endMs: number } | null;
+/** Whether the boundary opening block `blockIndex` is drawn: false only for
+ *  the synthesised boundary between today's block and the next. See marks.js. */
+export declare function boundaryTickShown(blockIndex: number, ctx: BlockContext): boolean;
 
 export type MonthMarkMs = {
   startMs: number;

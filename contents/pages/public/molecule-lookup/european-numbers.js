@@ -160,7 +160,7 @@ var EUROPEAN_NUMBERS = [
   ["E305", "ascorbyl stearate", "CCCCCCCCCCCCCCCCCC(=O)OC[C@@H]([C@@H]1C(=C(C(=O)O1)O)O)O", "", "LITUBCVUXPBCGA-WMZHIEFXSA-N"],
   ["E306", "Tocopherol-rich extract", "", "POL-FAD-IMPORT-3081", ""],
   ["E307", "Alpha-tocopherol", "CC1=C(C2=C(CC[C@@](O2)(C)CCC[C@H](C)CCC[C@H](C)CCCC(C)C)C(=C1O)C)C", "POL-FAD-IMPORT-3082", "GVJHHUAWPYXKBD-IEOSBIPESA-N"],
-  ["E307a", "alpha-tocopherol", "CC1=C(C2=C(CC[C@@](O2)(C)CCC[C@H](C)CCC[C@H](C)CCCC(C)C)C(=C1O)C)C", "", "GVJHHUAWPYXKBD-IEOSBIPESA-N"],
+  ["E307a", "RRR-alpha-tocopherol", "CC1=C(C2=C(CC[C@@](O2)(C)CCC[C@H](C)CCC[C@H](C)CCCC(C)C)C(=C1O)C)C", "", "GVJHHUAWPYXKBD-IEOSBIPESA-N"],
   ["E308", "Gamma-tocopherol", "CC1=C(C=C2CC[C@@](OC2=C1C)(C)CCC[C@H](C)CCC[C@H](C)CCCC(C)C)O", "POL-FAD-IMPORT-3083", "QUEDXNHFTDJVIY-DQCZWYHMSA-N"],
   ["E309", "Delta-tocopherol", "CC1=CC(=CC2=C1O[C@](CC2)(C)CCC[C@H](C)CCC[C@H](C)CCCC(C)C)O", "POL-FAD-IMPORT-3084", "GZIFEOYASATJEH-VHFRWLAGSA-N"],
   ["E310", "Propyl gallate", "CCCOC(=O)C1=CC(=C(C(=C1)O)O)O", "POL-FAD-IMPORT-3085", "ZTHYODDOHIVTJV-UHFFFAOYSA-N"],

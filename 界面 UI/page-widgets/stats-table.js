@@ -322,9 +322,12 @@
     const ctl = id => controls ? controls.querySelector(`input[id^="${id}"]`) : null;
     const ctlGroup = name => controls ? controls.querySelectorAll(`input[name^="${name}"]`) : [];
     const isOn = id => { const el = ctl(id); return !!el && el.checked; };
-    let points;
-    try { points = JSON.parse(svg.dataset.chartPoints); } catch (e) { points = null; }
-    if (points && points.length) {
+    // The server's payload, never written to. Everything below reads
+    // `points`, a VIEW of it — the same snapshots, or one per day — rebuilt by
+    // loadPoints() when the resolution radio moves.
+    let rawPoints;
+    try { rawPoints = JSON.parse(svg.dataset.chartPoints); } catch (e) { rawPoints = null; }
+    if (rawPoints && rawPoints.length) {
       const W = +svg.dataset.chartW, H = +svg.dataset.chartH;
       const padL = +svg.dataset.chartPadLeft, padR = +svg.dataset.chartPadRight;
       const padT = +svg.dataset.chartPadTop, padB = +svg.dataset.chartPadBottom;
@@ -333,16 +336,98 @@
       let yMaxLines = +svg.dataset.chartYMaxLines;
       let yMaxWords = +svg.dataset.chartYMaxWords;
       const chartW = W - padL - padR, chartH = H - padT - padB;
-      const dates = points.map(p => new Date(p.ts));
-      const xMin = dates[0];
-      const last = dates[dates.length - 1];
-      // Where the DATA ends: the newest snapshot, or now. The Table view reads
-      // up to here and no further — a ledger has no rows for periods that have
-      // not happened. The chart's domain starts here too, and widens to the
-      // current blocks' end once the engine can say where that is.
-      const dataEndMs = +(last > now ? last : now);
-      const domainMinMs = +xMin;
-      let domainMaxMs = dataEndMs;
+      const DAY_MS = 86400000;
+
+      // ── Point resolution: every snapshot, or one point per day ───────────
+      // The public page's payload arrives collapsed to days (data-chart-daily
+      // — a privacy rule the engine applies before the timestamps reach the
+      // markup, source_stats.chart._collapse_daily) and offers no choice. A
+      // payload that kept its clock times — the private page, the consoles —
+      // carries a Snapshots / Days radio instead, and Days applies THE SAME
+      // RULE here: UTC calendar day, the day's last snapshot, stamped
+      // midnight, idle days carrying the previous value forward so the series
+      // holds flat and steps rather than ramping across a gap. So the private
+      // page's Days view is the public page's chart, point for point — one of
+      // its views, not a different page. Change one rule, change both.
+      //
+      // One extension the server cannot make (2026-10-07): the grid runs
+      // THROUGH TODAY, not just to the last snapshot's day. The carry-forward
+      // argument does not stop at the last build — a day since then with no
+      // build is the same kind of idle day, and the count really held — so
+      // the Days view reaches the present and its 24h row reads a plain zero
+      // there. A page is built by a build, so the server's grid already ends
+      // on its own today and only goes stale afterwards; the points the two
+      // share stay identical. Never past today: there is no value there.
+      // Snapshots mode gets no such point — its points are real builds, and
+      // a synthetic one at now would be the chart's one invented reading.
+      //
+      // Returns one entry per output point: the ts to show and the index of
+      // the raw snapshot it reads. Snapshots mode is the identity.
+      const collapseDaily = raw => {
+        const lastOf = new Map();   // 'YYYY-MM-DD' → index of that day's LAST snapshot
+        raw.forEach((p, i) => {
+          const day = String(p.ts).slice(0, 10);
+          const j = lastOf.get(day);
+          // Not trusting payload order: a mis-ordered input would otherwise
+          // stamp some other build's values onto the day.
+          if (j === undefined || raw[j].ts <= p.ts) lastOf.set(day, i);
+        });
+        const days = [...lastOf.keys()].filter(d => !isNaN(Date.parse(d))).sort();
+        if (!days.length) return raw.map((p, i) => ({ ts: p.ts, j: i }));
+        const out = [];
+        let carried = lastOf.get(days[0]);
+        const end = Math.max(Date.parse(days[days.length - 1]), Date.parse(now.toISOString().slice(0, 10)));
+        for (let ms = Date.parse(days[0]); ms <= end; ms += DAY_MS) {
+          const day = new Date(ms).toISOString().slice(0, 10);
+          if (lastOf.has(day)) carried = lastOf.get(day);
+          out.push({ ts: `${day}T00:00:00Z`, j: carried });
+        }
+        return out;
+      };
+      const serverDaily = svg.dataset.chartDaily === '1';
+      const daysMode = () => isOn('res-days');
+
+      // What `points` currently is, and everything derived from its shape.
+      // All `let`: loadPoints() rebuilds the lot, and every function below
+      // reads these bindings live rather than caching a value.
+      let points, dates, idxMap, baseOf, dayGranular;
+      let dataEndMs, domainMinMs, domainMaxMs;
+      // The current blocks' end once the engine has said where it is, so a
+      // rebuilt domain keeps the window the axis was widened to.
+      let winEndMs = 0;
+      // One value per point out of a per-RAW-snapshot array — how a project's
+      // series (indexed by the server against the raw payload) follows the
+      // view: a day shows the value its last snapshot had.
+      const pick = arr => idxMap.map(j => arr[j]);
+      function loadPoints() {
+        const view = daysMode() ? collapseDaily(rawPoints) : rawPoints.map((p, i) => ({ ts: p.ts, j: i }));
+        idxMap = view.map(v => v.j);
+        points = view.map(v => ({ ts: v.ts, total: rawPoints[v.j].total, words: rawPoints[v.j].words }));
+        dates = points.map(p => new Date(p.ts));
+        const last = dates[dates.length - 1];
+        // Where the DATA ends: the newest snapshot, or now. The Table view reads
+        // up to here and no further — a ledger has no rows for periods that have
+        // not happened. The chart's domain starts here too, and widens to the
+        // current blocks' end once the engine can say where that is.
+        dataEndMs = +(last > now ? last : now);
+        domainMinMs = +dates[0];
+        domainMaxMs = Math.max(dataEndMs, winEndMs);
+        dayGranular = serverDaily || daysMode();
+        // baseOf[i] — the newest snapshot at or before (t_i − 24h), or -1 where
+        // the history doesn't reach a full day back (the 24h row, below).
+        // Precomputed in one forward sweep: the cutoff only ever moves right,
+        // so the baseline pointer never rewinds, and the hover path becomes an
+        // array lookup rather than a backward scan through four thousand
+        // points on every mouse move.
+        baseOf = new Array(points.length);
+        let j = -1;
+        for (let i = 0; i < points.length; i++) {
+          const cutoff = dates[i].getTime() - DAY_MS;
+          while (j + 1 < points.length && dates[j + 1].getTime() <= cutoff) j++;
+          baseOf[i] = j;
+        }
+      }
+      loadPoints();
       const xForMs = ms => padL + chartW * (ms - domainMinMs) / Math.max(1, domainMaxMs - domainMinMs);
       const xs = d => xForMs(+d);
 
@@ -423,12 +508,45 @@
         });
         return d.trim();
       };
+      // ── Today ────────────────────────────────────────────────────────────
+      // A dashed red guide at now (stats.css .today-line — the atlas's anchor
+      // red, user decision 2026-10-07). The axis runs past now to the end of
+      // the current blocks, so without it the eye has no way to tell where
+      // the data stops and the projection starts. Behind the series like the
+      // boundary lines, and placed by redraw(): the domain it sits in widens
+      // once the marks engine says where the current blocks end. Drawn in
+      // both resolutions — today is a fact of the clock, not of the series.
+      // The strip beyond it is inert to the pointer (user decision
+      // 2026-10-07): there is no value there to read, so the crosshair rests
+      // rather than snapping back to a point the cursor is nowhere near.
+      const SVGNS = 'http://www.w3.org/2000/svg';
+      const todayLayer = document.createElementNS(SVGNS, 'g');
+      todayLayer.setAttribute('class', 'today-layer');
+      const todayLine = document.createElementNS(SVGNS, 'line');
+      todayLine.setAttribute('class', 'today-line');
+      todayLine.setAttribute('y1', padT);
+      todayLine.setAttribute('y2', H - padB);
+      const todayTip = document.createElementNS(SVGNS, 'title');
+      todayTip.textContent = `Today · ${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      todayLine.appendChild(todayTip);
+      todayLayer.appendChild(todayLine);
+      svg.insertBefore(todayLayer, svg.firstChild);
+      function placeToday() {
+        const x = xForMs(+now);
+        todayLine.setAttribute('x1', x.toFixed(1));
+        todayLine.setAttribute('x2', x.toFixed(1));
+        // Only strictly inside the plot — on the right edge it would double
+        // the frame's own line.
+        todayLayer.style.display = x > padL + 0.5 && x < W - padR - 0.5 ? '' : 'none';
+      }
+
       function redraw(mode) {
         const s = SCALES[mode] || SCALES.linear;
         if (linesPath) linesPath.setAttribute('d', trace('total', s.yl));
         if (wordsPath) wordsPath.setAttribute('d', trace('words', s.yw));
         leftLabels.forEach((el, i) => { el.textContent = s.labL(i); });
         rightLabels.forEach((el, i) => { el.textContent = s.labR(i); });
+        placeToday();
       }
 
       // Series visibility — two orthogonal checkboxes. Each hides its path, that
@@ -469,7 +587,6 @@
       // shared event-marks engine (引擎 Engines/event-marks) — the SAME module the
       // Atlas uses — so the numbers agree. Loaded via dynamic import so an
       // engine-load failure disables only the x-axis, not the table sorting.
-      const SVGNS = 'http://www.w3.org/2000/svg';
       const EN_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       const clampX = x => Math.max(padL, Math.min(W - padR, x));
       let boundaries = [];
@@ -481,6 +598,10 @@
       // the engine import below has built the table (and for good on a page
       // without one); the project selection further down calls it blind.
       let refreshTable = () => {};
+      // Likewise the unit axis: its boundary lines are placed against the
+      // domain, which moves when the first point does (a day starts at
+      // midnight, its first snapshot later).
+      let refreshAxis = () => {};
 
       // The ledger (event-marks/ledger.js) is the marks engine's sibling: it
       // slices the range into periods of one unit (the same walk the axis
@@ -507,8 +628,9 @@
         // data vault) → no window, and the axis ends at now as before.
         const current = marks.currentBlocks(blockCtx);
         const win = marks.currentBlocksWindow(blockCtx);
-        if (win && win.endMs > domainMaxMs) {
-          domainMaxMs = win.endMs;
+        if (win) winEndMs = win.endMs;
+        if (winEndMs > domainMaxMs) {
+          domainMaxMs = winEndMs;
           redraw(currentMode());
           refreshCrosshair();
         }
@@ -583,8 +705,14 @@
           }
           for (const t of ticksFor(mode)) {
             const bx = xForMs(t.startMs);
-            // Boundary gridline — only when it lands strictly inside the plot.
-            if (bx > padL + 0.5 && bx < W - padR - 0.5) {
+            // Boundary gridline — only when it lands strictly inside the plot,
+            // and, for blocks, only where the Clock ring would draw its tick
+            // (event-marks boundaryTickShown — one rule for both surfaces):
+            // the boundary between today's block and the next is not drawn
+            // while it is a projection, so the chart never rules a line at a
+            // transition nobody has dated.
+            const drawn = mode !== 'blocks' || marks.boundaryTickShown(t.blockIndex, blockCtx);
+            if (drawn && bx > padL + 0.5 && bx < W - padR - 0.5) {
               layer.appendChild(boundaryLine(bx));
             }
             // Label centred at the period midpoint, clamped into the plot so an
@@ -629,6 +757,7 @@
         ctlGroup('chart-xaxis').forEach(radio => {
           radio.addEventListener('change', () => drawXAxis(xMode()));
         });
+        refreshAxis = () => drawXAxis(xMode());
 
         // ── Table view: the series at the close of each period ──────────────
         // Same points as the chart, read as a step function at each x-axis
@@ -775,15 +904,14 @@
       const wordsOn = () => hasWords() && (!showWords || showWords.checked);
 
       const p2 = n => String(n).padStart(2, '0');
-      // Two labelling modes, set by the server:
+      // Two labelling modes, set by the server or by the Days radio
+      // (loadPoints):
       //   • full  — snapshots are stored UTC and rendered in LOCAL time, which
       //     is what "when was I working" means to the reader. Unlabelled.
-      //   • daily — the payload was collapsed to one point per day and stamped
-      //     midnight UTC, so it carries no real clock. Read the ISO date
-      //     straight off the string: passing it through Date would print an
-      //     invented 00:00 and, for any reader west of UTC, roll the date back
-      //     a day.
-      const dayGranular = svg.dataset.chartDaily === '1';
+      //   • daily — the points are one per day and stamped midnight UTC, so
+      //     they carry no real clock. Read the ISO date straight off the
+      //     string: passing it through Date would print an invented 00:00 and,
+      //     for any reader west of UTC, roll the date back a day.
       const fmtWhen = i => {
         if (dayGranular) return points[i].ts.slice(0, 10);
         const d = dates[i];
@@ -813,22 +941,10 @@
       // change only where a build recorded a snapshot, so the value at any
       // instant between two snapshots IS the earlier one's. A quiet fortnight
       // doesn't smear the window — it means the baseline is a fortnight old
-      // and the 24h delta is correctly zero.
-      const DAY_MS = 86400000;
-      // baseOf[i] — the newest snapshot at or before (t_i − 24h), or -1 where
-      // the history doesn't reach a full day back. Precomputed in one forward
-      // sweep: the cutoff only ever moves right, so the baseline pointer never
-      // rewinds, and the hover path becomes an array lookup rather than a
-      // backward scan through four thousand points on every mouse move.
-      const baseOf = new Array(points.length);
-      {
-        let j = -1;
-        for (let i = 0; i < points.length; i++) {
-          const cutoff = dates[i].getTime() - DAY_MS;
-          while (j + 1 < points.length && dates[j + 1].getTime() <= cutoff) j++;
-          baseOf[i] = j;
-        }
-      }
+      // and the 24h delta is correctly zero. In Days mode every point sits at
+      // midnight, so the row reads as the day's change over the day before.
+      // The baseline index per point (baseOf) is built with the points, in
+      // loadPoints.
       const deltaAt = (i, key) => {
         const b = baseOf[i] >= 0 ? points[baseOf[i]] : null;
         if (!b || b[key] == null || points[i][key] == null) return null;
@@ -950,6 +1066,16 @@
         // so the CTM is the only reliable way to undo the responsive scaling.
         const v = q.matrixTransform(ctm.inverse());
         if (v.x < padL - 8 || v.x > W - padR + 8) { restCrosshair(); return; }
+        // Past now there is nothing to read — the series has no value yet
+        // and the axis only runs on so it can close on a block boundary. The
+        // cut is at NOW, not at the newest point: in Snapshots mode the last
+        // build may be days old, and the stretch up to today still holds its
+        // value (the step function), so it keeps snapping to that build.
+        // Beyond the today guide the crosshair rests, which already means
+        // "pointing at nothing": guide hidden, readout on the newest point.
+        // The same 8-unit tolerance as the plot edges, so a point stamped
+        // seconds ago is still reachable under the guide itself.
+        if (v.x > xForMs(+now) + 8) { restCrosshair(); return; }
         showAt(nearestIndex(v.x));
       });
       svg.addEventListener('pointerleave', restCrosshair);
@@ -981,20 +1107,43 @@
       // without a second code path. The time axis does NOT move: every
       // project is drawn against the whole log, so a project begun in August
       // starts two-thirds of the way across, where August is.
+      // Re-run the measure → redraw → readout steps for whatever `points` now
+      // holds. The default is the totals' path; where per-project series
+      // exist (below) it becomes show(shown), which does the same for the
+      // selected project.
+      let reapply = () => {
+        totals = points.map(p => p.total).filter(v => v != null);
+        wordVals = points.map(p => p.words).filter(v => v != null);
+        lnLines = lnBounds(totals);
+        lnWords = wordVals.length ? lnBounds(wordVals) : { lo: 0, hi: 2, step: 0.5 };
+        redraw(currentMode());
+        applyVisibility();
+        pinColumns();
+        refreshCrosshair();
+        refreshTable();
+      };
+
       let series = {};
       try { series = JSON.parse(svg.dataset.chartSeries || '{}'); } catch (e) { series = {}; }
       if (Object.keys(series).length) {
-        const all = { total: points.map(p => p.total), words: points.map(p => p.words) };
         const serverMax = { lines: yMaxLines, words: yMaxWords };
-        // Steps back to one value per point: [[i, v], …] says v holds from
-        // point i until the next step, and nothing (null) before the first.
+        // Steps back to one value per RAW snapshot: [[i, v], …] says v holds
+        // from snapshot i until the next step, and nothing (null) before the
+        // first. The server indexed the steps against its payload, so they
+        // expand against rawPoints, and pick() carries the result into
+        // whatever view `points` is.
         const expand = steps => {
-          const out = new Array(points.length).fill(null);
+          const out = new Array(rawPoints.length).fill(null);
           (steps || []).forEach(([from, v], k) => {
-            out.fill(v, from, k + 1 < steps.length ? steps[k + 1][0] : points.length);
+            out.fill(v, from, k + 1 < steps.length ? steps[k + 1][0] : rawPoints.length);
           });
           return out;
         };
+        const all = { total: rawPoints.map(p => p.total), words: rawPoints.map(p => p.words) };
+        const expanded = {};
+        for (const key of Object.keys(series)) {
+          expanded[key] = { total: expand(series[key].lines), words: expand(series[key].words) };
+        }
         // The linear axis top for a series the server did not size: four
         // equal whole-number steps, the smallest that cover the project's own
         // maximum. A FINER ladder than the 1-2-5 the totals axis is sized on
@@ -1027,10 +1176,10 @@
 
         let shown = '';
         function show(key) {
-          const s = series[key];
+          const s = expanded[key];
           shown = s ? key : '';
-          const t = s ? expand(s.lines) : all.total;
-          const w = s ? expand(s.words) : all.words;
+          const t = pick(s ? s.total : all.total);
+          const w = pick(s ? s.words : all.words);
           points.forEach((p, i) => { p.total = t[i]; p.words = w[i]; });
           totals = t.filter(v => v != null);
           wordVals = w.filter(v => v != null);
@@ -1088,7 +1237,7 @@
           const key = r.dataset.series;
           r.classList.add('series-row');
           r.tabIndex = 0;
-          const pick = () => {
+          const choose = () => {
             if (key && key === shown) { show(''); return; }
             show(key);
             // The chart sits below the table and renders folded: open it and
@@ -1101,15 +1250,34 @@
             if (e.target.closest('a, button, input, label, select')) return;
             // The end of a drag across the row's text is a selection, not a click.
             if (String(window.getSelection())) return;
-            pick();
+            choose();
           });
           r.addEventListener('keydown', e => {
             if (e.target !== r || (e.key !== 'Enter' && e.key !== ' ')) return;
             e.preventDefault();
-            pick();
+            choose();
           });
         });
+        // A resolution change rebuilds `points` on the totals; re-select the
+        // project that was showing so the view, not the selection, is what
+        // changed.
+        reapply = () => show(shown);
       }
+
+      // ── Snapshots / Days ────────────────────────────────────────────────
+      // Rebuild the view, then everything that was measured against it: the
+      // paths and axes, the readout (its index space changed, so the hover
+      // state is dropped), the ledger and the unit axis. Only where the
+      // control bar offers the radio — a server-collapsed page has nothing to
+      // switch (see collapseDaily above).
+      ctlGroup('chart-res').forEach(radio => {
+        radio.addEventListener('change', () => {
+          loadPoints();
+          activeIdx = -1;
+          reapply();
+          refreshAxis();
+        });
+      });
 
       // Re-pin once webfonts land: widths first measured against the fallback
       // face would sit a few pixels off the text that finally renders.
