@@ -38,6 +38,14 @@
       background: transparent;
       color: var(--accent);
     }
+
+    /* The other PDF flavour: a footnote to the read button, not a third
+       button. Muted and small like .head-meta; only the variant word is a link. */
+    .container > p.pdf-variant {
+      margin: 0.4rem 0 0;
+      color: var(--muted);
+      font-size: 0.85em;
+    }
   </style>
 </head>
 <body>
@@ -54,10 +62,51 @@
     <p>Originally submitted August 2021 &middot; Revised October 2026</p>
   </div>
 
-  <a class="download" href="dissertation.pdf">Read / download PDF</a>
+  <a class="download" id="read-pdf" href="dissertation.pdf">Read / download PDF</a>
   <a class="download secondary" href="dissertation-source.zip">Download LaTeX source (zip)</a>
+  <!-- Written as the light-mode version to match the button's static href;
+       the script below rewrites both together. -->
+  <p class="pdf-variant">Opens in <span id="pdf-current">light</span>. Also available in <a id="pdf-other" href="dissertation-dark.pdf">dark</a>.</p>
 
 </div>
+<script>
+  /* The read link follows the page's theme: dissertation-dark.pdf (built
+     alongside the light one by scripts/src/build.py) when the page is dark,
+     dissertation.pdf otherwise; the muted line under it names the current
+     flavour and links the other one (for printing, or for a reader who
+     wants to know a dark version exists). "Dark" is judged from the body's
+     rendered background rather than re-deriving the theme rules — base.css
+     resolves the manual choice (data-theme) and the OS preference through
+     light-dark(), and whatever it painted is the truth. Re-judged when the
+     site toggle fires and when the OS preference flips. Without JavaScript
+     everything stays as written: the light PDF, which is also the one to
+     print, with the dark one linked. */
+  (function () {
+    var link = document.getElementById('read-pdf');
+    var current = document.getElementById('pdf-current');
+    var other = document.getElementById('pdf-other');
+    var PDF = { light: 'dissertation.pdf', dark: 'dissertation-dark.pdf' };
+    var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    function pageIsDark() {
+      var m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(getComputedStyle(document.body).backgroundColor);
+      if (!m) return false;
+      return (0.2126 * m[1] + 0.7152 * m[2] + 0.0722 * m[3]) < 128;
+    }
+    function update() {
+      var now = pageIsDark() ? 'dark' : 'light';
+      var not = now === 'dark' ? 'light' : 'dark';
+      link.href = PDF[now];
+      current.textContent = now;
+      other.textContent = not;
+      other.href = PDF[not];
+    }
+    update();
+    // Both signals land before the repaint; defer so the computed style has caught up.
+    function later() { setTimeout(update, 0); }
+    if (window.onSiteThemeChange) window.onSiteThemeChange(later);
+    if (mq) { mq.addEventListener ? mq.addEventListener('change', later) : mq.addListener(later); }
+  })();
+</script>
 <script src="../../../../界面 UI/page-widgets/version-check.js" defer></script>
 </body>
 </html>
