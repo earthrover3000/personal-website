@@ -548,6 +548,16 @@ a.app-card:hover {
   transform: translateY(-1px);
 }
 .app-card__icon { width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0; display: block; }
+/* A BARE GLYPH (the app's vendored favicon.svg) rather than the rasterized
+   PWA icon, which bakes its accent tile into the pixels. The tile is a
+   platform requirement of installable icons, not a property of the app, so
+   the card consumes the two facts the registry holds — glyph and accent —
+   and decides the tile here. The accent rides on the element as `--tile`;
+   this is THE ONE place that says whether the index paints it. Today it
+   does not (user decision 2026-10-10: transparent). To bring the tile back,
+   theme-aware if wanted: `background: var(--tile)` plus the ~12% inset the
+   rasterizer uses (`emoji_icons.raster.tiled_svg`). */
+.app-card__icon--glyph { background: transparent; }
 .app-card__body { flex: 1; min-width: 0; }
 /* Card body locked to exactly two text lines so card height is predictable
    and baselines align with the side-column link list (which uses the same
