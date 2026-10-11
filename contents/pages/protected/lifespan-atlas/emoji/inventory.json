@@ -30,12 +30,6 @@
   "asset": true
  },
  {
-  "glyph": "🌱",
-  "cps": "1f331",
-  "count": 6,
-  "asset": true
- },
- {
   "glyph": "📖",
   "cps": "1f4d6",
   "count": 6,
@@ -120,8 +114,8 @@
   "asset": true
  },
  {
-  "glyph": "🌿",
-  "cps": "1f33f",
+  "glyph": "🌱",
+  "cps": "1f331",
   "count": 4,
   "asset": true
  },
@@ -336,18 +330,6 @@
   "asset": true
  },
  {
-  "glyph": "🌲",
-  "cps": "1f332",
-  "count": 2,
-  "asset": true
- },
- {
-  "glyph": "🌷",
-  "cps": "1f337",
-  "count": 2,
-  "asset": true
- },
- {
   "glyph": "🎁",
   "cps": "1f381",
   "count": 2,
@@ -516,12 +498,6 @@
   "asset": true
  },
  {
-  "glyph": "🪴",
-  "cps": "1fab4",
-  "count": 2,
-  "asset": true
- },
- {
   "glyph": "🫘",
   "cps": "1fad8",
   "count": 2,
@@ -576,14 +552,20 @@
   "asset": true
  },
  {
-  "glyph": "🌸",
-  "cps": "1f338",
+  "glyph": "🌲",
+  "cps": "1f332",
   "count": 1,
   "asset": true
  },
  {
-  "glyph": "🌼",
-  "cps": "1f33c",
+  "glyph": "🌷",
+  "cps": "1f337",
+  "count": 1,
+  "asset": true
+ },
+ {
+  "glyph": "🌿",
+  "cps": "1f33f",
   "count": 1,
   "asset": true
  },
@@ -1002,14 +984,14 @@
   "asset": true
  },
  {
-  "glyph": "🪶",
-  "cps": "1fab6",
+  "glyph": "🪴",
+  "cps": "1fab4",
   "count": 1,
   "asset": true
  },
  {
-  "glyph": "🪻",
-  "cps": "1fabb",
+  "glyph": "🪶",
+  "cps": "1fab6",
   "count": 1,
   "asset": true
  },
