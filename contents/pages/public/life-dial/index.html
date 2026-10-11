@@ -19,11 +19,11 @@
          a render-blocking stylesheet on every load, for the benefit of the
          dev Test page alone. From behind a proxy that request was measured
          stalling for ten seconds, with the page blank until it returned.
-         The alternatives load on demand, the first time the Wordmark flag
-         picks one (theme/wordmark); the production wordmark is the
-         self-hosted Caveat above (the default since 2026-10-11, user
-         decision; Fraunces, also self-hosted, stays for the descriptor line
-         under it) and needs nothing else. -->
+         The candidates then loaded on demand behind a dev flag, until the
+         pick was made and the roster deleted (2026-10-11, user decision):
+         the wordmark is the self-hosted Caveat above, Fraunces, also
+         self-hosted, is the descriptor line under it, and nothing else
+         loads (theme/wordmark). -->
     <title>Life Dial</title>
     <!-- ASK FOR AN UPDATE BEFORE THE APP BOOTS (2026-10-01). The bundle
          registers the service worker only once it has run — some 700 ms in
@@ -101,7 +101,7 @@
          falls back to the graphite DEFAULT rather than a retired colour. */
       html, body { margin: 0; padding: 0; min-height: 100vh; background: var(--la-brand, #33383D); }
     </style>
-    <script type="module" crossorigin src="./assets/index-DgBDDOgL.js"></script>
+    <script type="module" crossorigin src="./assets/index-D5L87Ymd.js"></script>
   <link rel="manifest" href="./manifest.webmanifest"></head>
   <body>
     <div id="root"></div>
