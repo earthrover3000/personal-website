@@ -1058,6 +1058,22 @@ a.app-card:hover {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* THE APP'S OWN WORDMARK FACE on its card name (user decision 2026-10-11;
+   index_page's `wordmark` entry key, which also links the font from the
+   app's folder). The face and its weight ride in as custom properties; the
+   SIZE is decided here, where the card's two-line box is: the font grows by
+   the app's `scale` (Caveat at 1.27 matches the x-height of the 1.1rem UI
+   names beside it) but the line box is pinned to the 1.54rem the unscaled
+   name occupies (1.1rem × 1.4), so the card height arithmetic above holds.
+   A tall face overflows that box invisibly — its INK must fit (Caveat's
+   spans 0.93 em, 1.30rem at this size). The fallback paints until the
+   woff2 arrives (font-display: swap); the head preloads it. */
+.app-card__name--wordmark {
+  font-family: var(--wordmark-family);
+  font-weight: var(--wordmark-weight, 400);
+  font-size: calc(1.1rem * var(--wordmark-scale, 1));
+  line-height: 1.54rem;
+}
 .app-card__desc {
   font-size: 0.85rem;
   color: var(--muted);
@@ -1081,6 +1097,8 @@ a.app-card:hover {
   letter-spacing: 0.02em;
 }
 </style>
+<link rel="preload" href="../protected/lifespan-atlas/fonts/Caveat-SemiBold.woff2" as="font" type="font/woff2" crossorigin>
+<style>@font-face{font-family:"Caveat";font-weight:600;font-style:normal;font-display:swap;src:url("../protected/lifespan-atlas/fonts/Caveat-SemiBold.woff2") format("woff2")}</style>
 <script>// page-nav.js — shared in-page search + navigation wiring (was auto-toc.js).
 //
 // Two responsibilities, dispatched from DOM structure (no per-page opt-in):
@@ -1357,7 +1375,7 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="home/">Home</a> <span class="sep">›</span> <span aria-current="page">Protected Index</span></nav>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">139,016 lines · 22,433 words · 919 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-11T20:02:50Z" title="2026-10-11 20:02 UTC" class="relative-time">2026-10-11</time></p>
+<p class="head-meta"><a href="site-stats/">139,108 lines · 22,433 words · 919 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-11T21:35:48Z" title="2026-10-11 21:35 UTC" class="relative-time">2026-10-11</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
@@ -1394,7 +1412,7 @@ a.app-card:hover {
   <a class="app-card" href="../protected/lifespan-atlas/" target="_blank" rel="noopener" data-categories="art personal maths philosophy">
     <img class="app-card__icon app-card__icon--glyph" src="data:image/svg+xml;base64,PCEtLSBGbHVlbnQgRW1vamkgIkNvbXBhc3MiIOKAlCBnaXRodWIuY29tL21pY3Jvc29mdC9mbHVlbnR1aS1lbW9qaSBAIDYyZWNkYzAsIE1JVCBsaWNlbnNlIC0tPg0KPHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4NCjxwYXRoIGQ9Ik0xNS41IDI4QzIxLjg1MTMgMjggMjcgMjIuODUxMyAyNyAxNi41QzI3IDEwLjE0ODcgMjEuODUxMyA1IDE1LjUgNUM5LjE0ODczIDUgNCAxMC4xNDg3IDQgMTYuNUM0IDIyLjg1MTMgOS4xNDg3MyAyOCAxNS41IDI4WiIgZmlsbD0iI0Y0RjRGNCIvPg0KPHBhdGggZD0iTTI1Ljc2NjMgNy43MzI5OEMyNi4xNDMxIDcuOTA0NCAyNi41NjA5IDggMjcgOEMyOC42NSA4IDMwIDYuNjUgMzAgNUMzMCAzLjM1IDI4LjY1IDIgMjcgMkMyNS4zNSAyIDI0IDMuMzUgMjQgNUMyNCA1LjQzOTA5IDI0LjA5NTYgNS44NTY5MyAyNC4yNjcgNi4yMzM3M0MyMS45MDgzIDQuMjE3NTIgMTguODQ2MyAzIDE1LjUgM0M4LjA0NDE2IDMgMiA5LjA0NDE2IDIgMTYuNUMyIDIzLjk1NTggOC4wNDQxNiAzMCAxNS41IDMwQzIyLjk1NTggMzAgMjkgMjMuOTU1OCAyOSAxNi41QzI5IDEzLjE1MzcgMjcuNzgyNSAxMC4wOTE3IDI1Ljc2NjMgNy43MzI5OFpNMjUuMzkgNC45OUMyNS4zOSA0LjEgMjYuMTEgMy4zOCAyNyAzLjM4QzI3Ljg4IDMuMzggMjguNjEgNC4xIDI4LjYxIDQuOTlDMjguNjEgNS44OCAyNy44OSA2LjYgMjcgNi42QzI2LjExIDYuNiAyNS4zOSA1Ljg4IDI1LjM5IDQuOTlaTTI2IDE2LjVDMjYgMjIuMjk5IDIxLjI5OSAyNyAxNS41IDI3QzkuNzAxMDEgMjcgNSAyMi4yOTkgNSAxNi41QzUgMTAuNzAxIDkuNzAxMDEgNiAxNS41IDZDMjEuMjk5IDYgMjYgMTAuNzAxIDI2IDE2LjVaIiBmaWxsPSIjRjlDMjNDIi8+DQo8cGF0aCBkPSJNMjUuMzUgNy45OTk5NEwyMy45OSA2LjYzOTk0TDI1LjM1IDUuMjc5OTRDMjUuNzIgNC45MDk5NCAyNi4zMyA0LjkwOTk0IDI2LjcxIDUuMjc5OTRDMjcuMDggNS42NDk5NCAyNy4wOCA2LjI1OTk0IDI2LjcxIDYuNjM5OTRMMjUuMzUgNy45OTk5NFoiIGZpbGw9IiNGRkIwMkUiLz4NCjxwYXRoIGQ9Ik0xMy4yMjM0IDE3LjcyNEwxMS40MDk5IDIwLjIxQzExLjIyOTkgMjAuNDUgMTEuNTI5OSAyMC43NSAxMS43Nzk5IDIwLjU4TDE0LjI3MzUgMTguNzYwOUwxNS4yMDk5IDI0Ljc0OTlDMTUuMjU5OSAyNS4wNzk5IDE1LjczOTkgMjUuMDc5OSAxNS43ODk5IDI0Ljc0OTlMMTYuODY2MyAxNy44NjYzTDIzLjc0OTkgMTYuNzg5OUMyNC4wNzk5IDE2LjczOTkgMjQuMDc5OSAxNi4yNTk5IDIzLjc0OTkgMTYuMjA5OUwxNy43NjA5IDE1LjI3MzVMMTkuNTc5OSAxMi43OEMxOS43NTk5IDEyLjU0IDE5LjQ1OTkgMTIuMjQgMTkuMjA5OSAxMi40MUwxNi43MjQgMTQuMjIzNEwxNS43ODk5IDguMjQ5OTRDMTUuNzM5OSA3LjkxOTk0IDE1LjI1OTkgNy45MTk5NCAxNS4yMDk5IDguMjQ5OTRMMTQuMTMzNiAxNS4xMzM2TDcuMjQ5OTQgMTYuMjA5OUM2LjkxOTk0IDE2LjI1OTkgNi45MTk5NCAxNi43Mzk5IDcuMjQ5OTQgMTYuNzg5OUwxMy4yMjM0IDE3LjcyNFoiIGZpbGw9IiM5QjlCOUIiLz4NCjxwYXRoIGQ9Ik0xNy4zMzgyIDE1TDIwLjkzOTMgMjEuMzI3MUMyMS4xNjMxIDIxLjcyNTUgMjAuNzI1MiAyMi4xNjI5IDIwLjMyNjEgMjEuOTM5NEwxNCAxOC4zMzM2TDE3LjMzODIgMTVaIiBmaWxsPSIjOUI5QjlCIi8+DQo8cGF0aCBkPSJNMTMuNjc1NiAxOEwxMC4wNjA1IDExLjY3MkM5LjgzNzU2IDExLjI3NDEgMTAuMjczNyAxMC44MzczIDEwLjY3MTEgMTEuMDYwNkwxNyAxNC42NzFMMTMuNjc1NiAxOFoiIGZpbGw9IiNFNTMzNkQiLz4NCjxwYXRoIGQ9Ik0xNS41IDE5QzE2Ljg4MDcgMTkgMTggMTcuODgwNyAxOCAxNi41QzE4IDE1LjExOTMgMTYuODgwNyAxNCAxNS41IDE0QzE0LjExOTMgMTQgMTMgMTUuMTE5MyAxMyAxNi41QzEzIDE3Ljg4MDcgMTQuMTE5MyAxOSAxNS41IDE5WiIgZmlsbD0iI0QzRDNEMyIvPg0KPC9zdmc+DQo=" alt="" style="--tile: #33383D" />
     <div class="app-card__body">
-      <div class="app-card__name">Lifespan Atlas</div>
+      <div class="app-card__name app-card__name--wordmark" style="--wordmark-family: 'Caveat', cursive; --wordmark-weight: 600; --wordmark-scale: 1.27">Lifespan Atlas</div>
       <div class="app-card__desc">An autobiographical chronoscope</div>
     </div>
     <div class="app-card__open">Open</div>

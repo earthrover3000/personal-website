@@ -1056,6 +1056,22 @@ a.app-card:hover {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* THE APP'S OWN WORDMARK FACE on its card name (user decision 2026-10-11;
+   index_page's `wordmark` entry key, which also links the font from the
+   app's folder). The face and its weight ride in as custom properties; the
+   SIZE is decided here, where the card's two-line box is: the font grows by
+   the app's `scale` (Caveat at 1.27 matches the x-height of the 1.1rem UI
+   names beside it) but the line box is pinned to the 1.54rem the unscaled
+   name occupies (1.1rem × 1.4), so the card height arithmetic above holds.
+   A tall face overflows that box invisibly — its INK must fit (Caveat's
+   spans 0.93 em, 1.30rem at this size). The fallback paints until the
+   woff2 arrives (font-display: swap); the head preloads it. */
+.app-card__name--wordmark {
+  font-family: var(--wordmark-family);
+  font-weight: var(--wordmark-weight, 400);
+  font-size: calc(1.1rem * var(--wordmark-scale, 1));
+  line-height: 1.54rem;
+}
 .app-card__desc {
   font-size: 0.85rem;
   color: var(--muted);
