@@ -12,6 +12,7 @@
     <meta name="theme-color" content="#9b5de5" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="preload" href="fonts/Caveat-SemiBold.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="fonts/Fraunces-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <!-- NO REQUEST TO THE INTERNET IN THIS HEAD (2026-10-01). The five
          wordmark-candidate fonts used to be linked here from Google Fonts —
@@ -20,7 +21,9 @@
          stalling for ten seconds, with the page blank until it returned.
          The alternatives load on demand, the first time the Wordmark flag
          picks one (theme/wordmark); the production wordmark is the
-         self-hosted Fraunces above and needs nothing else. -->
+         self-hosted Caveat above (the default since 2026-10-11, user
+         decision; Fraunces, also self-hosted, stays for the descriptor line
+         under it) and needs nothing else. -->
     <title>Life Dial</title>
     <!-- ASK FOR AN UPDATE BEFORE THE APP BOOTS (2026-10-01). The bundle
          registers the service worker only once it has run — some 700 ms in
@@ -77,6 +80,13 @@
     </script>
     <style>
       @font-face {
+        font-family: "Caveat";
+        font-style: normal;
+        font-weight: 600;
+        font-display: swap;
+        src: url("fonts/Caveat-SemiBold.woff2") format("woff2");
+      }
+      @font-face {
         font-family: "Fraunces";
         font-style: normal;
         font-weight: 400;
@@ -91,7 +101,7 @@
          falls back to the graphite DEFAULT rather than a retired colour. */
       html, body { margin: 0; padding: 0; min-height: 100vh; background: var(--la-brand, #33383D); }
     </style>
-    <script type="module" crossorigin src="./assets/index--JKlsO5A.js"></script>
+    <script type="module" crossorigin src="./assets/index-QTeaq_D-.js"></script>
   <link rel="manifest" href="./manifest.webmanifest"></head>
   <body>
     <div id="root"></div>
