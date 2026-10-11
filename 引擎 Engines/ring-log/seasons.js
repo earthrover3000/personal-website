@@ -63,4 +63,10 @@ export const SEASON_EMOJIS = ["🌿", "🔆", "🍂", "❄️"];
  *  is FIXED and non-rotating: a glyph's screen angle is `midpoint · 2π`
  *  measured clockwise from 12 o'clock, with NO spiral phase applied, because
  *  the calendar is what it marks. */
-export const SEASON_EMOJI_RATIO = 0.55;
+// 0.56 since 2026-10-11 (user decision; 0.55 before): the ONE radius for
+// every surface that draws the four season glyphs — the atlas's Clockface,
+// Rings spiral and week-manifold Disc, and the site-stats rings widget. The
+// Disc had kept its own rule (1.14 × its coil, 171 px in the 304 chart, to
+// clear a coil that fills the chart) against the others' 167.2; 0.56 is
+// 170.2, which keeps the Disc's clearance and lets it read this constant.
+export const SEASON_EMOJI_RATIO = 0.56;

@@ -316,10 +316,10 @@
     //     o'clock going clockwise, and the spiral is calendar-fixed with
     //     the reference December solstice there, so a bare `mid·2π` is the
     //     glyph's screen angle.
-    //   • the radius is SEASON_EMOJI_RATIO (0.55) of the canvas edge, well
+    //   • the radius is SEASON_EMOJI_RATIO (0.56) of the canvas edge, well
     //     outside the rim (0.43·size) — and it still fits the square
     //     UNPADDED because the four midpoints land 37.5° off the axes, i.e.
-    //     near the corners: max offset is 0.55·cos(37.5°) ≈ 0.436 of the
+    //     near the corners: max offset is 0.56·cos(37.5°) ≈ 0.444 of the
     //     edge against the 0.5 half-width. Do not "centre" them onto the
     //     axes; that is what would push them off-canvas.
     // They are the ONLY thing drawn outside the band, and the band cannot
