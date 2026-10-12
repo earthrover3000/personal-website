@@ -414,6 +414,12 @@
   "asset": true
  },
  {
+  "glyph": "📸",
+  "cps": "1f4f8",
+  "count": 2,
+  "asset": true
+ },
+ {
   "glyph": "📻",
   "cps": "1f4fb",
   "count": 2,
@@ -726,6 +732,12 @@
   "asset": true
  },
  {
+  "glyph": "📔",
+  "cps": "1f4d4",
+  "count": 1,
+  "asset": true
+ },
+ {
   "glyph": "📜",
   "cps": "1f4dc",
   "count": 1,
@@ -764,12 +776,6 @@
  {
   "glyph": "📶",
   "cps": "1f4f6",
-  "count": 1,
-  "asset": true
- },
- {
-  "glyph": "📸",
-  "cps": "1f4f8",
   "count": 1,
   "asset": true
  },
