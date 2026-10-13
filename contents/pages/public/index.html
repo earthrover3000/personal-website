@@ -924,6 +924,9 @@ div.app-card--planned, div.app-card--parked { cursor: default; }
   text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;
 }
 .row-group:first-child { margin-top: 0; }
+/* The `pages` caption opens its list, so the rule above zeroes its top margin
+   — right under the card shelf it captions the end of. Give that one back. */
+.apps + ul > .row-group:first-child { margin-top: 1.1rem; }
 /* A heading with nothing visible under it is noise, and there are two ways to
    get one: a group holding only teasers whose switch is off, and — already
    true before any of this — a text or category filter that excludes every row
@@ -1373,7 +1376,7 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Home</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">142,097 lines · 22,433 words · 919 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-12" class="relative-time relative-time-coarse">2026-10-12</time></p>
+<p class="head-meta"><a href="site-stats/">142,157 lines · 22,433 words · 919 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-13" class="relative-time relative-time-coarse">2026-10-13</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
@@ -1404,6 +1407,7 @@ a.app-card:hover {
 </div>
 <div class="row">
 <div class="main">
+<div class="row-group">Apps</div>
 <div class="apps">
   <a class="app-card" href="life-dial/" target="_blank" rel="noopener" data-categories="art personal maths philosophy">
     <img class="app-card__icon app-card__icon--glyph" src="data:image/svg+xml;base64,PCEtLSBGbHVlbnQgRW1vamkgIlR3ZWx2ZSBvY2xvY2siIOKAlCBnaXRodWIuY29tL21pY3Jvc29mdC9mbHVlbnR1aS1lbW9qaSBAIDYyZWNkYzAsIE1JVCBsaWNlbnNlIC0tPgo8c3ZnIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMjggMTZDMjggMjIuNjI3NCAyMi42Mjc0IDI4IDE2IDI4QzkuMzcyNTggMjggNCAyMi42Mjc0IDQgMTZDNCA5LjM3MjU4IDkuMzcyNTggNCAxNiA0QzIyLjYyNzQgNCAyOCA5LjM3MjU4IDI4IDE2WiIgZmlsbD0iI0U2RTZFNiIvPgo8cGF0aCBkPSJNMTYuMDI4OCA3LjAwODc5QzE2LjU4MTEgNy4wMDg3OSAxNy4wMjg4IDcuNDU2NSAxNy4wMjg4IDguMDA4NzlWMTYuMDA0MkMxNy4wMjg4IDE2LjU1NjUgMTYuNTgxMSAxNy4wMDQyIDE2LjAyODggMTcuMDA0MkMxNS40NzY1IDE3LjAwNDIgMTUuMDI4OCAxNi41NTY1IDE1LjAyODggMTYuMDA0MlY4LjAwODc5QzE1LjAyODggNy40NTY1IDE1LjQ3NjUgNy4wMDg3OSAxNi4wMjg4IDcuMDA4NzlaIiBmaWxsPSIjQ0EwQjRBIi8+CjxwYXRoIGQ9Ik0xNiAyN0M5LjkyNDg3IDI3IDUgMjIuMDc1MSA1IDE2QzUgOS45MjQ4NyA5LjkyNDg3IDUgMTYgNUMyMi4wNzUxIDUgMjcgOS45MjQ4NyAyNyAxNkMyNyAyMi4wNzUxIDIyLjA3NTEgMjcgMTYgMjdaTTE2IDMwQzIzLjczMiAzMCAzMCAyMy43MzIgMzAgMTZDMzAgOC4yNjgwMSAyMy43MzIgMiAxNiAyQzguMjY4MDEgMiAyIDguMjY4MDEgMiAxNkMyIDIzLjczMiA4LjI2ODAxIDMwIDE2IDMwWiIgZmlsbD0iIzYzNjM2MyIvPgo8cGF0aCBkPSJNMTYuMDI4OCA5LjAzNjk5QzE2LjU4MTEgOS4wMzY5OSAxNy4wMjg4IDkuNDg0NyAxNy4wMjg4IDEwLjAzN1YxNi4wMDQyQzE3LjAyODggMTYuNTU2NCAxNi41ODExIDE3LjAwNDIgMTYuMDI4OCAxNy4wMDQyQzE1LjQ3NjUgMTcuMDA0MiAxNS4wMjg4IDE2LjU1NjQgMTUuMDI4OCAxNi4wMDQyVjEwLjAzN0MxNS4wMjg4IDkuNDg0NyAxNS40NzY1IDkuMDM2OTkgMTYuMDI4OCA5LjAzNjk5WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTE4LjAyIDE2LjAxMTJDMTguMDIgMTcuMTA5NiAxNy4xMjk2IDE4IDE2LjAzMTIgMThDMTQuOTMyOCAxOCAxNC4wNDI0IDE3LjEwOTYgMTQuMDQyNCAxNi4wMTEyQzE0LjA0MjQgMTQuOTEyOCAxNC45MzI4IDE0LjAyMjMgMTYuMDMxMiAxNC4wMjIzQzE3LjEyOTYgMTQuMDIyMyAxOC4wMiAxNC45MTI4IDE4LjAyIDE2LjAxMTJaIiBmaWxsPSIjOUI5QjlCIi8+Cjwvc3ZnPgo=" alt="" style="--tile: #9b5de5" />
@@ -1415,6 +1419,7 @@ a.app-card:hover {
   </a>
 </div>
 <ul>
+  <li class="row-group">Pages</li>
   <li data-categories="linguistics politics"><a href="chinese-languages/">Chinese Language(s)</a></li>
   <li data-categories="geography transport"><a href="cities-transport/">Cities & Transport</a></li>
   <li data-categories="linguistics maths"><a href="linguistics-dissertation/">Linguistics Dissertation</a></li>
@@ -1436,7 +1441,9 @@ a.app-card:hover {
 </div>
 <div class="side">
 <ul>
+  <li class="row-group">Links</li>
   <li><a href="webrings/">Webrings</a></li>
+  <li class="row-group">Site</li>
   <li><a href="site-stats/">Site Stats</a></li>
   <li><a href="site-roadmap/">Site Roadmap</a></li>
   <li><a href="category-matrix/">Category Matrix</a></li>
@@ -1525,7 +1532,8 @@ a.app-card:hover {
   // row (the reveal rules keyed off <html data-show-*>, .search-hidden,
   // .cat-hidden) and none of them knows about the others; asking whether the
   // element has any box is the single answer that accounts for all three.
-  const heads = document.querySelectorAll('.main > ul > li.row-group');
+  const heads = document.querySelectorAll(
+    '.main > ul > li.row-group, .side > ul > li.row-group');
   if (!heads.length) return;
   const sync = () => {
     heads.forEach(h => {

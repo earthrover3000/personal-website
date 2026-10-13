@@ -860,6 +860,9 @@ div.app-card--planned, div.app-card--parked { cursor: default; }
   text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;
 }
 .row-group:first-child { margin-top: 0; }
+/* The `pages` caption opens its list, so the rule above zeroes its top margin
+   — right under the card shelf it captions the end of. Give that one back. */
+.apps + ul > .row-group:first-child { margin-top: 1.1rem; }
 /* A heading with nothing visible under it is noise, and there are two ways to
    get one: a group holding only teasers whose switch is off, and — already
    true before any of this — a text or category filter that excludes every row

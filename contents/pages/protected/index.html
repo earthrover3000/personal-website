@@ -924,6 +924,9 @@ div.app-card--planned, div.app-card--parked { cursor: default; }
   text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;
 }
 .row-group:first-child { margin-top: 0; }
+/* The `pages` caption opens its list, so the rule above zeroes its top margin
+   — right under the card shelf it captions the end of. Give that one back. */
+.apps + ul > .row-group:first-child { margin-top: 1.1rem; }
 /* A heading with nothing visible under it is noise, and there are two ways to
    get one: a group holding only teasers whose switch is off, and — already
    true before any of this — a text or category filter that excludes every row
@@ -1375,7 +1378,7 @@ a.app-card:hover {
 <div class="container">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="home/">Home</a> <span class="sep">›</span> <span aria-current="page">Protected Index</span></nav>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">142,097 lines · 22,433 words · 919 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-12T17:54:08Z" title="2026-10-12 17:54 UTC" class="relative-time">2026-10-12</time></p>
+<p class="head-meta"><a href="site-stats/">142,157 lines · 22,433 words · 919 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-13T07:17:30Z" title="2026-10-13 07:17 UTC" class="relative-time">2026-10-13</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
@@ -1408,6 +1411,7 @@ a.app-card:hover {
 </div>
 <div class="row">
 <div class="main">
+<div class="row-group">Apps</div>
 <div class="apps">
   <a class="app-card" href="../protected/lifespan-atlas/" target="_blank" rel="noopener" data-categories="art personal maths philosophy">
     <img class="app-card__icon app-card__icon--glyph" src="data:image/svg+xml;base64,PCEtLSBGbHVlbnQgRW1vamkgIkNvbXBhc3MiIOKAlCBnaXRodWIuY29tL21pY3Jvc29mdC9mbHVlbnR1aS1lbW9qaSBAIDYyZWNkYzAsIE1JVCBsaWNlbnNlIC0tPg0KPHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4NCjxwYXRoIGQ9Ik0xNS41IDI4QzIxLjg1MTMgMjggMjcgMjIuODUxMyAyNyAxNi41QzI3IDEwLjE0ODcgMjEuODUxMyA1IDE1LjUgNUM5LjE0ODczIDUgNCAxMC4xNDg3IDQgMTYuNUM0IDIyLjg1MTMgOS4xNDg3MyAyOCAxNS41IDI4WiIgZmlsbD0iI0Y0RjRGNCIvPg0KPHBhdGggZD0iTTI1Ljc2NjMgNy43MzI5OEMyNi4xNDMxIDcuOTA0NCAyNi41NjA5IDggMjcgOEMyOC42NSA4IDMwIDYuNjUgMzAgNUMzMCAzLjM1IDI4LjY1IDIgMjcgMkMyNS4zNSAyIDI0IDMuMzUgMjQgNUMyNCA1LjQzOTA5IDI0LjA5NTYgNS44NTY5MyAyNC4yNjcgNi4yMzM3M0MyMS45MDgzIDQuMjE3NTIgMTguODQ2MyAzIDE1LjUgM0M4LjA0NDE2IDMgMiA5LjA0NDE2IDIgMTYuNUMyIDIzLjk1NTggOC4wNDQxNiAzMCAxNS41IDMwQzIyLjk1NTggMzAgMjkgMjMuOTU1OCAyOSAxNi41QzI5IDEzLjE1MzcgMjcuNzgyNSAxMC4wOTE3IDI1Ljc2NjMgNy43MzI5OFpNMjUuMzkgNC45OUMyNS4zOSA0LjEgMjYuMTEgMy4zOCAyNyAzLjM4QzI3Ljg4IDMuMzggMjguNjEgNC4xIDI4LjYxIDQuOTlDMjguNjEgNS44OCAyNy44OSA2LjYgMjcgNi42QzI2LjExIDYuNiAyNS4zOSA1Ljg4IDI1LjM5IDQuOTlaTTI2IDE2LjVDMjYgMjIuMjk5IDIxLjI5OSAyNyAxNS41IDI3QzkuNzAxMDEgMjcgNSAyMi4yOTkgNSAxNi41QzUgMTAuNzAxIDkuNzAxMDEgNiAxNS41IDZDMjEuMjk5IDYgMjYgMTAuNzAxIDI2IDE2LjVaIiBmaWxsPSIjRjlDMjNDIi8+DQo8cGF0aCBkPSJNMjUuMzUgNy45OTk5NEwyMy45OSA2LjYzOTk0TDI1LjM1IDUuMjc5OTRDMjUuNzIgNC45MDk5NCAyNi4zMyA0LjkwOTk0IDI2LjcxIDUuMjc5OTRDMjcuMDggNS42NDk5NCAyNy4wOCA2LjI1OTk0IDI2LjcxIDYuNjM5OTRMMjUuMzUgNy45OTk5NFoiIGZpbGw9IiNGRkIwMkUiLz4NCjxwYXRoIGQ9Ik0xMy4yMjM0IDE3LjcyNEwxMS40MDk5IDIwLjIxQzExLjIyOTkgMjAuNDUgMTEuNTI5OSAyMC43NSAxMS43Nzk5IDIwLjU4TDE0LjI3MzUgMTguNzYwOUwxNS4yMDk5IDI0Ljc0OTlDMTUuMjU5OSAyNS4wNzk5IDE1LjczOTkgMjUuMDc5OSAxNS43ODk5IDI0Ljc0OTlMMTYuODY2MyAxNy44NjYzTDIzLjc0OTkgMTYuNzg5OUMyNC4wNzk5IDE2LjczOTkgMjQuMDc5OSAxNi4yNTk5IDIzLjc0OTkgMTYuMjA5OUwxNy43NjA5IDE1LjI3MzVMMTkuNTc5OSAxMi43OEMxOS43NTk5IDEyLjU0IDE5LjQ1OTkgMTIuMjQgMTkuMjA5OSAxMi40MUwxNi43MjQgMTQuMjIzNEwxNS43ODk5IDguMjQ5OTRDMTUuNzM5OSA3LjkxOTk0IDE1LjI1OTkgNy45MTk5NCAxNS4yMDk5IDguMjQ5OTRMMTQuMTMzNiAxNS4xMzM2TDcuMjQ5OTQgMTYuMjA5OUM2LjkxOTk0IDE2LjI1OTkgNi45MTk5NCAxNi43Mzk5IDcuMjQ5OTQgMTYuNzg5OUwxMy4yMjM0IDE3LjcyNFoiIGZpbGw9IiM5QjlCOUIiLz4NCjxwYXRoIGQ9Ik0xNy4zMzgyIDE1TDIwLjkzOTMgMjEuMzI3MUMyMS4xNjMxIDIxLjcyNTUgMjAuNzI1MiAyMi4xNjI5IDIwLjMyNjEgMjEuOTM5NEwxNCAxOC4zMzM2TDE3LjMzODIgMTVaIiBmaWxsPSIjOUI5QjlCIi8+DQo8cGF0aCBkPSJNMTMuNjc1NiAxOEwxMC4wNjA1IDExLjY3MkM5LjgzNzU2IDExLjI3NDEgMTAuMjczNyAxMC44MzczIDEwLjY3MTEgMTEuMDYwNkwxNyAxNC42NzFMMTMuNjc1NiAxOFoiIGZpbGw9IiNFNTMzNkQiLz4NCjxwYXRoIGQ9Ik0xNS41IDE5QzE2Ljg4MDcgMTkgMTggMTcuODgwNyAxOCAxNi41QzE4IDE1LjExOTMgMTYuODgwNyAxNCAxNS41IDE0QzE0LjExOTMgMTQgMTMgMTUuMTE5MyAxMyAxNi41QzEzIDE3Ljg4MDcgMTQuMTE5MyAxOSAxNS41IDE5WiIgZmlsbD0iI0QzRDNEMyIvPg0KPC9zdmc+DQo=" alt="" style="--tile: #33383D" />
@@ -1419,6 +1423,7 @@ a.app-card:hover {
   </a>
 </div>
 <ul>
+  <li class="row-group">Pages</li>
   <li data-categories="linguistics politics"><a href="../protected/chinese-languages/">Chinese Language(s)</a></li>
   <li data-categories="geography transport"><a href="../protected/cities-transport/">Cities & Transport</a></li>
   <li data-categories="practical"><a href="../protected/itinerary-calendar/">Itinerary Calendar</a></li>
@@ -1441,6 +1446,7 @@ a.app-card:hover {
 </div>
 <div class="side">
 <ul>
+  <li class="row-group">Links</li>
   <li class="dev-entry">
     <a class="app-card dev-entry" href="../protected/launchbolt/" target="_blank" rel="noopener">
       <img class="app-card__icon app-card__icon--glyph" src="data:image/svg+xml;base64,PCEtLSBGbHVlbnQgRW1vamkgIkhpZ2ggdm9sdGFnZSIg4oCUIGdpdGh1Yi5jb20vbWljcm9zb2Z0L2ZsdWVudHVpLWVtb2ppIEAgNjJlY2RjMCwgTUlUIGxpY2Vuc2UgLS0+DQo8c3ZnIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPg0KPHBhdGggZD0iTTE3LjgzMSAzLjMwNjE5TDguMTA1NDQgMTcuMjA1MUM3Ljg0NTU1IDE3LjU3NTEgOC4wNjAyIDE4IDguNSAxOEgxMi41QzEyLjg0OTggMTggMTMgMTguMTQgMTMgMTguNUwxMyAyOS4yNjI5QzEzIDI5Ljk3MjkgMTMuODU5NiAzMC4yODI4IDE0LjI2OTQgMjkuNzEyOUwyMy44ODgzIDE2Ljg4NTFDMjQuMTU4MiAxNi41MTUyIDIzLjkzOTggMTYgMjMuNSAxNkMyMy41IDE2IDIwLjUgMTYgMjAgMTZDMTkuNSAxNiAxOSAxNS41IDE5IDE1QzE5IDE0LjUgMTkgMy45OTk5OCAxOSAzLjQ5OTk5QzE5IDMgMTguMjQwOCAyLjcyNjIzIDE3LjgzMSAzLjMwNjE5WiIgZmlsbD0iI0ZGODIyRCIvPg0KPC9zdmc+DQo=" alt="" style="--tile: #000000" />
@@ -1452,6 +1458,7 @@ a.app-card:hover {
     </a>
   </li>
   <li><a href="webrings/">Webrings</a></li>
+  <li class="row-group">Site</li>
   <li><a href="site-stats/">Site Stats</a></li>
   <li><a href="site-roadmap/">Site Roadmap</a></li>
   <li><a href="category-matrix/">Category Matrix</a></li>
@@ -1540,7 +1547,8 @@ a.app-card:hover {
   // row (the reveal rules keyed off <html data-show-*>, .search-hidden,
   // .cat-hidden) and none of them knows about the others; asking whether the
   // element has any box is the single answer that accounts for all three.
-  const heads = document.querySelectorAll('.main > ul > li.row-group');
+  const heads = document.querySelectorAll(
+    '.main > ul > li.row-group, .side > ul > li.row-group');
   if (!heads.length) return;
   const sync = () => {
     heads.forEach(h => {
