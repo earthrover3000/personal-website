@@ -98,7 +98,7 @@ body:has(#group-categories:not(:checked)) .stats-table tbody tr:not(.section-bar
   margin: 0 0 0.8rem;
 }
 .group-toggle label { cursor: pointer; }
-body:has(#group-categories:not(:checked)) #project-outline .section-bar { display: none; }
+body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .section-bar { display: none; }
 /* Aggregate row for projects hidden at this tier — sits last in tbody,
    not part of the sort, visually softened so it reads as "rest". */
 .stats-table tbody .others td { color: var(--muted); font-style: italic; }

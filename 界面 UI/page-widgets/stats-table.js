@@ -1222,7 +1222,10 @@
           picker.add(new Option('All projects', ''));
           Object.keys(series).filter(listed).forEach(key => {
             const r = rowOf(key);
-            picker.add(new Option(r ? r.cells[0].textContent.trim() : key, key));
+            // data-series-label: the row's name where the table's own cell is
+            // ambiguous out of its section (two `Scripts` rows, say).
+            const label = r ? (r.dataset.seriesLabel || r.cells[0].textContent.trim()) : key;
+            picker.add(new Option(label, key));
           });
           if (shown && !listed(shown)) show(''); else picker.value = shown;
         }
