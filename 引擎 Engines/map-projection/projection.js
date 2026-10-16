@@ -69,6 +69,49 @@
     return [lamDeg * D2R, Math.log(Math.tan(Math.PI / 4 + lat / 2))];
   }
 
+  // Adams "World in a Square II" (O. S. Adams 1929, US C&GS Special Publication 153): CONFORMAL,
+  // the whole sphere inside a square, with the four corners as its only singular points. Ported
+  // line for line from PROJ's adams.cpp (mode ADAMS_WS2, after Evenden's libproj4), including its
+  // Chebyshev fit of the elliptic integral F(φ | k²=½), good to ~1e-7. In normal aspect the poles
+  // are two opposite corners, (0°, ±180°) the other two, and the edge is the cut along λ = ±180° —
+  // the same seam convention map-geometry.js already cuts on. Its own use here is Spilhaus (an
+  // oblique aspect, see the `oblique` framing below). Returns [east, north].
+  var ADAMS_C0 = 2.19174570831038;
+  var ADAMS_C = [-8.58691003636495e-07, 2.02692115653689e-07, 3.12960480765314e-05,
+                 5.30394739921063e-05, -0.0012804644680613, -0.00575574836830288, 0.0914203033408211];
+  var RSQRT2 = Math.SQRT1_2;
+  function ellInt5(phi) {                                    // F(φ | m=½), even Chebyshev series × φ (Clenshaw)
+    var y = phi * 2 / Math.PI; y = 2 * y * y - 1;
+    var y2 = 2 * y, d1 = 0, d2 = 0, t, i;
+    for (i = 0; i < ADAMS_C.length; i++) { t = d1; d1 = y2 * d1 - d2 + ADAMS_C[i]; d2 = t; }
+    return phi * (y * d1 - d2 + 0.5 * ADAMS_C0);
+  }
+  function adamsWs2(phiDeg, lamDeg) {
+    var spp = Math.tan(0.5 * phiDeg * D2R);
+    var a = Math.cos(Math.asin(clamp1(spp))) * Math.sin(0.5 * lamDeg * D2R);
+    var sm = (spp + a) < 0, sn = (spp - a) < 0;
+    var b = Math.acos(clamp1(spp)); a = Math.acos(clamp1(a));
+    var m = Math.asin(clamp1(Math.sqrt(1 + Math.min(0, Math.cos(a + b))))); if (sm) m = -m;
+    var n = Math.asin(clamp1(Math.sqrt(Math.abs(1 - Math.max(0, Math.cos(a - b)))))); if (sn) n = -n;
+    var x = ellInt5(m), y = ellInt5(n);
+    return [RSQRT2 * (x - y), RSQRT2 * (x + y)];              // the square, turned 45° so its sides run with the axes
+  }
+
+  // Lagrange (1779) — the CONFORMAL whole world in a circle (Lambert's construction with n = ½:
+  // squash the longitudes by n, then map the conformal plane into a disc). Formula as in Snyder's
+  // Album of Map Projections (1989) and d3-geo-projection's geoLagrange(0.5). The poles are the two
+  // singular points, at the top and bottom of the rim, and the rim is the cut along λ = ±180° —
+  // the same domain edge as Adams II, which is why "Spilhaus (round)" is simply THIS projection in
+  // the Spilhaus framing: same cuts, same singular points, a disc instead of a square. Radius 2.
+  // Returns [east, north].
+  var LAGRANGE_N = 0.5;
+  function lagrange(phiDeg, lamDeg) {
+    if (Math.abs(Math.abs(phiDeg) - 90) < 1e-9) return [0, phiDeg < 0 ? -2 : 2];
+    var sp = Math.sin(phiDeg * D2R), l = lamDeg * D2R * LAGRANGE_N;
+    var v = Math.pow((1 + sp) / (1 - sp), LAGRANGE_N / 2), c = 0.5 * (v + 1 / v) + Math.cos(l);
+    return [2 * Math.sin(l) / c, (v - 1 / v) / c];
+  }
+
   // Inverse of mercator(): normalized plane [x=east(λ rad), y=north] -> geographic [latDeg, lonDeg].
   function mercatorInverse(x, y) {
     return [R2D * (2 * Math.atan(Math.exp(y)) - Math.PI / 2), R2D * x];
@@ -126,7 +169,59 @@
     if (p.kind === 'equalearth') return equalEarth(phiDeg, lamDeg);
     if (p.kind === 'mercator') return mercator(phiDeg, lamDeg);
     if (p.kind === 'polyconic') { var ne = pBase(phiDeg, lamDeg, POLYCONIC); return [ne[1], ne[0]]; }
+    if (p.kind === 'adams2') return adamsWs2(phiDeg, lamDeg);
+    if (p.kind === 'lagrange') return lagrange(phiDeg, lamDeg);
     throw new Error('unknown projection kind: ' + p.kind);
+  }
+
+  // ---- three-angle oblique framing (kind 'oblique') ---------------------------
+  // The vertical framings fix the third angle: their generalized pole always sits on the equator
+  // 90° west of the centre, so north stays up through the middle. A projection that is not
+  // symmetric about its centre — a square — needs that angle free as well, because twisting the
+  // globe about the centre then moves where the cuts and corners fall, which turning the finished
+  // image does not. This is that framing: centre {lat, lon}, the azimuth of the base projection's
+  // north at the centre, and `rot`, a turn of the finished plane. Formulas are Snyder (1987) 5-7 and
+  // 5-8b as PROJ's spilhaus.cpp writes them, spherical (PROJ's +R form), so the named defaults
+  // reproduce +proj=spilhaus exactly. Any projection can sit in it; config.yaml pins one to a
+  // projection through that projection's `aspect`.
+  function obliqueParams(c) {
+    if (c._ob) return c._ob;
+    var phi0 = c.centre.lat * D2R, azi = (c.azimuth || 0) * D2R, rot = (c.rot || 0) * D2R;
+    var sa = -Math.cos(phi0) * Math.cos(azi);
+    return (c._ob = {
+      sa: sa, ca: Math.sqrt(1 - sa * sa),
+      lam0: c.centre.lon * D2R + Math.atan2(Math.tan(azi), -Math.sin(phi0)),   // PROJ's lon_0 + λ₀
+      beta: Math.PI + Math.atan2(-Math.sin(azi), -Math.tan(phi0)),
+      cr: Math.cos(rot), sr: Math.sin(rot)
+    });
+  }
+  function obliqueToDomain(c, latDeg, lonDeg) {                // geographic -> base-projection (φ, λ), deg
+    var q = obliqueParams(c), p = latDeg * D2R, dl = lonDeg * D2R - q.lam0;
+    var cp = Math.cos(p), sp = Math.sin(p), cl = Math.cos(dl), sl = Math.sin(dl);
+    var phi = Math.asin(clamp1(q.sa * sp - q.ca * cp * cl));                        // Snyder 5-7
+    var lam = q.beta + Math.atan2(cp * sl, q.sa * cp * cl + q.ca * sp);              // Snyder 5-8b
+    return [R2D * phi, wrap180(R2D * lam)];
+  }
+  function obliqueFromDomain(c, aDeg, bDeg) {                  // base-projection (φ, λ) -> geographic [lat, lon], deg
+    var q = obliqueParams(c), p = aDeg * D2R, l = bDeg * D2R - q.beta;
+    var cp = Math.cos(p), sp = Math.sin(p), cl = Math.cos(l), sl = Math.sin(l);
+    var lat = Math.asin(clamp1(q.sa * sp + q.ca * cp * cl));
+    var lon = q.lam0 + Math.atan2(cp * sl, q.sa * cp * cl - q.ca * sp);
+    return [R2D * lat, wrap180(R2D * lon)];
+  }
+
+  // The framing a projection carries with it (config `aspect`), or null for the ordinary ones that
+  // take whichever framing the user picks. One object per projection, so its cached params persist.
+  var _aspects = {};
+  function aspectCoord(projId) {
+    var p = projById(projId);
+    if (!p || !p.aspect) return null;
+    if (!_aspects[projId]) {
+      var a = p.aspect;
+      _aspects[projId] = { id: projId, label: p.label, kind: 'oblique', centre: { lat: a.lat, lon: a.lon },
+                           azimuth: a.azimuth || 0, rot: a.rot || 0 };
+    }
+    return _aspects[projId];
   }
 
   // ---- Stage-1 oblique rotation (vertical framings), Eq (7)-(10) -------------
@@ -180,12 +275,30 @@
   function centralOf(coord) { return coord.central != null ? coord.central : wrap180(coord.seam + 180); }  // central meridian = antipode of the seam
   function toDomain(coord, latDeg, lonDeg) {
     if (coord.kind === 'vertical') return genCoords(latDeg, lonDeg, coord.centre);   // [φ, λ]
+    if (coord.kind === 'oblique') return obliqueToDomain(coord, latDeg, lonDeg);      // [φ, λ]
     return [latDeg, wrap180(lonDeg - centralOf(coord))];                              // [lat, lamrel]
+  }
+  // fromDomain: the inverse — a domain point [a,b] back to geographic [lat, lon]. Lets a caller
+  // build curves that are fixed in the DOMAIN (a domain parallel, the central axis) for any framing.
+  function fromDomain(coord, a, b) {
+    if (coord.kind === 'oblique') return obliqueFromDomain(coord, a, b);
+    if (coord.kind === 'vertical') {                                                  // geo = Mᵀ · gen
+      var M = coord.centre._M || (coord.centre._M = rotFromCentre(coord.centre));
+      var p = a * D2R, l = b * D2R, g = [Math.cos(p) * Math.cos(l), Math.cos(p) * Math.sin(l), Math.sin(p)];
+      var x = M[0][0] * g[0] + M[1][0] * g[1] + M[2][0] * g[2], y = M[0][1] * g[0] + M[1][1] * g[1] + M[2][1] * g[2],
+          z = M[0][2] * g[0] + M[1][2] * g[1] + M[2][2] * g[2];
+      return [R2D * Math.asin(clamp1(z)), R2D * Math.atan2(y, x)];
+    }
+    return [a, wrap180(b + centralOf(coord))];
   }
   // projectDomain: base-projection input [a,b] -> screen [x, y] with orientation.
   function projectDomain(coord, projId, a, b) {
     var en = baseProject(projId, a, b);                     // [east, north]
     if (coord.kind === 'vertical') return [-en[1], en[0]];  // portrait: screenX=-north, screenY=east
+    if (coord.kind === 'oblique') {                         // PROJ spilhaus.cpp's output turn, verbatim (k₀ = 1)
+      var q = obliqueParams(coord);
+      return [-(en[0] * q.cr + en[1] * q.sr), -(-en[0] * q.sr + en[1] * q.cr)];
+    }
     return [en[0], en[1]];                                  // landscape: screenX=east, screenY=north
   }
   // convenience per-point projector: (lat,lon) -> {x, y, seam}.
@@ -220,7 +333,8 @@
   root.PROJ = {
     cfg: cfg, projById: projById, coordById: coordById,
     EARTH_RADIUS_KM: EARTH_RADIUS_KM, MERCATOR_MAXLAT: MERCATOR_MAXLAT,
-    pBase: pBase, equalEarth: equalEarth, baseProject: baseProject,
+    pBase: pBase, equalEarth: equalEarth, adamsWs2: adamsWs2, lagrange: lagrange, baseProject: baseProject, aspectCoord: aspectCoord,
+    fromDomain: fromDomain,
     mercator: mercator, mercatorInverse: mercatorInverse, mercatorDisc: mercatorDisc,
     mercatorDiscGeom: mercatorDiscGeom, mercatorDiscContains: mercatorDiscContains,
     genCoords: genCoords, wrap180: wrap180, greatCircle: greatCircle,

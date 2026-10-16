@@ -132,6 +132,7 @@
       '.gcm-toolright{margin-left:auto;}' +   // actions pinned right; the flex gap between the groups absorbs the live-checkbox show/hide so nothing else shifts
       '.gcm-compass svg{display:block;}' +
       '.gcm-toolbar select{font:inherit;padding:0.3rem 0.45rem;max-width:11rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;}' +
+      '.gcm-toolbar select:disabled{opacity:0.45;cursor:default;}' +   // Hemisphere while Spilhaus (which brings its own framing) is chosen
       '.gcm-zbtns{display:flex;align-items:center;gap:0.3rem;}' +
       '.gcm-zbtns .gcm-zoombtn{width:2.4rem;}' +
       '.gcm-railbtn{white-space:nowrap;}' +
@@ -202,7 +203,8 @@
       _theta: -normalizeOrient(opts.orientation) * Math.PI / 180,  // applied rotation (radians); recomputed each render in north mode
       zoom: 1, cx: null, cy: null,   // projected coords shown at the canvas centre (null → init to the projection centre); rotation/zoom pivot here
       centreOverride: null,          // {lat,lon}: a custom vertical-framing centre (from "Centre on arc"); overrides the preset hemisphere
-      centreArc: null                // [codeA, codeB]: the arc we re-centred on, drawn straight down the middle
+      centreArc: null,               // [codeA, codeB]: the arc we re-centred on, drawn straight down the middle
+      stitch: opts.stitch != null ? !!opts.stitch : !!uiDefaults.stitch_edges   // Spilhaus square only: continue the map past its edges (see stitchTiles)
     };
     state.cityLayer = cities ? (opts.cityLayer || uiDefaults.city_layer || 'none') : 'none';   // 'none' | 'world' | 'lived' (mutually-exclusive city-dot layers)
     state.hoverCity = null;                                                                    // label of the hovered city dot (shown as a tooltip)
@@ -215,6 +217,8 @@
     var canvas = el('canvas', 'gcm-canvas');
     var ctx = canvas.getContext('2d');
     var freeWrap, errSpan, zoomReadout, orientReadout, selectedWrap, syncOrientUI = function () {}, syncOrientPresets = function () {}, orientSel, lastScale = 1, compassEl, compassNeedle, compassCircle, liveLab, liveChk, latBox, lonBox;
+    var framingInputs = [];   // the framing controls a self-framed projection (Spilhaus) greys out — see syncFramingUI
+    var squareOnlyInputs = [];   // ...and the reverse: controls that exist only for the Spilhaus square
 
     if (showControls) {
       var controls = el('div', 'gcm-controls');
@@ -305,7 +309,12 @@
       centreOpts.appendChild(box1); centreOpts.appendChild(el('span', null, '–')); centreOpts.appendChild(box2); centreOpts.appendChild(centreBtn);
       centreOpts.appendChild(el('span', null, ' · lat')); centreOpts.appendChild(latBox); centreOpts.appendChild(el('span', null, 'lon')); centreOpts.appendChild(lonBox);
       centreOpts.appendChild(centreErr);
-      framingGroup.appendChild(centreOpts); controls.appendChild(framingGroup);
+      framingInputs.push(box1, box2, centreBtn, latBox, lonBox);
+      framingGroup.appendChild(centreOpts);
+      var stitchRow = optRow();                                           // the one framing control that is ONLY for Spilhaus (the square)
+      stitchRow.appendChild(el('span', 'gcm-sublabel', 'Edges'));
+      squareOnlyInputs.push(check(stitchRow, 'Continue past the edges (Spilhaus square)', state.stitch, function (v) { state.stitch = v; render(); }));
+      framingGroup.appendChild(stitchRow); controls.appendChild(framingGroup);
       updateCentreBoxes();                                               // show the starting framing's centre immediately
 
       // GEOGRAPHY — the basemap itself, then the human geography drawn on it, then the overlays that
@@ -388,8 +397,9 @@
         s.addEventListener('change', function () { onchange(s.value); });
         return s;
       }
-      var projSel = toolSelect(cfg.projections.map(idLabel), state.projection, 'Projection', function (v) { state.projection = v; resetView(); render(); });
+      var projSel = toolSelect(cfg.projections.map(idLabel), state.projection, 'Projection', function (v) { state.projection = v; updateCentreBoxes(); syncFramingUI(); resetView(); render(); });
       var hemiSel = toolSelect(cfg.coordinates.map(idLabel), state.coordinate, 'Which hemisphere the map is framed on', function (v) { state.coordinate = v; state.centreOverride = null; state.centreArc = null; updateCentreBoxes(); syncOrientPresets(); resetView(); render(); });
+      framingInputs.push(hemiSel);
       function toolField(text, sel) { var f = el('label', 'gcm-toolfield'); f.appendChild(document.createTextNode(text)); f.appendChild(sel); return f; }
       // ROW 1 — "what map am I looking at": labelled Projection + Hemisphere selectors.
       var selRow = el('div', 'gcm-toolrow');
@@ -401,7 +411,8 @@
       var toolRight = el('div', 'gcm-toolgroup gcm-toolright'); toolRight.appendChild(reset);
       ctrlRow.appendChild(toolLeft); ctrlRow.appendChild(toolRight);
       toolbar.appendChild(selRow); toolbar.appendChild(ctrlRow);
-      syncOrientUI();                                                     // set the "live" checkbox's initial visibility now that it exists
+      syncFramingUI();                                                    // a page that opens on Spilhaus starts with the framing controls greyed
+      syncOrientUI();                                                    // set the "live" checkbox's initial visibility now that it exists
     }
     if (showControls) {                                                  // vertical stack: toolbar, the square map, then the ⚙ settings block — all the map's width, nothing overlaps
       var wrap = el('div', 'gcm-wrap');
@@ -520,7 +531,9 @@
       var opts = optRow();
       check(opts, 'N/S seam belts', state.edges, function (v) { state.edges = v; render(); });
       check(opts, 'Mercator limit (poles)', state.mercatorEdge, function (v) { state.mercatorEdge = v; render(); });
-      check(opts, 'Mercator limit (gen. poles)', state.mercatorEdgeGen, function (v) { state.mercatorEdgeGen = v; render(); });
+      // The generalized poles are THIS framing's own; Spilhaus brings a framing no Mercator shares, so
+      // there the toggle would only paint two meaningless discs over the square's corners.
+      framingInputs.push(check(opts, 'Mercator limit (gen. poles)', state.mercatorEdgeGen, function (v) { state.mercatorEdgeGen = v; render(); }));
       check(opts, 'Central axis', state.middleLine, function (v) { state.middleLine = v; render(); });
       g.appendChild(opts); return g;
     }
@@ -554,7 +567,7 @@
       orientSel = el('select'); orientSel.title = 'Snap the rotation so a region sits at the top';   // quick-orient: pick a region to put at the top
       syncOrientPresets = function () {                                  // populate per focused hemisphere (empty for Eastern/Western)
         orientSel.innerHTML = ''; var def = document.createElement('option'); def.value = ''; def.textContent = 'Put region up…'; orientSel.appendChild(def);
-        var presets = ORIENT_PRESETS[state.coordinate] || [];
+        var presets = pinnedCoord() ? [] : (ORIENT_PRESETS[state.coordinate] || []);   // presets are per hemisphere; a self-framed projection has none
         presets.forEach(function (r) { var o = document.createElement('option'); o.value = r[1]; o.textContent = r[0]; orientSel.appendChild(o); });
         orientSel.disabled = presets.length === 0;
       };
@@ -629,16 +642,34 @@
       var g = geom(), r = PROJ.mercatorDiscGeom({ lat: cr.lat, lon: cr.lon }, rk).r;
       state.zoom = fill * Math.max(g.spanX, g.spanY) / (0.98 * 2 * r);
     }
-    // The framing in effect: a custom vertical centre (from "Centre on arc") if set, else the preset hemisphere.
+    // The framing in effect: the projection's OWN framing if it carries one (Spilhaus — config
+    // `aspect`), else a custom vertical centre (from "Centre on arc") if set, else the preset hemisphere.
     var _customCoord = null;
+    function pinnedCoord() { return PROJ.aspectCoord(state.projection); }
     function activeCoord() {
+      var pin = pinnedCoord();
+      if (pin) return pin;
       if (state.centreOverride) {
         if (!_customCoord || _customCoord.centre !== state.centreOverride) _customCoord = { id: 'custom', kind: 'vertical', centre: state.centreOverride };
         return _customCoord;
       }
       return PROJ.coordById(state.coordinate);
     }
-    function coordKey() { return state.centreOverride ? ('C' + state.centreOverride.lat.toFixed(3) + ',' + state.centreOverride.lon.toFixed(3)) : state.coordinate; }
+    // Everything a worker needs to rebuild the framing (it gets a copy, not this object).
+    function coordWire(c) {
+      return { kind: c.kind, centre: c.centre ? { lat: c.centre.lat, lon: c.centre.lon } : undefined, seam: c.seam, central: c.central,
+               azimuth: c.azimuth, rot: c.rot };
+    }
+    // Framing controls that a projection with its own framing makes moot: grey them out, so the
+    // toolbar says plainly that Spilhaus decides where it points.
+    function syncFramingUI() {
+      var pinned = !!pinnedCoord();
+      framingInputs.forEach(function (inp) { inp.disabled = pinned; });
+      var p = PROJ.projById(state.projection), square = pinned && p && p.kind === 'adams2';
+      squareOnlyInputs.forEach(function (inp) { inp.disabled = !square; });
+      syncOrientPresets();
+    }
+    function coordKey() { if (pinnedCoord()) return 'A:' + state.projection; return state.centreOverride ? ('C' + state.centreOverride.lat.toFixed(3) + ',' + state.centreOverride.lon.toFixed(3)) : state.coordinate; }
     function updateCentreBoxes() {                                        // mirror the active framing's centre into the editable lat/lon boxes (blank for seam-based horizontal framings)
       if (!latBox || !lonBox) return;
       var c = activeCoord();
@@ -805,8 +836,10 @@
     // (where a centred route lies). Vertical framing: gen-λ=0, the great circle through centre & poles
     // (geo = cosφ·vc + sinφ·vp). Horizontal framing: the meridian at the central longitude.
     function midMeridian(coord) {
-      var lat = [], lon = [], a, D = Math.PI / 180;
-      if (coord.kind === 'vertical') {
+      var lat = [], lon = [], a, D = Math.PI / 180, g;
+      if (coord.kind === 'oblique') {                                     // the domain's λ=0 meridian, mapped back to the globe
+        for (a = -90; a <= 90; a += 1) { g = PROJ.fromDomain(coord, a, 0); lat.push(g[0]); lon.push(g[1]); }
+      } else if (coord.kind === 'vertical') {
         var M = PROJ.rotFromCentre(coord.centre), vc = M[0], vp = M[2], c, s, x, y, z;
         for (a = -90; a <= 90; a += 1) { c = Math.cos(a * D); s = Math.sin(a * D);
           x = c * vc[0] + s * vp[0]; y = c * vc[1] + s * vp[1]; z = c * vc[2] + s * vp[2];
@@ -841,6 +874,11 @@
     // machinery can seam-cut + project them like any other ring.
     function mercatorClampGeo(coord) {
       var maxlat = PROJ.MERCATOR_MAXLAT, D = Math.PI / 180, n = 361;
+      if (coord.kind === 'oblique') {                                     // domain parallels, mapped back to the globe
+        var ob = function (C) { var lon = [], lat = [], i, g; for (i = 0; i < n; i++) { g = PROJ.fromDomain(coord, C, -180 + 360 * i / (n - 1)); lat.push(g[0]); lon.push(g[1]); } return { lon: lon, lat: lat }; };
+        var obHemi = function (sign) { var o = ob(sign * maxlat), inr = ob(sign * (maxlat - MERC_BAND)); return { outerLon: o.lon, outerLat: o.lat, innerLon: inr.lon, innerLat: inr.lat }; };
+        return { north: obHemi(1), south: obHemi(-1) };
+      }
       if (coord.kind !== 'vertical') {
         // Horizontal framings: the perpendicular ("vertical") Mercator's generalized poles are two
         // EQUATORIAL points at (0, central±90); its caps are geodesic small circles around them
@@ -1099,7 +1137,7 @@
         terrainBakePending = tag;
         var c = activeCoord();
         w.postMessage({ key: key, quality: quality, projId: state.projection, detail: state.detail,
-                        coord: { kind: c.kind, centre: c.centre ? { lat: c.centre.lat, lon: c.centre.lon } : undefined, seam: c.seam, central: c.central },
+                        coord: coordWire(c),
                         pal: { bathyColors: palette().bathyColors, landColors: palette().landColors, ocean: palette().ocean, land: palette().land } });
         return;
       }
@@ -1134,7 +1172,7 @@
         terrainZoomPending = tag;
         var c = activeCoord();
         w.postMessage({ key: key, quality: 'fine', slot: 'zoom', window: win, projId: state.projection, detail: state.detail,
-                        coord: { kind: c.kind, centre: c.centre ? { lat: c.centre.lat, lon: c.centre.lon } : undefined, seam: c.seam, central: c.central },
+                        coord: coordWire(c),
                         pal: { bathyColors: palette().bathyColors, landColors: palette().landColors, ocean: palette().ocean, land: palette().land } });
       }, 150);
     }
@@ -1158,7 +1196,8 @@
       var G = geom();                                                       // cached projected + seam-cut geometry
       if (state.bathymetry || state.topography) scheduleTerrainBake();      // async: no-op once the texture for this framing+theme is ready
       prewarmTerrain();                                                     // safety net — normally already kicked at init
-      var scale = Math.min(W / f.spanX, H / f.spanY) * 0.98 * state.zoom;
+      var stitching = stitchOn();
+      var scale = Math.min(W / f.spanX, H / f.spanY) * 0.98 * state.zoom * (stitching ? STITCH_FIT : 1);   // stitched: shrink the square so a band of its continuation shows round it
       lastScale = scale;
       var cx = state.cx == null ? f.px0 : state.cx, cy = state.cy == null ? f.py0 : state.cy;   // projected point pinned to the canvas centre
       function px(x, y) { var dx = x - cx, dy = y - cy, rx = dx * f.c - dy * f.s, ry = dx * f.s + dy * f.c; return [W / 2 + rx * scale, H / 2 - ry * scale]; }
@@ -1222,9 +1261,13 @@
         ctx2.clip('evenodd');
       }
 
+      // Every layer, painted once for the map itself and once per stitched copy (copy = true). A copy
+      // paints exactly the same geometry under a rotated canvas, so it draws no text (it would come
+      // out sideways), no lens outline, and touches none of the hit-test caches.
+      function paint(copy) {
       fill(G.b, PAL.ocean);                                                 // ocean lens base
       if (state.bathymetry) blitTerrain('bathy');                          // graded depth bands (lens clip baked into the texture)
-      poly(G.b); ctx2.strokeStyle = PAL.edge; ctx2.lineWidth = 1.1; ctx2.stroke();   // lens outline (drawn over the depth bands)
+      if (!copy) { poly(G.b); ctx2.strokeStyle = PAL.edge; ctx2.lineWidth = 1.1; ctx2.stroke(); }   // lens outline (drawn over the depth bands)
       stroke(G.grat, PAL.graticule, 0.6);                                   // graticule
       for (var ci = 0; ci < G.coastFill.length; ci++) fillRing(G.coastFill[ci].polys, G.coastFill[ci].hole ? PAL.ocean : PAL.land);  // land + holes
       if (state.topography) {                                              // land elevation shade bands (land-mask clip baked into the texture)
@@ -1251,7 +1294,7 @@
       if (state.mercatorEdge || state.mercatorEdgeGen) {                   // the 3°-wide band on the COVERED side of each enabled cutoff: frames the cut-out cap (Hǎo/Equal Earth) or shades the clamp belt (Mercator)
         ctx2.save(); poly(G.b); ctx2.clip();                               // clip to the lens so no fill (or its anti-aliased edge) escapes the boundary
         if (state.mercatorEdge)    { fillAll(G.mercGeoSet.band.north, MERC_FILL); fillAll(G.mercGeoSet.band.south, MERC_FILL); }
-        if (state.mercatorEdgeGen) { fillAll(G.mercGenSet.band.north, MERC_FILL); fillAll(G.mercGenSet.band.south, MERC_FILL); }
+        if (state.mercatorEdgeGen && !pinnedCoord()) { fillAll(G.mercGenSet.band.north, MERC_FILL); fillAll(G.mercGenSet.band.south, MERC_FILL); }
         ctx2.restore();
       }
       // The cap(s) are CUT OUT (punched transparent) at the very end of draw() — after every layer — wherever they fall in the map interior. See below.
@@ -1279,7 +1322,7 @@
       // ring (graticule weight) sitting ENTIRELY OUTSIDE the disc, so the enclosed area stays clear of
       // red: clip to the disc's EXTERIOR, then stroke at 2× so only the outer half survives — the ring's
       // inner edge lands exactly on the disc boundary. The px-space outline is cached for click hit-testing.
-      lastRegionPolys = [];
+      if (!copy) lastRegionPolys = [];
       regions.forEach(function (rg) {
         var rk = rg && (rg.radiusKm != null ? rg.radiusKm : rg.defaultRadiusKm);   // accept the Region Explorer's {defaultRadiusKm} shape directly
         if (!(rg && isFinite(rg.lat) && isFinite(rg.lon) && rk > 0)) return;
@@ -1292,7 +1335,7 @@
         ctx2.clip('evenodd');                                                      // … minus the disc interior = its exterior; even-odd cancels seam-piece overlaps
         stroke(outline, REGION_COLOR, 2.0);                                        // 2.0 centred on the boundary; outer 1.0 survives the clip → a 1.0-wide ring, inner edge on the boundary
         ctx2.restore();
-        if (onRegionClick) {                                                       // cache the px-space outline (full loop, pre-seam-cut) for point-in-area hit-testing
+        if (onRegionClick && !copy) {                                              // cache the px-space outline (full loop, pre-seam-cut) for point-in-area hit-testing
           var poly = []; for (var qi = 0; qi < loop.lat.length; qi++) { var qp = PROJ.project(coord, proj, loop.lat[qi], loop.lon[qi]); poly.push(px(qp.x, qp.y)); }
           lastRegionPolys.push({ rg: rg, poly: poly });
         }
@@ -1301,7 +1344,7 @@
         if (seen[code]) return; seen[code] = 1;
         var pr = PROJ.project(coord, proj, AB[0], AB[1]); var p = px(pr.x, pr.y);
         ctx2.beginPath(); ctx2.arc(p[0], p[1], 2.6, 0, 2 * Math.PI); ctx2.fillStyle = PAL.marker; ctx2.fill();
-        if (typeof code === 'string') { ctx2.fillStyle = PAL.marker; ctx2.font = '11px -apple-system,Segoe UI,sans-serif'; ctx2.fillText(code, p[0] + 4, p[1] - 4); }
+        if (!copy && typeof code === 'string') { ctx2.fillStyle = PAL.marker; ctx2.font = '11px -apple-system,Segoe UI,sans-serif'; ctx2.fillText(code, p[0] + 4, p[1] - 4); }
       }
       // Direction arrowhead at a route arc's MIDPOINT, pointing origin → dest.
       // gc.lat/lon run A→B, so the tangent from the two samples straddling the
@@ -1325,7 +1368,7 @@
         ctx2.closePath();
         ctx2.fillStyle = color; ctx2.fill();
       }
-      if (dragging && state.orientMode === 'north') {                     // north-locked drag: mark the canvas centre — the point north-up is computed from (hidden on release)
+      if (!copy && dragging && state.orientMode === 'north') {                     // north-locked drag: mark the canvas centre — the point north-up is computed from (hidden on release)
         ctx2.beginPath(); ctx2.arc(W / 2, H / 2, 5, 0, 2 * Math.PI); ctx2.fillStyle = '#c0392b'; ctx2.fill();
         ctx2.beginPath(); ctx2.arc(W / 2, H / 2, 5, 0, 2 * Math.PI); ctx2.strokeStyle = '#fff'; ctx2.lineWidth = 1.4; ctx2.stroke();
       }
@@ -1341,10 +1384,10 @@
       }
       var _isMerc = proj === 'mercator', _vert = coord.kind === 'vertical';
       if (state.mercatorEdge && !(_isMerc && !_vert) && G.mercGeoSet) maskMercLimit(G.mercGeoSet);   // geographic caps are interior everywhere except equatorial Mercator (there they're the clamp → band only)
-      if (state.mercatorEdgeGen && !(_isMerc && _vert) && G.mercGenSet) maskMercLimit(G.mercGenSet);   // generalized caps are off-map only on the VERTICAL Mercator (its own clamp → band only); on equatorial Mercator + non-Mercator they're interior → cut as holes
+      if (state.mercatorEdgeGen && !pinnedCoord() && !(_isMerc && _vert) && G.mercGenSet) maskMercLimit(G.mercGenSet);   // generalized caps are off-map only on the VERTICAL Mercator (its own clamp → band only); on equatorial Mercator + non-Mercator they're interior → cut as holes
       // City dots - the active layer (World cities / Lived-in). Dots only; the name shows on hover.
       // Drawn last so they sit on top of every layer; cached to lastCityDots for hover hit-testing.
-      lastCityDots = [];
+      if (!copy) lastCityDots = [];
       if (cities && state.cityLayer !== 'none') {
         var clist = state.cityLayer === 'lived' ? cities.lived : cities.world;
         var cStroke = darkMode() ? '#0b1620' : '#ffffff';
@@ -1352,9 +1395,9 @@
           var cyc = clist[cyi], cyp = PROJ.project(coord, proj, cyc.lat, cyc.lon), cypx = px(cyp.x, cyp.y);
           ctx2.beginPath(); ctx2.arc(cypx[0], cypx[1], 2.7, 0, 2 * Math.PI); ctx2.fillStyle = PAL.city; ctx2.fill();
           ctx2.lineWidth = 0.9; ctx2.strokeStyle = cStroke; ctx2.stroke();
-          lastCityDots.push({ x: cypx[0], y: cypx[1], label: cyc.label });
+          if (!copy) lastCityDots.push({ x: cypx[0], y: cypx[1], label: cyc.label });
         }
-        for (var hci = 0; state.hoverCity && hci < lastCityDots.length; hci++) {
+        for (var hci = 0; !copy && state.hoverCity && hci < lastCityDots.length; hci++) {
           var hcd = lastCityDots[hci]; if (hcd.label !== state.hoverCity) continue;
           ctx2.font = '11px -apple-system,Segoe UI,sans-serif';
           var ctw = ctx2.measureText(hcd.label).width, clx = hcd.x + 7, cly = hcd.y - 7;
@@ -1362,6 +1405,123 @@
           ctx2.fillStyle = PAL.marker; ctx2.fillText(hcd.label, clx, cly); break;
         }
       }
+      }   // end paint
+
+      // Stitched copies first (each clipped to its own tile, so they can never overlap the map or
+      // each other), then the map itself on top, then its outline — the one real edge.
+      if (stitching) {
+        var tiles = stitchTiles(viewWindow(0.05));
+        // Paint the square ONCE into an offscreen bitmap and stamp it into every tile: the copies are
+        // then a drawImage each instead of a full repaint each (54 ms → ~15 ms a frame at 100%, eight
+        // copies). Only when zoomed so far in that the bitmap would be huge does it fall back to
+        // repainting per tile — and there only a tile or two is in view anyway.
+        var bx = Infinity, by = Infinity, bX = -Infinity, bY = -Infinity, bi, bp;
+        for (bi = 0; bi < G.b.X.length; bi++) { bp = px(G.b.X[bi], G.b.Y[bi]); bx = Math.min(bx, bp[0]); by = Math.min(by, bp[1]); bX = Math.max(bX, bp[0]); bY = Math.max(bY, bp[1]); }
+        bx -= 2; by -= 2; bX += 2; bY += 2;                                 // room for the edge strokes
+        var res = ctx2.getTransform ? ctx2.getTransform().a : 1;            // device px per CSS px (dpr, or the PNG export's 2×)
+        var stamp = null;
+        // Panning only slides the square (px is a similarity), so the stamp survives a drag: it is
+        // rebuilt only when what it SHOWS changes — scale, turn, resolution, layers, routes, terrain.
+        var sKey = [scale, f.c, f.s, res, texKey(), geomKey, terrainTex ? terrainTex.quality : '', terrainZoom ? terrainZoom.ts : '',
+                    state.bathymetry, state.topography, state.regions, state.boundaries, state.admin1, state.edges, state.mercatorEdge,
+                    state.middleLine, state.cityLayer, state.routeArrows, JSON.stringify([activeRoutes(), activePoints(), state.centreArc])].join('|');
+        if (stampCache.key === sKey && stampCache.canvas) stamp = stampCache.canvas;
+        else if ((bX - bx) * res <= 4096 && (bY - by) * res <= 4096) {
+          stamp = document.createElement('canvas');
+          stamp.width = Math.ceil((bX - bx) * res); stamp.height = Math.ceil((bY - by) * res);
+          var sctx = stamp.getContext('2d'), mainCtx = ctx2;
+          sctx.setTransform(res, 0, 0, res, -bx * res, -by * res);
+          sctx.lineJoin = 'round'; sctx.lineCap = 'round';
+          ctx2 = sctx; paint(true); ctx2 = mainCtx;                          // the helpers all draw on ctx2, so point it at the stamp for one pass
+          // Grow the stamp ~2 px past its edge by repeating its own edge pixels (shifted copies drawn
+          // BEHIND it), and let neighbouring tiles overlap by that much (bExp below). Without this
+          // the anti-aliased clip edges of two abutting copies leave a hairline of page showing.
+          var tmp = document.createElement('canvas'); tmp.width = stamp.width; tmp.height = stamp.height;
+          var tctx = tmp.getContext('2d'), gi, gd = Math.max(1, Math.round(res)), SH = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+          sctx.setTransform(1, 0, 0, 1, 0, 0); sctx.globalCompositeOperation = 'destination-over';
+          for (var pass = 0; pass < 2; pass++) {
+            tctx.clearRect(0, 0, tmp.width, tmp.height); tctx.drawImage(stamp, 0, 0);
+            for (gi = 0; gi < SH.length; gi++) sctx.drawImage(tmp, SH[gi][0] * gd, SH[gi][1] * gd);
+          }
+          sctx.globalCompositeOperation = 'source-over';
+          stampCache = { key: sKey, canvas: stamp };
+        }
+        // The tile clip, grown ~1.5 px about the square's centre so neighbours overlap into the grown stamp.
+        var grow = 1 + 1.5 / (Math.min(G.spanX, G.spanY) * scale / 2), bExp = { X: [], Y: [] };
+        for (bi = 0; bi < G.b.X.length; bi++) { bExp.X.push(G.px0 + (G.b.X[bi] - G.px0) * grow); bExp.Y.push(G.py0 + (G.b.Y[bi] - G.py0) * grow); }
+        for (var ti = 1; ti < tiles.length; ti++) {                         // tiles[0] is the map itself
+          var S = screenOf(tiles[ti]);
+          ctx2.save();
+          ctx2.transform(S[0], S[1], S[2], S[3], S[4], S[5]);
+          poly(stamp ? bExp : G.b); ctx2.clip();
+          if (stamp) ctx2.drawImage(stamp, bx, by, bX - bx, bY - by); else paint(true);
+          ctx2.restore();
+        }
+        ctx2.save(); ctx2.fillStyle = darkMode() ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.28)';   // a light veil over the copies so the real square reads first
+        ctx2.beginPath(); ctx2.rect(0, 0, W, H); poly(G.b); ctx2.fill('evenodd'); ctx2.restore();
+      }
+      paint(false);
+      if (stitching) { poly(G.b); ctx2.strokeStyle = PAL.edge; ctx2.lineWidth = 1.6; ctx2.stroke(); }
+
+      // Screen-space canvas matrix [a,b,c,d,e,f] of a projected-plane motion T: px ∘ T ∘ px⁻¹, read
+      // off three points. px is a similarity, so a rigid motion stays rigid on screen.
+      function pxInv(X, Y) {
+        var rx = (X - W / 2) / scale, ry = -(Y - H / 2) / scale;
+        return [cx + rx * f.c + ry * f.s, cy - rx * f.s + ry * f.c];
+      }
+      function screenOf(T) {
+        function S(X, Y) { var p = pxInv(X, Y), q = affApply(T, p[0], p[1]); return px(q[0], q[1]); }
+        var o = S(0, 0), u = S(1, 0), v = S(0, 1);
+        return [u[0] - o[0], u[1] - o[1], v[0] - o[0], v[1] - o[1], o[0], o[1]];
+      }
+    }
+
+    // ---- Spilhaus square: stitching past the edges -----------------------------
+    // Adams II's edges are glued in pairs at its two POLE corners (the singular points, inland in
+    // Argentina and in China): the two edges meeting at such a corner are the two sides of one
+    // cut, and the map continues across either one as the whole square turned 90° about that
+    // corner (checked numerically against the kernel). Applying those four turns over and over
+    // tiles the plane, so the cut-off ocean carries on round the far side as it does on the globe.
+    var stampCache = { key: '', canvas: null };                        // the square, pre-painted for the copies (see draw)
+    var STITCH_FIT = 0.8;                                               // the square's share of the canvas while stitched (zoom 100%)
+    function stitchOn() {
+      var p = PROJ.projById(state.projection);
+      return !!(state.stitch && p && p.kind === 'adams2' && pinnedCoord());
+    }
+    function affMul(A, B) {                                             // (A∘B)(p) = A(B(p)); [a,b,c,d,e,f] as canvas: x' = a x + c y + e, y' = b x + d y + f
+      return [A[0] * B[0] + A[2] * B[1], A[1] * B[0] + A[3] * B[1], A[0] * B[2] + A[2] * B[3], A[1] * B[2] + A[3] * B[3],
+              A[0] * B[4] + A[2] * B[5] + A[4], A[1] * B[4] + A[3] * B[5] + A[5]];
+    }
+    function affApply(T, x, y) { return [T[0] * x + T[2] * y + T[4], T[1] * x + T[3] * y + T[5]]; }
+    function turnAbout(k, deg) {                                        // rotate by deg about point k
+      var t = deg * Math.PI / 180, c = Math.round(Math.cos(t)), s = Math.round(Math.sin(t));   // quarter turns only: exact
+      return [c, s, -s, c, k[0] - c * k[0] + s * k[1], k[1] - s * k[0] - c * k[1]];
+    }
+    // Every tile whose square meets the view `win` (projected rect), breadth-first from the map itself.
+    function stitchTiles(win) {
+      var coord = activeCoord(), proj = state.projection, G = geom();
+      var kN = PROJ.projectDomain(coord, proj, 90, 0), kS = PROJ.projectDomain(coord, proj, -90, 0);
+      var gens = [turnAbout(kN, 90), turnAbout(kN, -90), turnAbout(kS, 90), turnAbout(kS, -90)];
+      var hx = G.spanX / 2, hy = G.spanY / 2, corners = [[G.px0 - hx, G.py0 - hy], [G.px0 + hx, G.py0 - hy], [G.px0 + hx, G.py0 + hy], [G.px0 - hx, G.py0 + hy]];
+      var x0 = win.bx0, x1 = win.bx0 + win.sx, y1 = win.by1, y0 = win.by1 - win.sy;
+      function meets(T) {
+        var a = Infinity, b = -Infinity, c = Infinity, d = -Infinity, i, q;
+        for (i = 0; i < 4; i++) { q = affApply(T, corners[i][0], corners[i][1]); a = Math.min(a, q[0]); b = Math.max(b, q[0]); c = Math.min(c, q[1]); d = Math.max(d, q[1]); }
+        return b > x0 && a < x1 && d > y0 && c < y1;
+      }
+      function key(T) { var q = affApply(T, G.px0, G.py0); return Math.round(q[0] * 1e4) + ',' + Math.round(q[1] * 1e4); }   // one tile per position (the tiling never stacks two)
+      var I = [1, 0, 0, 1, 0, 0], tiles = [I], seen = {}, queue = [I], i, n;
+      seen[key(I)] = 1;
+      while (queue.length && tiles.length < 64) {
+        var T = queue.shift();
+        for (i = 0; i < gens.length; i++) {
+          n = affMul(T, gens[i]);
+          var k = key(n);
+          if (seen[k] || !meets(n)) continue;
+          seen[k] = 1; tiles.push(n); queue.push(n);
+        }
+      }
+      return tiles;
     }
 
     function lin(a, b, n) { var o = []; for (var i = 0; i < n; i++) o.push(a + (b - a) * i / (n - 1)); return o; }
@@ -1411,7 +1571,7 @@
       draw(octx, cssW, cssH, computeFit());
       off.toBlob(function (blob) {
         var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-        a.download = 'great-circle-' + state.coordinate + '-' + state.projection + '.png';
+        a.download = 'great-circle-' + (pinnedCoord() ? '' : state.coordinate + '-') + state.projection + '.png';
         document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
       }, 'image/png');
     }

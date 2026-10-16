@@ -68,9 +68,11 @@
   function boundary(coord, projId, n) {
     n = n || 400;
     var a = [], b = [], i, t, s, X = [], Y = [];
-    for (i = 0; i < n; i++) { a.push(-90 + 180 * i / (n - 1)); b.push(180); }
+    // Each seam edge is sampled with a = 0 included exactly (n even would skip it): on Adams II
+    // (Spilhaus) the seam's midpoint is a CORNER of the square, and missing it clips the corner off.
+    for (i = 0; i < n; i++) { a.push(-90 + 180 * i / (n - 1)); b.push(180); if (i === (n >> 1) - 1) { a.push(0); b.push(180); } }
     for (i = 0; i < 2 * n; i++) { a.push(90); b.push(180 - 360 * i / (2 * n - 1)); }
-    for (i = 0; i < n; i++) { a.push(90 - 180 * i / (n - 1)); b.push(-180); }
+    for (i = 0; i < n; i++) { a.push(90 - 180 * i / (n - 1)); b.push(-180); if (i === (n >> 1) - 1) { a.push(0); b.push(-180); } }
     for (i = 0; i < 2 * n; i++) { a.push(-90); b.push(-180 + 360 * i / (2 * n - 1)); }
     for (i = 0; i < a.length; i++) { s = PROJ.projectDomain(coord, projId, a[i], b[i]); X.push(s[0]); Y.push(s[1]); }
     return { X: X, Y: Y };
@@ -84,6 +86,40 @@
 
   // A coastline ring's FILL polygons: seam-cut + (for seam pieces) closed along
   // the map boundary. ring = parallel lon[],lat[]. Returns [{X,Y}] to fill.
+  //
+  // A piece that LEAVES by one seam edge and comes back by the other (starts at b=∓180, ends at
+  // b=±180) belongs to a ring that goes round a DOMAIN POLE. The framings that existed first keep
+  // their domain poles out at sea, so no coastline ever did that — but Spilhaus puts both of its
+  // poles on land on purpose (that is how the cuts come to run through Asia and the Americas), so
+  // Eurasia and South America both do it. Such a piece is closed THROUGH the pole it goes round:
+  // up its exit edge to the pole, along the pole line, down the other edge. Which pole it is falls
+  // out of the area: going through the wrong one encloses the rest of the globe instead, and no
+  // land ring covers half the planet, so the smaller of the two is the land.
+  // Sample a closure run along a seam edge (constant b) from a=from to a=to, `from` excluded and
+  // `to` included. If the run passes a = 0 it lands on it exactly: on Adams II (Spilhaus) that
+  // point is a corner of the square, and a run that steps over it cuts the corner off with a chord.
+  function edgeRun(ca, cb, from, to, b, n) {
+    var j, a, prev = from;
+    for (j = 1; j <= n; j++) {
+      a = from + (to - from) * j / n;
+      if ((prev < 0 && a > 0) || (prev > 0 && a < 0)) { ca.push(0); cb.push(b); }
+      ca.push(a); cb.push(b); prev = a;
+    }
+  }
+  function poleClosure(pa, pb) {
+    var best = null, bestArea = Infinity, n = 60, m = 240;
+    [90, -90].forEach(function (pole) {
+      var ca = pa.slice(), cb = pb.slice(), a1 = pa[pa.length - 1], e = pb[pb.length - 1], s = pb[0], a0 = pa[0], j;
+      edgeRun(ca, cb, a1, pole, e, n);                                                    // up the exit edge to the pole
+      for (j = 1; j <= m; j++) { ca.push(pole); cb.push(e + (s - e) * j / m); }           // along the pole line
+      edgeRun(ca, cb, pole, a0, s, n); ca.pop(); cb.pop();                                // back down the entry edge (its last point is the piece's first)
+      var area = 0, k, k2, D = Math.PI / 180;                                             // sphere area: shoelace on (λ, sin φ), Lambert's equal-area plane
+      for (k = 0; k < ca.length; k++) { k2 = (k + 1) % ca.length; area += cb[k] * D * Math.sin(ca[k2] * D) - cb[k2] * D * Math.sin(ca[k] * D); }
+      area = Math.abs(area) / 2;
+      if (area < bestArea) { bestArea = area; best = { a: ca, b: cb }; }
+    });
+    return best;
+  }
   function ringFillPolys(coord, projId, lon, lat) {
     var A = [], B = [], i, d;
     for (i = 0; i < lat.length; i++) { d = PROJ.toDomain(coord, lat[i], lon[i]); A.push(d[0]); B.push(d[1]); }
@@ -91,10 +127,15 @@
     for (var p = 0; p < pieces.length; p++) {
       var pa = pieces[p].a, pb = pieces[p].b;
       if (pa.length < 3) continue;
-      if (seam) {
+      var b0 = pb[0], b1 = pb[pb.length - 1];
+      if (Math.abs(b0) === 180 && Math.abs(b1) === 180 && b0 !== b1) {                  // round a domain pole (see poleClosure)
+        var pc = poleClosure(pa, pb);
+        polys.push(_projDomainArr(coord, projId, pc.a, pc.b));
+      } else if (seam) {
         var edge = Math.abs(pb[pb.length - 1]) > Math.abs(pb[0]) ? pb[pb.length - 1] : pb[0];
         var ca = pa.slice(), cb = pb.slice(), j;
-        for (j = 0; j < 120; j++) { ca.push(pa[pa.length - 1] + (pa[0] - pa[pa.length - 1]) * j / 119); cb.push(edge); }
+        ca.push(pa[pa.length - 1]); cb.push(edge);
+        edgeRun(ca, cb, pa[pa.length - 1], pa[0], edge, 119);
         polys.push(_projDomainArr(coord, projId, ca, cb));
       } else {
         polys.push(_projDomainArr(coord, projId, pa, pb));

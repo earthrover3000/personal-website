@@ -29,6 +29,23 @@ projections:
   - id: mercator
     label: "Web Mercator"
     kind: mercator          # spherical Mercator (web-map standard); latitude clamped to ±85.0511°
+  - id: spilhaus
+    label: "Spilhaus"
+    kind: adams2            # Adams World in a Square II (1929), conformal; ported from PROJ adams.cpp
+    # A projection that carries its OWN framing: while it is selected the coordinate framings below
+    # do not apply. Spilhaus (1942) is nothing but this aspect of Adams II — the oblique turn that
+    # puts the cuts through Asia and the Americas so the oceans join into one body. Values are
+    # PROJ's +proj=spilhaus defaults (PROJ issue #1851, from Esri's ESRI:54099), spherical form.
+    aspect: {lat: -49.56371678, lon: 66.94970198, azimuth: 40.17823482, rot: 45}
+  - id: spilhaus-round
+    label: "Spilhaus (round)"
+    # "Spilhaus (round)" IS THE LAGRANGE PROJECTION (1779, conformal world in a circle) in the
+    # Spilhaus framing — not a projection Spilhaus himself published. Lagrange's rim is the same
+    # λ = ±180° cut as Adams II's edge, so with the same aspect the cuts and the two singular points
+    # fall exactly where the square's do; only the outline changes. Keep the aspect identical to
+    # `spilhaus` above (same `rot` too: both kernels come out with their poles top and bottom).
+    kind: lagrange
+    aspect: {lat: -49.56371678, lon: 66.94970198, azimuth: 40.17823482, rot: 45}
 default_projection: equalearth
 
 # ----------------------------------------------------------------------------
