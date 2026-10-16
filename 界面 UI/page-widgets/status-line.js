@@ -1,8 +1,9 @@
 // Shared status-line builder for the docs pages (plan-renderer.js + site-map.html).
 // Single source of truth for the "N lines · M words · K 字 📊" head and the
 // link that wraps the whole row and points at site-stats. The Python index
-// pages build the same string at build time in site_shell/indexes.py — keep
-// the two formats in sync (different runtimes, can't share the literal code).
+// pages build the same string at build time; the 📊 there is
+// index_page.STATS_MARK (引擎 Engines/index_page), whose check_stats_mark
+// fails an index build if the ' 📊' below stops matching it — change both.
 //
 // Counts: lines = source-code lines; words = English words in prose;
 // 字 = Chinese (Han) characters in prose. Words and 字 are mutually exclusive.
