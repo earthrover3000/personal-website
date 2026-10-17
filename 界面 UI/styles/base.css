@@ -19,6 +19,13 @@
    page-widgets/theme-init.js, so navigation never flashes the wrong theme. */
 :root {
   color-scheme: dark light;                    /* auto (OS-driven, dark default) */
+  /* THE ROW (user decision 2026-10-17): every one-line control or entry —
+     a link row, a search box, a dropdown, a caption — is exactly this tall,
+     and rows stack with this gap, so two columns side by side stay on one
+     grid. The height is the link row's own: 1.1rem text at line-height 1.4
+     plus 0.35rem padding above and below. */
+  --row-h: calc(1.1rem * 1.4 + 0.7rem);
+  --row-gap: 0.2rem;
   --bg:      light-dark(#f5f5f5, #0f0f0f);
   --surface: light-dark(#ffffff, #1a1a1a);
   --border:  light-dark(#d0d0d0, #2e2e2e);
@@ -125,6 +132,16 @@ body {
 .breadcrumb a:hover { background: none; text-decoration: underline; }
 .breadcrumb [aria-current="page"] { color: var(--text); }
 .breadcrumb .sep { margin: 0 0.3em; opacity: 0.5; }
+/* THE BREADCRUMB LINE with the page's controls at its right end (index
+   pages: Filter ▸ and the Planned / Parked / topic switches — user decision
+   2026-10-17). The crumb keeps its own look; the line takes its spacing.
+   Wraps on a narrow screen, the controls staying right-aligned. */
+.crumb-line {
+  display: flex; flex-wrap: wrap; align-items: center;
+  column-gap: 0.9rem; row-gap: 0.2rem; margin: 0 0 0.6rem;
+}
+.crumb-line > .breadcrumb { margin: 0; }
+.head-controls { margin-left: auto; display: inline-flex; align-items: center; gap: 0.9rem; }
 
 /* ---- Head-region typography ---- */
 h1 {
@@ -200,7 +217,8 @@ span.page-cat { cursor: help; }
 .filter {
   display: block;
   width: 100%;
-  padding: 0.5rem 0.8rem;
+  height: var(--row-h);                        /* THE ROW — see :root */
+  padding: 0 0.8rem;
   margin-bottom: 1rem;
   background: var(--surface);
   border: 1px solid var(--border);

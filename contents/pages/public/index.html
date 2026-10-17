@@ -90,6 +90,13 @@
    page-widgets/theme-init.js, so navigation never flashes the wrong theme. */
 :root {
   color-scheme: dark light;                    /* auto (OS-driven, dark default) */
+  /* THE ROW (user decision 2026-10-17): every one-line control or entry —
+     a link row, a search box, a dropdown, a caption — is exactly this tall,
+     and rows stack with this gap, so two columns side by side stay on one
+     grid. The height is the link row's own: 1.1rem text at line-height 1.4
+     plus 0.35rem padding above and below. */
+  --row-h: calc(1.1rem * 1.4 + 0.7rem);
+  --row-gap: 0.2rem;
   --bg:      light-dark(#f5f5f5, #0f0f0f);
   --surface: light-dark(#ffffff, #1a1a1a);
   --border:  light-dark(#d0d0d0, #2e2e2e);
@@ -196,6 +203,16 @@ body {
 .breadcrumb a:hover { background: none; text-decoration: underline; }
 .breadcrumb [aria-current="page"] { color: var(--text); }
 .breadcrumb .sep { margin: 0 0.3em; opacity: 0.5; }
+/* THE BREADCRUMB LINE with the page's controls at its right end (index
+   pages: Filter ▸ and the Planned / Parked / topic switches — user decision
+   2026-10-17). The crumb keeps its own look; the line takes its spacing.
+   Wraps on a narrow screen, the controls staying right-aligned. */
+.crumb-line {
+  display: flex; flex-wrap: wrap; align-items: center;
+  column-gap: 0.9rem; row-gap: 0.2rem; margin: 0 0 0.6rem;
+}
+.crumb-line > .breadcrumb { margin: 0; }
+.head-controls { margin-left: auto; display: inline-flex; align-items: center; gap: 0.9rem; }
 
 /* ---- Head-region typography ---- */
 h1 {
@@ -271,7 +288,8 @@ span.page-cat { cursor: help; }
 .filter {
   display: block;
   width: 100%;
-  padding: 0.5rem 0.8rem;
+  height: var(--row-h);                        /* THE ROW — see :root */
+  padding: 0 0.8rem;
   margin-bottom: 1rem;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -488,7 +506,7 @@ table { width: 100%; border-collapse: collapse; }
    layouts that don't apply to docs pages. */
 
 ul { list-style: none; padding: 0; margin: 0; }
-li { margin: 0.2rem 0; }
+li { margin: var(--row-gap) 0; }
 
 /* Block-style page-list links are the index-page tap-target pattern. Scoped
    to .row (the main + side columns wrapper) so the rule can't leak into
@@ -533,11 +551,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
   font-family: inherit;
   font-size: 1.1rem;
   line-height: 1.4;
-  /* Subtract the 1px top+bottom border from the vertical padding so this
-     bordered select's border-box height matches the plain <a> rows (which
-     have no border). Without this the tier-nav row is 2px taller and shifts
-     the whole side-column grid down, misaligning it with the main column. */
-  padding: calc(0.35rem - 1px) 2rem calc(0.35rem - 1px) 0.8rem;
+  /* THE ROW's height (base.css :root), border included, so this bordered
+     select sits on the same grid as the plain <a> rows beside it. */
+  height: var(--row-h);
+  padding: 0 2rem 0 0.8rem;
   background: transparent;
   /* Closed-state text uses the body text colour, not the accent — the
      visible "current tier" name reads as a "you are here" label, not as
@@ -590,13 +607,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
   margin-bottom: 0;
 }
 /* In this row the select is a sibling of the search box, so it takes the
-   search box's typography rather than the side column's row metrics (1.1rem,
-   padding tuned to the 2.4375rem side-row pitch — see .tier-nav above, whose
-   height math only makes sense inside that column). */
+   search box's typography; both are THE ROW tall (base.css :root), so the
+   line is no taller with the switcher than without it. */
 .filter-row > .tier-nav {
   width: auto;
   font-size: 1rem;
-  padding: 0.5rem 0.8rem;
   border-radius: 6px;
 }
 
@@ -607,7 +622,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
    entries hide via .cat-hidden, a class deliberately separate from
    .search-hidden so search and category compose as AND. */
 .cat-hidden { display: none !important; }
-.cat-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0.6rem 0 0.2rem; }
+/* Below the search box, holding only the chips: the Filter toggle and the
+   switches sit on the breadcrumb line (base.css .crumb-line). Takes no room
+   while the chips are folded away. */
+.cat-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0; }
 /* Disclosure control — the row's only resting-state UI. Shows the active
    count while collapsed with filters applied ("Filter (2) ▸"). */
 .cat-chips__toggle {
@@ -622,13 +640,14 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
   border-radius: 6px;
 }
 .cat-chips__toggle:hover { color: var(--text); }
-/* Expanded chips take their own full-width line below the control row, so
-   the Filter toggle and the Planned switch never shift when expanding. */
+/* Expanded chips take their own full-width line below the search box, so
+   the Filter toggle and the switches up on the breadcrumb line never move. */
 .cat-chips__body {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
   flex-basis: 100%;
+  margin: 0 0 1rem;
 }
 .cat-chips__body[hidden] { display: none; }
 
@@ -637,8 +656,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
    Parked is the console-side twin for apps kept but not scheduled. Identical
    chrome ON PURPOSE: they are the same gesture over two kinds of dimmed row,
    and giving the second its own look would say they differ in kind rather
-   than in what they reveal. */
-.planned-switch, .parked-switch {
+   than in what they reveal. A page's TOPIC switch (index_page
+   `topic_switches`) wears the same chrome for the same reason. */
+.planned-switch, .parked-switch, .topic-switch {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
@@ -652,8 +672,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
   color: var(--muted);
   cursor: pointer;
 }
-.planned-switch:hover { color: var(--text); }
-.planned-switch__track, .parked-switch__track {
+.planned-switch:hover, .parked-switch:hover, .topic-switch:hover { color: var(--text); }
+.planned-switch__track, .parked-switch__track, .topic-switch__track {
   width: 1.9rem;
   height: 1.1rem;
   border-radius: 999px;
@@ -661,7 +681,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
   position: relative;
   transition: background 0.15s;
 }
-.planned-switch__knob, .parked-switch__knob {
+.planned-switch__knob, .parked-switch__knob, .topic-switch__knob {
   position: absolute;
   top: 0.125rem;
   left: 0.125rem;
@@ -674,12 +694,19 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
 /* Both switches claim `margin-left: auto`, which on a row carrying BOTH puts
    one in the middle and one at the edge. The adjacent-sibling rule pulls the
    second up against the first, while either alone still right-aligns. */
-.planned-switch + .parked-switch { margin-left: 0.9rem; }
+.planned-switch + .parked-switch,
+:is(.planned-switch, .parked-switch, .topic-switch) + .topic-switch { margin-left: 0.9rem; }
 
 .planned-switch[aria-pressed="true"] .planned-switch__track,
-.parked-switch[aria-pressed="true"] .parked-switch__track { background: var(--accent); }
+.parked-switch[aria-pressed="true"] .parked-switch__track,
+.topic-switch[aria-pressed="true"] .topic-switch__track { background: var(--accent); }
 .planned-switch[aria-pressed="true"] .planned-switch__knob,
-.parked-switch[aria-pressed="true"] .parked-switch__knob { transform: translateX(0.8rem); }
+.parked-switch[aria-pressed="true"] .parked-switch__knob,
+.topic-switch[aria-pressed="true"] .topic-switch__knob { transform: translateX(0.8rem); }
+/* On the breadcrumb line the group spaces its controls itself (base.css
+   .head-controls gap), so the row-era auto/adjacent margins step aside. */
+.head-controls :is(.planned-switch, .parked-switch, .topic-switch) { margin-left: 0; }
+.head-controls .cat-chips__toggle { padding-right: 0; }
 /* Contextual reset — hidden while no chip is active (an action, not a
    filter, so it doesn't join the pill state model). */
 .cat-chips__clear {
@@ -917,21 +944,23 @@ div.app-card--planned, div.app-card--parked { cursor: default; }
    does not serve. */
 /* Group heading inside a row list — see index_page's `group` entry key. A
    label, not a link: it names the run of rows beneath it. Muted and small so
-   the rows stay the thing being read; the first one loses its top margin so a
-   grouped list starts level with an ungrouped one. */
+   the rows stay the thing being read. ONE ROW EXACTLY (user decision
+   2026-10-17): the caption and the space around it fill one row slot —
+   THE ROW's height and gap (base.css :root) — with the text set at the
+   slot's foot, so captions never knock the two columns off one grid. */
 .row-group {
-  margin: 1.1rem 0 0.3rem; color: var(--muted); font-size: 0.75rem;
+  margin: var(--row-gap) 0; height: var(--row-h); padding-bottom: 0.3rem;
+  display: flex; flex-wrap: wrap; align-content: flex-end; align-items: baseline;
+  color: var(--muted); font-size: 0.75rem; line-height: 1.4;
   text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;
 }
-.row-group:first-child { margin-top: 0; }
 /* A caption's own stats link (`stats 📊`), RIGHT-ALIGNED (user decision
    2026-10-16) with its right edge on the 📁 glyph's: .row-folder's 0.5rem
    offset plus its 0.4rem padding. Baseline-aligned so the smaller link text
    sits on the caption's line; the gap and wrap keep a narrow column from
    running caption and link together — wrapped, the link stays right. */
 .row-group.has-stats {
-  display: flex; flex-wrap: wrap; justify-content: space-between;
-  align-items: baseline; column-gap: 0.75rem; padding-right: 0.9rem;
+  justify-content: space-between; column-gap: 0.75rem; padding-right: 0.9rem;
 }
 .row-group.has-stats > a { margin-left: auto; }
 /* The link itself: inline, not a block row target —
@@ -945,9 +974,6 @@ div.app-card--planned, div.app-card--parked { cursor: default; }
   text-transform: none; color: inherit;
 }
 .row .row-group a:hover { background: none; }
-/* The `pages` caption opens its list, so the rule above zeroes its top margin
-   — right under the card shelf it captions the end of. Give that one back. */
-.apps + ul > .row-group:first-child { margin-top: 1.1rem; }
 /* A heading with nothing visible under it is noise, and there are two ways to
    get one: a group holding only teasers whose switch is off, and — already
    true before any of this — a text or category filter that excludes every row
@@ -1015,7 +1041,7 @@ li.has-folder:hover .row-folder { opacity: 0.75; }
    The obvious fix, dropping to a bare `.app-card`, is WRONG and was tried:
    `.row a` (0,1,1) sits earlier in this sheet and sets `display: block`, so a
    single-class `.app-card` (0,1,0) loses to it and every LIVE card fell out
-   of its flex box — 131px tall instead of the 4.675rem the grid below is
+   of its flex box — 131px tall instead of the two rows the grid below is
    built on. The element qualifier was load-bearing, not incidental. Naming
    both elements keeps the (0,1,1) that outranks `.row a` and covers the new
    case. Caught by measuring the rendered cards in a browser; the source read
@@ -1029,17 +1055,17 @@ a.app-card, div.app-card {
   gap: 0.9rem;
   /* Vertical padding 0.3rem so the border-box card can hold one line of name
      (1.54rem) + two lines of description (2 × 1.19rem) plus the 1px top+bottom
-     border inside the 4.675rem height. Content math (border-box): 3.92 text
-     + 0.6 padding + 0.125 border = 4.645rem ≤ 4.675, so min-height governs and
-     every card renders at exactly 4.675rem. (The old 0.4rem padding forgot the
+     border inside the two-row height (≈4.68rem). Content math (border-box):
+     3.92 text + 0.6 padding + 0.125 border = 4.645rem, under it, so min-height
+     governs and every card renders at exactly two rows. (The old 0.4rem padding forgot the
      border and overflowed the box to ~4.84rem, breaking the grid.) */
   padding: 0.3rem 0.9rem;
-  /* Height 4.675rem = two side-list row pitches (2 × 2.4375rem = 4.875rem)
-     minus the 0.2rem gap that follows the card, so card-box + gap = exactly
-     two rows. This makes the card span two side rows top-to-bottom and keeps
-     every page-list row BELOW the card on the same grid as side rows 3, 4, 5…
-     min- (not fixed) as a safety net; content is sized to never exceed it. */
-  min-height: 4.675rem;
+  /* Two rows of THE ROW (base.css :root) and the gap between them, so
+     card-box + the gap that follows = exactly two row pitches: the card spans
+     two side rows and every row BELOW it stays on the same grid as side rows
+     3, 4, 5… min- (not fixed) as a safety net; content is sized to never
+     exceed it. */
+  min-height: calc(2 * var(--row-h) + var(--row-gap));
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1395,9 +1421,9 @@ a.app-card:hover {
 </head>
 <body>
 <div class="container">
-<nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Home</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav>
+<div class="crumb-line"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Home</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav><span class="head-controls"><button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">143,064 lines · 22,433 words · 919 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-16" class="relative-time relative-time-coarse">2026-10-16</time></p>
+<p class="head-meta"><a href="site-stats/">143,050 lines · 22,433 words · 919 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-17" class="relative-time relative-time-coarse">2026-10-17</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
@@ -1407,8 +1433,6 @@ a.app-card:hover {
   </select>
 </div>
 <div class="cat-chips" role="group" aria-label="Filter by category">
-  <button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button>
-  <button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button>
   <div class="cat-chips__body" hidden>
   <button type="button" class="cat-chip" data-cat="__none__" aria-pressed="false">❓ Uncategorised</button>
   <span class="cat-chips__divider" aria-hidden="true"></span>
