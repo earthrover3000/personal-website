@@ -471,6 +471,9 @@ details.chart-section[open] > summary .section-heading::before { content: '▾ '
 /* Markers carry a surface-coloured rim so they stay legible where the two
    series cross each other or a gridline. */
 .crosshair-layer .ch-dot { stroke: var(--surface); stroke-width: 1.5; }
+/* The overlay line under the pointer — the one a click would choose
+   (stats-table.js, 2026-10-18). */
+.overlay-series.overlay-hot { stroke-width: 3.5; }
 .crosshair-layer .ch-dot-lines { fill: var(--accent, #7c9ef5); }
 .crosshair-layer .ch-dot-words { fill: var(--chart-words); }
 /* Hover readout — UNDER the chart, never over it. Always populated: it

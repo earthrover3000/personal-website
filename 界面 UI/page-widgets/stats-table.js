@@ -1547,6 +1547,52 @@
             choose();
           });
         });
+        // ── Click a line to choose it; right-click to go back ──────────────
+        // (user decision 2026-10-18). With several lines drawn, the one under
+        // the pointer — the line whose crosshair dot is nearest, within
+        // REACH — is lit; a click makes it the chart's only line. A
+        // right-click on the chart puts the totals back, as the Total row
+        // does; with only the totals showing it is left to the browser's own
+        // menu. Both go through setChosen, the door the rows and the picker
+        // use, so every stats page's chart gets them from this one file.
+        const REACH = 12;   // viewBox units, measured vertically
+        let hotKey = null;
+        const setHot = n => {
+          overlayPaths.forEach((p, m) => p.classList.toggle('overlay-hot', m === n));
+          hotKey = n >= 0 ? overlayInfo[n].key : null;
+          svg.style.cursor = hotKey !== null ? 'pointer' : '';
+        };
+        // Registered after the crosshair's own pointermove, so the dots are
+        // already at this pointer position when they are measured.
+        svg.addEventListener('pointermove', evt => {
+          if (!overlayKeys.length) { if (hotKey !== null) setHot(-1); return; }
+          const ctm = svg.getScreenCTM();
+          if (!ctm) return;
+          const q = svg.createSVGPoint();
+          q.x = evt.clientX; q.y = evt.clientY;
+          const v = q.matrixTransform(ctm.inverse());
+          let best = -1, bestD = REACH;
+          overlayDots.forEach((dot, n) => {
+            if (dot.style.display === 'none') return;
+            const d = Math.abs(+dot.getAttribute('cy') - v.y);
+            if (d <= bestD) { best = n; bestD = d; }
+          });
+          setHot(best);
+        });
+        svg.addEventListener('pointerleave', () => setHot(-1));
+        svg.addEventListener('click', () => {
+          if (hotKey === null) return;
+          const key = hotKey;
+          setHot(-1);
+          setChosen([key]);
+        });
+        svg.addEventListener('contextmenu', evt => {
+          if (chosen.length === 1 && chosen[0] === '') return;
+          evt.preventDefault();
+          setHot(-1);
+          setChosen(['']);
+        });
+
         // A resolution change rebuilds `points` on the totals; re-apply the
         // choice so the view, not the selection, is what changed.
         reapply = () => setChosen(chosen);
