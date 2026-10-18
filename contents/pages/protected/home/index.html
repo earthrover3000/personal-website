@@ -305,6 +305,12 @@ span.page-cat { cursor: help; }
   color: var(--muted);
   font-size: 0.85em;
   margin: -0.5rem 0 1rem;
+  /* ONE LINE, EVEN EMPTY (user decision 2026-10-18): a head line filled in
+     after load — the docs pages' status line, the Noticeboard's `today`
+     readouts — keeps its room while it waits, or when its source never
+     answers, so nothing below it jumps. `1lh` is this line's own height,
+     whatever the font. */
+  min-height: 1lh;
 }
 /* Inline links inside .head-meta — explicit overrides because index pages'
    global `a` rule turns links into block-style buttons (display:block,

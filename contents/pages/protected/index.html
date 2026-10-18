@@ -302,6 +302,12 @@ span.page-cat { cursor: help; }
   color: var(--muted);
   font-size: 0.85em;
   margin: -0.5rem 0 1rem;
+  /* ONE LINE, EVEN EMPTY (user decision 2026-10-18): a head line filled in
+     after load — the docs pages' status line, the Noticeboard's `today`
+     readouts — keeps its room while it waits, or when its source never
+     answers, so nothing below it jumps. `1lh` is this line's own height,
+     whatever the font. */
+  min-height: 1lh;
 }
 /* Inline links inside .head-meta — explicit overrides because index pages'
    global `a` rule turns links into block-style buttons (display:block,
@@ -1435,7 +1441,7 @@ a.app-card:hover {
 <div class="container">
 <div class="crumb-line"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="home/">Home</a> <span class="sep">›</span> <span aria-current="page">Protected Index</span></nav><span class="head-controls"><button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">22,377 lines · 14,385 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-18T20:36:30Z" title="2026-10-18 20:36 UTC" class="relative-time">2026-10-18</time></p>
+<p class="head-meta"><a href="site-stats/">22,378 lines · 14,385 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-18T21:31:55Z" title="2026-10-18 21:31 UTC" class="relative-time">2026-10-18</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
