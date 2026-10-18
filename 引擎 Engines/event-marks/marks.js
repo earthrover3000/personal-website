@@ -93,6 +93,27 @@ export function msToBlock(ms, ctx) {
   return 0;
 }
 
+/** A block string split into what it SAYS and what it MEANS. The `~` above
+ *  is provenance for a log line, not a label: next to a pre-genesis minus it
+ *  reads "~-216", noise before meaning. So the flag becomes a field, and
+ *  the hyphen becomes U+2212 MINUS (digit-width, so columns align under
+ *  tabular-nums). */
+export function splitBlockLabel(raw) {
+  return {
+    text: raw.replace(/^~/, "").replace("-", "\u2212"),
+    projected: raw.startsWith("~"),
+  };
+}
+
+/** How every surface writes a block (atlas user decisions 2026-08-28): a
+ *  projected block wears a LEADING `*` — "21", "*23", "*−216". Leading so
+ *  right-aligned columns keep their digits aligned; `*` because it sits at
+ *  cap height like a footnote mark and does not merge with the minus. */
+export const blockLabelText = (l) => (l.projected ? `*${l.text}` : l.text);
+
+/** msToBlockString's raw form → its display form. */
+export const formatBlockText = (raw) => blockLabelText(splitBlockLabel(raw));
+
 /** Like msToBlock but returns a display string. CSV-defined blocks render
  *  plainly; synthesised slots past the CSV are tilded UNLESS they contain
  *  today; pre-genesis extrapolations are always tilded. */
@@ -112,6 +133,67 @@ export function msToBlockString(ms, ctx) {
     return `~${-Math.ceil((genesisMs - ms) / MS_PER_DAY / avgLen)}`;
   }
   return "?";
+}
+
+// ─── The rules every consumer shares (user decision 2026-10-18) ────────
+
+/** The canonical block length: a tropical year ÷ 6 (365.24 / 6 ≈ 60.87). */
+export const CANONICAL_BLOCK_DAYS = 61;
+
+/** The projLen to hand computeBlockContext for a person's
+ *  `blockProjection` setting ("average" | "61" | absent). "61" pins the
+ *  synthesised slots to 61 days; "average" — and an ABSENT setting — leaves
+ *  the personal average (undefined). Without two boundaries there is no
+ *  average, so 61. The Python twin is `life_blocks.projection_len`; the
+ *  status line, the stats charts and the atlas resolve through one of the
+ *  two, so they cannot disagree about a block's length. */
+export function resolveProjLen(setting, boundaries) {
+  if (!boundaries || boundaries.length < 2 || String(setting) === "61") {
+    return CANONICAL_BLOCK_DAYS;
+  }
+  return undefined;
+}
+
+/** TODAY as a day on the block grid: the LOCAL calendar day (user decision
+ *  2026-10-18), expressed the way boundaries are — the UTC midnight of that
+ *  ISO date. `now` defaults to the current instant. */
+export function localTodayDayMs(now = new Date()) {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return isoToDayMs(`${y}-${m}-${d}`);
+}
+
+// ─── Block ↔ date (moved from the atlas's lib/blocks.ts, 2026-10-18) ────
+
+/** A block number → its start timestamp: a recorded boundary as written,
+ *  past the last one every avgLen-day slot, before the first the same grid
+ *  extended backward. The inverse of msToBlock. */
+export function blockToMs(blockN, ctx) {
+  const { blockMs, numBlocks, lastBoundaryMs, genesisMs, avgLen } = ctx;
+  if (blockN >= 0 && blockN < blockMs.length) return blockMs[blockN];
+  if (blockN >= blockMs.length) return lastBoundaryMs + (blockN - numBlocks) * avgLen * MS_PER_DAY;
+  return genesisMs + blockN * avgLen * MS_PER_DAY;
+}
+
+/** The last block that ENDS on or before `limitMs`, with its start and end;
+ *  null without a grid. */
+export function lastWholeBlockWithin(limitMs, ctx) {
+  if (ctx.numBlocks === 0 || ctx.avgLen <= 0) return null;
+  // Start one below the block CONTAINING the limit (whose end is past it) and
+  // settle by walking: the grid is monotone and unbounded both ways, so both
+  // loops terminate, and the boundary case lands on the block ending there.
+  let n = msToBlock(limitMs, ctx) - 1;
+  while (blockToMs(n + 1, ctx) > limitMs) n--;
+  while (blockToMs(n + 2, ctx) <= limitMs) n++;
+  return { index: n, startMs: blockToMs(n, ctx), endMs: blockToMs(n + 1, ctx) };
+}
+
+/** Days from `pastMs` to `todayMs`, counting both ends — the INCLUSIVE
+ *  convention blockPosition's `day` uses (day 1 is the first day). At
+ *  least 1. */
+export function elapsedDaysInclusive(pastMs, todayMs) {
+  return Math.max(1, Math.round((todayMs - pastMs) / MS_PER_DAY) + 1);
 }
 
 // ─── Position within a block (lifted from the atlas's lib/pointReadout) ──

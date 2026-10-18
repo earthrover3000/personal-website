@@ -48,6 +48,10 @@ export declare function computeBlockContext(
 ): BlockContext;
 export declare function msToBlock(ms: number, ctx: BlockContext): number;
 export declare function msToBlockString(ms: number, ctx: BlockContext): string;
+export type BlockLabel = { text: string; projected: boolean };
+export declare function splitBlockLabel(raw: string): BlockLabel;
+export declare const blockLabelText: (l: BlockLabel) => string;
+export declare const formatBlockText: (raw: string) => string;
 
 /** Where a day sits inside its block — see marks.js blockPosition. */
 export type BlockPosition = {
@@ -144,3 +148,19 @@ export declare function getPhaseMarksInRange(
   endTime: number,
   phases: readonly PhaseInput[],
 ): PhaseMarkMs[];
+
+/** The canonical block length (tropical year ÷ 6). */
+export declare const CANONICAL_BLOCK_DAYS: number;
+/** projLen for a `blockProjection` setting: 61 for "61" or no average;
+ *  undefined (the personal average) for "average" or absent. */
+export declare function resolveProjLen(setting: string | null | undefined,
+  boundaries: readonly string[] | null | undefined): number | undefined;
+/** The local calendar day, on the block grid (UTC midnight of that date). */
+export declare function localTodayDayMs(now?: Date): number;
+/** A block number → its start timestamp (the inverse of msToBlock). */
+export declare function blockToMs(blockN: number, ctx: BlockContext): number;
+/** The last block ending on or before `limitMs`; null without a grid. */
+export declare function lastWholeBlockWithin(limitMs: number, ctx: BlockContext):
+  { index: number; startMs: number; endMs: number } | null;
+/** Days from pastMs to todayMs counting both ends; at least 1. */
+export declare function elapsedDaysInclusive(pastMs: number, todayMs: number): number;

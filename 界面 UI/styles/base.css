@@ -133,7 +133,7 @@ body {
 .breadcrumb [aria-current="page"] { color: var(--text); }
 .breadcrumb .sep { margin: 0 0.3em; opacity: 0.5; }
 /* THE BREADCRUMB LINE with the page's controls at its right end (index
-   pages: Filter ▸ and the Planned / Parked / topic switches — user decision
+   pages: Filter ▸ and the Planned / topic switches — user decision
    2026-10-17). The crumb keeps its own look; the line takes its spacing.
    Wraps on a narrow screen, the controls staying right-aligned. */
 .crumb-line {

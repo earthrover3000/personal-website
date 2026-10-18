@@ -722,7 +722,12 @@
         svg.querySelectorAll('.x-date-fallback').forEach(el => el.remove());
         // Today, not the domain end: the context's synthetic current block is
         // sized off todayMs, exactly as the atlas Blocks view sizes it.
-        const blockCtx = marks.computeBlockContext(boundaries, +now);
+        // projLen and the day are the shared rules (2026-10-18): the
+        // people.yaml projection, resolved server-side into
+        // data-chart-block-proj (empty = the personal average), and TODAY
+        // as the local calendar day on the block grid — not the raw instant.
+        const projLen = svg.dataset.chartBlockProj ? Number(svg.dataset.chartBlockProj) : undefined;
+        const blockCtx = marks.computeBlockContext(boundaries, marks.localTodayDayMs(now), projLen);
         // Draw to the end of the current blocks (user decision 2026-09-30):
         // the engine's currentBlocks, the segmenting the atlas Blocks view's
         // Current section uses — the block containing today, or, when its end
@@ -775,7 +780,11 @@
         const labelFor = (p, long) => {
           if (p.unit === 'months') return long ? `${EN_MONTHS[p.monthIndex]} ${p.calendarYear}` : EN_MONTHS[p.monthIndex];
           if (p.unit === 'weeks') return long ? `${p.isoYear}-W${p2(p.isoWeek)}` : String(p.isoWeek);
-          if (p.unit === 'blocks') return long ? `Block ${p.label}` : p.label;
+          if (p.unit === 'blocks') {
+            // The atlas's block syntax: "*23" for a projected block.
+            const text = marks.formatBlockText(p.label);
+            return long ? `Block ${text}` : text;
+          }
           return p.label; // phases carry their own "p0.4"
         };
         // Periods of one unit overlapping the data range, already filtered to
@@ -1350,7 +1359,7 @@
           const choose = () => {
             if (key && key === shown) { show(''); return; }
             show(key);
-            // The chart sits below the table and renders folded: open it and
+            // The chart sits below the table and may be folded: open it and
             // bring it into view, or the click appears to have done nothing.
             const fold = svg.closest('details');
             if (fold) fold.open = true;
