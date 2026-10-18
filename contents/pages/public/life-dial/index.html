@@ -1,126 +1,14 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-    <link rel="apple-touch-icon" href="apple-touch-icon-180x180.png" />
-    <!-- Zoom LOCKED by default (native-app feel); the Settings → Dev "Pinch
-         zoom" toggle unlocks it at runtime (LifespanAtlas effect rewrites this
-         tag + drops the iOS gesture guards). Locked here too so the very first
-         paint can't be pinch-zoomed before that effect mounts. -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#9b5de5" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="preload" href="fonts/Fraunces-Regular.woff2" as="font" type="font/woff2" crossorigin />
-    <!-- NO REQUEST TO THE INTERNET IN THIS HEAD (2026-10-01). The five
-         wordmark-candidate fonts used to be linked here from Google Fonts —
-         a render-blocking stylesheet on every load, for the benefit of the
-         dev Test page alone. From behind a proxy that request was measured
-         stalling for ten seconds, with the page blank until it returned.
-         The candidates then loaded on demand behind a dev flag, until the
-         pick was made and the roster deleted (2026-10-11, user decision):
-         the wordmark is the self-hosted Caveat above, Fraunces, also
-         self-hosted, is the descriptor line under it, and nothing else
-         loads (theme/wordmark). -->
-    <title>Life Dial</title>
-    <!-- ASK FOR AN UPDATE BEFORE THE APP BOOTS (2026-10-01). The bundle
-         registers the service worker only once it has run — some 700 ms in
-         — and until then nobody had asked whether a newer build exists, so
-         a stale launch painted the old app first and replaced it a second
-         or two later. Asking here means the new worker is already installing
-         when the app mounts. And it TELLS the app: `__laUpdateFound` plus a
-         `la-update-found` event, which lib/reloadVeil reads at module scope,
-         so the "Updating…" veil is up in the app's first render and the old
-         app is never drawn. Only when a worker already controls the page —
-         a first install is not an update. A first visit has no registration
-         and this does nothing. -->
-    <script>
-      try {
-        if (navigator.serviceWorker) {
-          navigator.serviceWorker.getRegistration().then(function (r) {
-            if (!r) return;
-            var found = function () {
-              if (!navigator.serviceWorker.controller) return;
-              window.__laUpdateFound = true;
-              window.dispatchEvent(new Event("la-update-found"));
-            };
-            r.addEventListener("updatefound", found);
-            if (r.installing || r.waiting) found();
-            r.update().catch(function () {});
-          });
-        }
-      } catch (e) {}
-    </script>
-    <!-- PRE-PAINT BRAND. Runs before the stylesheet below is used to paint,
-         so the very first frame is already the reader's colour and there is
-         no flash of a default on the way to it.
-           It reads a CACHE the app writes (lifespan-atlas:brand-hex, "light|dark")
-         rather than the choice KEY, so the palette itself is not duplicated
-         into this file — the key stays the single source of truth in
-         theme/display.ts, and this is a derived convenience the app never
-         reads back. Resolving light vs dark needs the theme pref too, since
-         "auto" follows the OS. Anything malformed is ignored and the CSS
-         fallback stands. -->
-    <script>
-      (function () {
-        try {
-          var pair = (localStorage.getItem("lifespan-atlas:brand-hex") || "").split("|");
-          if (pair.length !== 2) return;
-          var pref = localStorage.getItem("la-theme-pref");
-          var dark = pref === "dark" || (pref !== "light" &&
-            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
-          var hex = dark ? pair[1] : pair[0];
-          if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
-            document.documentElement.style.setProperty("--la-brand", hex);
-          }
-        } catch (e) { /* private tabs / disabled storage: fallback stands */ }
-      })();
-    </script>
-    <style>
-      @font-face {
-        font-family: "Caveat";
-        font-style: normal;
-        font-weight: 600;
-        font-display: swap;
-        src: url("fonts/Caveat-SemiBold.woff2") format("woff2");
-      }
-      @font-face {
-        font-family: "Fraunces";
-        font-style: normal;
-        font-weight: 400;
-        font-display: swap;
-        src: url("fonts/Fraunces-Regular.woff2") format("woff2");
-      }
-      /* THE SHELL MUST NOT ASSERT A BRAND. This background paints before any
-         JS runs, so a literal here is whatever the app used to be — which is
-         exactly the teal that flashed between two indigo frames on reload
-         (user report 2026-09-01). It now reads --la-brand, which the script
-         above sets from the reader's stored choice before first paint, and
-         falls back to the graphite DEFAULT rather than a retired colour. */
-      html, body { margin: 0; padding: 0; min-height: 100vh; background: var(--la-brand, #33383D); }
-    </style>
-    <script type="module" crossorigin src="./assets/index-Grem6B40.js"></script>
-  <link rel="manifest" href="./manifest.webmanifest"></head>
-  <body>
-    <div id="root"></div>
-    <!-- THE VEIL'S LABEL, ACROSS A RELOAD (2026-10-01). A reload made under
-         a labelled veil (an update: "Updating…") leaves the label in
-         sessionStorage (lib/reloadVeil). This paints it on the boot teal at
-         once, so the words do not vanish for the half second the bundle
-         takes to run; the app's own curtain then draws the same words in
-         the same place, removes this stand-in, and fades out with them.
-         Styled exactly as components/Curtain styles its label. -->
-    <div id="la-boot-label" role="status" style="position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;color:rgba(255,255,255,0.9);font-family:sans-serif;font-size:15px;font-weight:400;pointer-events:none"></div>
-    <script>
-      try {
-        var laCarry = sessionStorage.getItem("la-veil-carry");
-        if (laCarry) {
-          var laLabel = document.getElementById("la-boot-label");
-          laLabel.textContent = laCarry;
-          laLabel.style.display = "flex";
-        }
-      } catch (e) {}
-    </script>
-  </body>
+<head>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB4PSI1MiIgeT0iNDkiIGZvbnQtc2l6ZT0iOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIj7wn5u4PC90ZXh0Pjwvc3ZnPgo=">
+<meta charset="utf-8">
+<title>Moved</title>
+<meta http-equiv="refresh" content="0; url=/lifespan-atlas/public/life-dial/">
+<link rel="canonical" href="/lifespan-atlas/public/life-dial/">
+<script>location.replace("/lifespan-atlas/public/life-dial/" + location.hash);</script>
+</head>
+<body>
+<p>This page has moved to <a href="/lifespan-atlas/public/life-dial/">/lifespan-atlas/public/life-dial/</a>.</p>
+</body>
 </html>
