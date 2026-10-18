@@ -402,7 +402,7 @@ div.app-card--planned { cursor: default; }
 .planned-row--linked > a { color: var(--muted); }
 
 /* Per-row "open this folder on disk" affordance — an index_page entry
-   carrying `folder_href` (规划中心 Planning Hub's spoke rows, pointing at
+   carrying `folder_href` (the Planning Room's spoke rows, pointing at
    origin://folder/<key>). The row's own anchor is a BLOCK tap-target filling
    the li, so this second link is positioned over its right edge rather than
    sharing a flex line; .has-folder supplies the containing block and the

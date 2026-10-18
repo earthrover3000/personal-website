@@ -211,8 +211,11 @@ export function visibleRingWindow({ tSolidS1, refFrac, N }) {
 // DELEGATES here — the app view and the site's Site Log widget must stay
 // pixel-identical, so do NOT change any formula in one place only.
 
-/** Sparse solid-window length in days. */
-export const SPARSE_WINDOW_DAYS = 600;
+/** Sparse solid-window length in days: 403 ≈ e^6 (user decision
+ *  2026-10-18; 600 until then). The atlas's default split is 241 past +
+ *  today + 161 future (rings/sparseWindow DEFAULT_FUTURE_OFFSET_DAYS). The
+ *  site's Site Log widget draws the dense spiral, not this window. */
+export const SPARSE_WINDOW_DAYS = 403;
 
 /** Drifting-mode hard clamp: the window may never slide outside
  *  [refFrac − SPARSE_SLIDE_REVS, refFrac] — the rim and SPARSE_SLIDE_REVS
@@ -222,6 +225,19 @@ export const SPARSE_SLIDE_REVS = 4;
 /** 6-day fade past each solid cap (year-days). The scene's FADE_DT and the
  *  label-range pad derive from this; the atlas's windowPolicy re-exports it. */
 export const FADE_DAYS = 6;
+
+/**
+ * The sparse window's END — the year-fraction of the midnight that closes
+ * its last solid day: the anchor plus the future reach. The atlas's
+ * Waterwheel pins this to the rim (user decision 2026-10-18), so the band's
+ * last day always ends at the Clock event ring's radius whatever the anchor.
+ * @param {number} anchorFrac
+ * @param {number} futureOffsetDays
+ * @returns {number}
+ */
+export function sparseWindowEndFrac(anchorFrac, futureOffsetDays) {
+  return anchorFrac + futureOffsetDays / DAYS_PER_YEAR;
+}
 
 /**
  * Solid-band edges + visible-window fracs + anchor drag clamps for the
@@ -236,7 +252,7 @@ export const FADE_DAYS = 6;
 export function sparseRingWindow({ t_ref, refFrac, anchorFrac, futureOffsetDays }) {
   const windowSpanFrac = SPARSE_WINDOW_DAYS / DAYS_PER_YEAR;
   const futureOffFrac = futureOffsetDays / DAYS_PER_YEAR;
-  const winEnd = anchorFrac + futureOffFrac;
+  const winEnd = sparseWindowEndFrac(anchorFrac, futureOffsetDays);
   const winStart = winEnd - windowSpanFrac;
   return {
     tSolidS1: t_ref + (winEnd - refFrac) * 2 * Math.PI,

@@ -96,6 +96,14 @@
      plus 0.35rem padding above and below. */
   --row-h: calc(1.1rem * 1.4 + 0.7rem);
   --row-gap: 0.2rem;
+  /* THE BREADCRUMB ROW's one height (user decisions 2026-10-18): the trail's
+     text size at line-height 1.5, and everything that sits on that line —
+     the crumbs, the Coordination Hub's part switch, the page controls at
+     the line's right end — is exactly this tall or fits inside it. Fixed
+     lengths, not em, so no element on the line can resolve it differently.
+     (0.85em × 1.5 of the page text until today, the same size here.) */
+  --crumb-font: 0.85rem;
+  --crumb-h: calc(var(--crumb-font) * 1.5);
   --bg:      light-dark(#f5f5f5, #0f0f0f);
   --surface: light-dark(#ffffff, #1a1a1a);
   --border:  light-dark(#d0d0d0, #2e2e2e);
@@ -179,14 +187,14 @@ body {
    so cascade can't make breadcrumb links into block-shaped buttons. */
 .breadcrumb {
   color: var(--muted);
-  font-size: 0.85em;
+  font-size: var(--crumb-font);
   margin: 0 0 0.6rem;
   display: block;
   padding: 0;
   background: none;
   border: none;
   border-radius: 0;
-  line-height: 1.5;
+  line-height: var(--crumb-h);
 }
 .breadcrumb a {
   color: var(--accent);
@@ -202,6 +210,30 @@ body {
 .breadcrumb a:hover { background: none; text-decoration: underline; }
 .breadcrumb [aria-current="page"] { color: var(--text); }
 .breadcrumb .sep { margin: 0 0.3em; opacity: 0.5; }
+/* THE PART SWITCH — the 统筹中心 Coordination Hub's two parts as one
+   two-way toggle in the trail's last place (user decision 2026-10-18), the
+   same control on both pages so neither reads as the other's parent. The
+   current part is the filled half and is not a link.
+   EXACTLY THE ROW'S HEIGHT, border included (user report, same day: the
+   1px border sat on top of the line box and made the row 2px taller): the
+   box is --crumb-h tall and top-aligned, so it fills the line box and never
+   grows it; its halves take the height left inside the border. */
+.breadcrumb .part-switch {
+  display: inline-flex; vertical-align: top; box-sizing: border-box;
+  height: var(--crumb-h);
+  border: 1px solid var(--border); border-radius: 999px; overflow: hidden;
+}
+.breadcrumb .part-switch > a,
+.breadcrumb .part-switch > [aria-current="page"] {
+  padding: 0 0.7em; line-height: calc(var(--crumb-h) - 2px);
+}
+.breadcrumb .part-switch > a { color: var(--muted); }
+.breadcrumb .part-switch > a:hover {
+  color: var(--accent); text-decoration: none;
+}
+.breadcrumb .part-switch > [aria-current="page"] {
+  background: var(--accent); color: var(--bg);
+}
 /* THE BREADCRUMB LINE with the page's controls at its right end (index
    pages: Filter ▸ and the Planned / topic switches — user decision
    2026-10-17). The crumb keeps its own look; the line takes its spacing.
@@ -211,10 +243,10 @@ body {
   column-gap: 0.9rem; row-gap: 0.2rem; margin: 0 0 0.6rem;
   /* ONE HEIGHT on every surface (user report 2026-10-18: Filter ▸ and the
      Planned switch made the line taller than a bare breadcrumb). The line
-     is the breadcrumb's own line box (0.85em × 1.5) whatever sits beside
+     is the breadcrumb's own line box (--crumb-h) whatever sits beside
      it; the controls below give back their vertical padding as negative
      margin, so they keep their tap area but no longer push the line. */
-  min-height: calc(0.85em * 1.5);
+  min-height: var(--crumb-h);
 }
 .crumb-line > .breadcrumb { margin: 0; }
 .head-controls { margin-left: auto; display: inline-flex; align-items: center; gap: 0.9rem; }
@@ -910,7 +942,7 @@ div.app-card--planned { cursor: default; }
 .planned-row--linked > a { color: var(--muted); }
 
 /* Per-row "open this folder on disk" affordance — an index_page entry
-   carrying `folder_href` (规划中心 Planning Hub's spoke rows, pointing at
+   carrying `folder_href` (the Planning Room's spoke rows, pointing at
    origin://folder/<key>). The row's own anchor is a BLOCK tap-target filling
    the li, so this second link is positioned over its right edge rather than
    sharing a flex line; .has-folder supplies the containing block and the
@@ -1285,7 +1317,7 @@ a.app-card:hover {
 <p class="head-meta"><span class="t-live">10</span><span class="t-all">11</span> categories · <span class="proj-tally"><span class="t-live">7</span><span class="t-all">8</span> projects</span></p>
 <div class="matrix-scroll">
 <table class="cat-matrix">
-<tr><th>Project<span class="col-sizer" aria-hidden="true"><span>Linguistics Dissertation</span><span>Chinese Language(s)</span><span>Cities &amp; Transport</span></span></th><th class="cat-col"><button type="button" class="cat-head" data-cat="art" aria-pressed="false" title="Art" aria-label="Art">🪅</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="chemistry" aria-pressed="false" title="Chemistry" aria-label="Chemistry">⚗️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="geography" aria-pressed="false" title="Geography" aria-label="Geography">🗺️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="linguistics" aria-pressed="false" title="Linguistics" aria-label="Linguistics">🔤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="maths" aria-pressed="false" title="Maths" aria-label="Maths">📐</button></th><th class="cat-col col-planned-only"><button type="button" class="cat-head" data-cat="music" aria-pressed="false" title="Music" aria-label="Music">🎵</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="personal" aria-pressed="false" title="Personal" aria-label="Personal">👤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="pharmacology" aria-pressed="false" title="Pharmacology" aria-label="Pharmacology">💊</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="philosophy" aria-pressed="false" title="Philosophy" aria-label="Philosophy">🕯️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="politics" aria-pressed="false" title="Politics" aria-label="Politics">🏛️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="transport" aria-pressed="false" title="Transport" aria-label="Transport">🚦</button></th></tr>
+<tr><th>Project<span class="col-sizer" aria-hidden="true"><span>Linguistics Dissertation</span><span>Chinese Language(s)</span><span>Maps &amp; Projections</span></span></th><th class="cat-col"><button type="button" class="cat-head" data-cat="art" aria-pressed="false" title="Art" aria-label="Art">🪅</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="chemistry" aria-pressed="false" title="Chemistry" aria-label="Chemistry">⚗️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="geography" aria-pressed="false" title="Geography" aria-label="Geography">🗺️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="linguistics" aria-pressed="false" title="Linguistics" aria-label="Linguistics">🔤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="maths" aria-pressed="false" title="Maths" aria-label="Maths">📐</button></th><th class="cat-col col-planned-only"><button type="button" class="cat-head" data-cat="music" aria-pressed="false" title="Music" aria-label="Music">🎵</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="personal" aria-pressed="false" title="Personal" aria-label="Personal">👤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="pharmacology" aria-pressed="false" title="Pharmacology" aria-label="Pharmacology">💊</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="philosophy" aria-pressed="false" title="Philosophy" aria-label="Philosophy">🕯️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="politics" aria-pressed="false" title="Politics" aria-label="Politics">🏛️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="transport" aria-pressed="false" title="Transport" aria-label="Transport">🚦</button></th></tr>
 <tr data-categories="linguistics politics"><td><a href="../chinese-languages/">Chinese Language(s)</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell col-planned-only"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td></tr>
 <tr data-categories="geography transport"><td><a href="../cities-transport/">Cities &amp; Transport</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell col-planned-only"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td></tr>
 <tr data-categories="art maths personal philosophy"><td><a href="../life-dial/">Life Dial</a></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell col-planned-only"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td></tr>

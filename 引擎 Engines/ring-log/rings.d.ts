@@ -107,6 +107,9 @@ export declare const SPARSE_SLIDE_REVS: number;
 /** 6-day fade past each solid cap; the atlas's windowPolicy re-exports it. */
 export declare const FADE_DAYS: number;
 
+/** The sparse window's end (anchor + future reach) as a year-fraction. */
+export declare function sparseWindowEndFrac(anchorFrac: number, futureOffsetDays: number): number;
+
 export declare function sparseRingWindow(input: {
   t_ref: number;
   refFrac: number;
