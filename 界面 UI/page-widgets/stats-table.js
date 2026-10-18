@@ -1344,11 +1344,23 @@
         const panel = document.createElement('div');
         panel.className = 'chart-multi__panel';
         picker.append(summary, panel);
-        // Line colours, in tick order: the page's accent first (a single
-        // project keeps the colour it always had), then distinct hues.
-        const PALETTE = ['var(--accent, #7c9ef5)', '#e07a5f', '#81b29a', '#f2cc8f',
-                         '#9b5de5', '#3d9be9', '#e76f51', '#2a9d8f', '#d4a5a5', '#8d99ae'];
-        const colourOf = n => PALETTE[n % PALETTE.length];
+        // ONE FIXED COLOUR PER LINE (user decision 2026-10-18): a line's
+        // colour belongs to its series, not to the order it was ticked in,
+        // so a project wears the same colour alone, beside others, and on
+        // every visit. The totals keep the page accent; each project takes
+        // the colour of its place in the page's series list — ten chosen
+        // hues, then golden-angle hues for a page with more (the atlas has
+        // ~45), still fixed by place.
+        const PALETTE = ['#e07a5f', '#81b29a', '#f2cc8f', '#9b5de5', '#3d9be9',
+                         '#e76f51', '#2a9d8f', '#d4a5a5', '#8d99ae', '#c9a227'];
+        const seriesOrder = Object.keys(series);
+        const colourOf = key => {
+          if (key === '') return 'var(--accent, #7c9ef5)';
+          const n = seriesOrder.indexOf(key);
+          if (n < 0) return 'var(--accent, #7c9ef5)';
+          return n < PALETTE.length ? PALETTE[n]
+            : `hsl(${Math.round((n * 137.508) % 360)}, 55%, 58%)`;
+        };
 
         let shown = '';
         // The lines on screen, in tick order. '' is the TOTALS — a line like
@@ -1370,6 +1382,10 @@
           const w = pick(s ? s.words : all.words);
           points.forEach((p, i) => { p.total = t[i]; p.words = w[i]; });
           scoped = !!s;
+          // The single line wears its series' fixed colour; the totals the
+          // stylesheet's accent.
+          if (linesPath) linesPath.style.stroke = s ? colourOf(key) : '';
+          chDotLines.style.fill = s ? colourOf(key) : '';
           measure();
           // A project with no prose has no words curve. Its checkbox goes
           // inert rather than unchecked, so the choice it held is still the
@@ -1399,15 +1415,15 @@
             const vals = pick(valuesOf(key));
             points.forEach((p, i) => { p[k] = vals[i]; });
             overlayKeys.push(k);
-            overlayInfo.push({ key, label: labelOf(key), color: colourOf(n) });
+            overlayInfo.push({ key, label: labelOf(key), color: colourOf(key) });
             const path = linesPath.cloneNode(false);
             path.removeAttribute('d');
             path.classList.add('overlay-series');
-            path.style.stroke = colourOf(n);
+            path.style.stroke = colourOf(key);
             linesPath.after(path);
             overlayPaths.push(path);
             const dot = mkDot('ch-dot-overlay');
-            dot.style.fill = colourOf(n);
+            dot.style.fill = colourOf(key);
             overlayDots.push(dot);
           });
           scoped = true;
@@ -1440,7 +1456,7 @@
             const n = chosen.indexOf(key);
             cb.checked = n >= 0;
             const sw = cb.parentElement.querySelector('.chart-multi__swatch');
-            if (sw) sw.style.background = n >= 0 ? colourOf(n) : 'transparent';
+            if (sw) sw.style.background = n >= 0 ? colourOf(key) : 'transparent';
           });
           rows.forEach(r => {
             const n = chosen.indexOf(r.dataset.series);
@@ -1450,7 +1466,7 @@
             r.classList.toggle('series-selected', on);
             if (on) {
               r.setAttribute('aria-current', 'true');
-              r.style.setProperty('--series-colour', colourOf(n));
+              r.style.setProperty('--series-colour', colourOf(r.dataset.series));
             } else {
               r.removeAttribute('aria-current');
               r.style.removeProperty('--series-colour');
