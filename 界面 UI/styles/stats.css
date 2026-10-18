@@ -220,6 +220,12 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   margin: 0.5rem 0 0;
 }
 .chart-controls .view-toggle { margin: 0; }
+/* Tighter pills, so all thirteen fit one line at 800px. */
+.chart-controls { gap: 0.4rem 0.8rem; }
+.chart-controls .view-toggle,
+.chart-controls .series-toggle { gap: 0.25rem; }
+.chart-controls .view-toggle label,
+.chart-controls .series-toggle label { padding: 0.2rem 0.45rem; }
 /* Series checkboxes reuse the view-toggle pill look; each lights up in its
    own series colour when checked (Lines = accent, Words = the warm word hue),
    mirroring the chart legend. */
@@ -270,6 +276,52 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ── Year arrows + project picker: the row above the chart's pills ──────── */
+.chart-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem 1.2rem;
+  margin: 0.5rem 0 0;
+}
+.year-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+.year-step {
+  cursor: pointer;
+  min-width: 1.8rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  transition: border-color 0.15s, color 0.15s;
+}
+.year-step:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.year-step:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.year-step:disabled { opacity: 0.4; cursor: not-allowed; }
+.year-label {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 9.5rem;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.year-name { color: var(--text); font-weight: 600; }
+.year-span { color: var(--muted); font-size: 0.7rem; }
 
 /* ── One project at a time ─────────────────────────────────────────────────
    A table row whose project the chart has a series for is a click target

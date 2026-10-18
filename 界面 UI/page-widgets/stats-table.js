@@ -387,14 +387,53 @@
       const serverDaily = svg.dataset.chartDaily === '1';
       const daysMode = () => isOn('res-days');
 
+      // ── One solstice year at a time (user decision 2026-10-18) ──────────
+      // The December solstice day to the day before the next — the atlas
+      // Pulse view's year (instants: source_stats/solstices.py). A day is the
+      // reader's local date as UTC-midnight ms, the marks engine's convention.
+      // Opens on today's year. No instants → `yr` null, whole history shown.
+      let solMs = [];
+      try {
+        solMs = JSON.parse(svg.dataset.chartSolstices || '[]');
+      } catch (e) { solMs = []; }
+      const localDayMs = ms => {
+        const d = new Date(ms);
+        return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+      };
+      const isoOf = ms => new Date(ms).toISOString().slice(0, 10);
+      const firstDataDay = localDayMs(Math.min(...rawPoints
+        .map(p => Date.parse(p.ts)).filter(Number.isFinite)));
+      const todayDay = localDayMs(+now);
+      const starts = solMs.map(localDayMs).sort((a, b) => a - b);
+      const years = [];
+      for (let i = 0; i + 1 < starts.length; i++) {
+        // From the first point's year to today's; named by its last day's
+        // calendar year (Dec 21 2025 → Dec 20 2026 is 2026).
+        if (starts[i + 1] <= firstDataDay || starts[i] > todayDay) continue;
+        years.push({
+          startMs: starts[i], endMs: starts[i + 1],
+          name: isoOf(starts[i + 1] - DAY_MS).slice(0, 4),
+        });
+      }
+      let yearIdx = years.findIndex(
+        y => y.startMs <= todayDay && todayDay < y.endMs);
+      if (yearIdx < 0) yearIdx = years.length - 1;
+      let yr = years.length ? years[yearIdx] : null;
+
       // What `points` currently is, and everything derived from its shape.
       // All `let`: loadPoints() rebuilds the lot, and every function below
       // reads these bindings live rather than caching a value.
       let points, dates, idxMap, baseOf, dayGranular;
       let dataEndMs, domainMinMs, domainMaxMs;
       // The current blocks' end once the engine has said where it is, so a
-      // rebuilt domain keeps the window the axis was widened to.
+      // rebuilt domain keeps the window the axis was widened to (whole-history
+      // fallback only).
       let winEndMs = 0;
+      function setDomain() {
+        if (yr) { domainMinMs = yr.startMs; domainMaxMs = yr.endMs; return; }
+        domainMinMs = +dates[0];
+        domainMaxMs = Math.max(dataEndMs, winEndMs);
+      }
       // One value per point out of a per-RAW-snapshot array — how a project's
       // series (indexed by the server against the raw payload) follows the
       // view: a day shows the value its last snapshot had.
@@ -410,8 +449,7 @@
         // not happened. The chart's domain starts here too, and widens to the
         // current blocks' end once the engine can say where that is.
         dataEndMs = +(last > now ? last : now);
-        domainMinMs = +dates[0];
-        domainMaxMs = Math.max(dataEndMs, winEndMs);
+        setDomain();
         dayGranular = serverDaily || daysMode();
         // baseOf[i] — the newest snapshot at or before (t_i − 24h), or -1 where
         // the history doesn't reach a full day back (the 24h row, below).
@@ -442,10 +480,24 @@
       //     move; only label text + path geometry do. (A nice step means the top
       //     isn't a tight ceil(ln max) — a little head-room buys clean numbers.)
       const ln = v => Math.log(Math.max(v, 1));
-      // What is on screen, without its gaps. The totals have a count at every
-      // point; one project's series is null wherever the project was not.
-      let totals = points.map(p => p.total).filter(v => v != null);
-      let wordVals = points.map(p => p.words).filter(v => v != null);
+      // Points inside the window plus one neighbour each side, whose segments
+      // cross the (clipped) plot edges.
+      function onScreen() {
+        let before = -1, after = -1;
+        const out = [];
+        for (let i = 0; i < points.length; i++) {
+          const t = +dates[i];
+          if (t < domainMinMs) before = i;
+          else if (t < domainMaxMs) out.push(i);
+          else { after = i; break; }
+        }
+        if (before >= 0) out.unshift(before);
+        if (after >= 0) out.push(after);
+        return out;
+      }
+      // On-screen values without gaps (a project is null where it did not
+      // exist). Filled by measure().
+      let totals = [], wordVals = [];
       // Smallest 1-2-5 ladder value ≥ raw (…, 0.1, 0.2, 0.5, 1, 2, 5, 10, …).
       const niceStep = raw => {
         const p = Math.pow(10, Math.floor(Math.log10(raw)));
@@ -458,8 +510,46 @@
         const step = niceStep(raw);
         return { lo, hi: lo + step * 4, step };
       };
-      let lnLines = lnBounds(totals);
-      let lnWords = wordVals.length ? lnBounds(wordVals) : { lo: 0, hi: 2, step: 0.5 };
+      let lnLines, lnWords;
+      // Totals' axis top: mirrors source_stats.chart._round_up_axis_max.
+      const roundUpAxisMax = vals => {
+        const raw = vals.length ? Math.max(...vals) : 0;
+        if (raw <= 0) return 4;
+        const rawStep = raw / 4;
+        const mag = rawStep >= 1
+          ? Math.pow(10, Math.floor(Math.log10(rawStep))) : 1;
+        const norm = rawStep / mag;
+        return 4 * mag * (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10);
+      };
+      // One project's axis top: four equal whole-number steps, the smallest
+      // that cover the project's own maximum. A FINER ladder than the 1-2-5
+      // the totals axis is sized on: that one can leave a curve in the bottom
+      // 40% of the plot — 8,677 lines would sit under a 20,000 axis — which
+      // is tolerable for the one chart the page opens on and wrong for a view
+      // whose whole point is this project's shape. Here the same count gets
+      // 10,000, and no curve tops out below two-thirds of the height (bar a
+      // count too small for whole steps).
+      const AXIS_STEPS = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+      const niceMax = vals => {
+        const raw = Math.max(1, Math.max(0, ...vals) / 4);
+        const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+        return 4 * AXIS_STEPS.map(m => m * mag)
+          .find(step => Number.isInteger(step) && step >= raw - 1e-9);
+      };
+      let scoped = false;   // `points` holds one project, not the totals
+      // Size both axes to what the window shows.
+      function measure() {
+        const idx = onScreen();
+        totals = idx.map(i => points[i].total).filter(v => v != null);
+        wordVals = idx.map(i => points[i].words).filter(v => v != null);
+        lnLines = lnBounds(totals);
+        lnWords = wordVals.length
+          ? lnBounds(wordVals) : { lo: 0, hi: 2, step: 0.5 };
+        yMaxLines = scoped ? niceMax(totals) : roundUpAxisMax(totals);
+        yMaxWords = scoped ? niceMax(wordVals)
+          : wordVals.length ? roundUpAxisMax(wordVals) : 0;
+      }
+      measure();
       // Label a tick with just enough decimals for its step (0.5→"9.5", 1→"9").
       const fmtStep = (v, step) => {
         const d = Math.max(0, -Math.floor(Math.log10(step) + 1e-9));
@@ -484,6 +574,21 @@
 
       const linesPath = svg.querySelector('path.lines-series');
       const wordsPath = svg.querySelector('path.words-series');
+      // Clip the series to the plot's x-range: they run through the points
+      // either side of the window.
+      if (yr) {
+        const clipNS = 'http://www.w3.org/2000/svg';
+        const clip = document.createElementNS(clipNS, 'clipPath');
+        clip.id = 'stats-plot-clip-' + Math.random().toString(36).slice(2, 10);
+        const rect = document.createElementNS(clipNS, 'rect');
+        rect.setAttribute('x', padL); rect.setAttribute('y', 0);
+        rect.setAttribute('width', chartW);
+        rect.setAttribute('height', H - padB + 2);
+        clip.appendChild(rect);
+        svg.appendChild(clip);
+        [linesPath, wordsPath].forEach(
+          p => p && p.setAttribute('clip-path', `url(#${clip.id})`));
+      }
       // A words curve needs two points to be a curve — the server's own rule
       // for emitting the path, asked again of whichever series is on screen.
       const hasWords = () => !!wordsPath && wordVals.length >= 2;
@@ -629,7 +734,7 @@
         const current = marks.currentBlocks(blockCtx);
         const win = marks.currentBlocksWindow(blockCtx);
         if (win) winEndMs = win.endMs;
-        if (winEndMs > domainMaxMs) {
+        if (!yr && winEndMs > domainMaxMs) {
           domainMaxMs = winEndMs;
           redraw(currentMode());
           refreshCrosshair();
@@ -648,7 +753,7 @@
         // it (drawXAxis, below). Under Phases / Months / Weeks that edge is
         // no boundary of theirs, so nothing is drawn there.
         const currentBlocksEndLine = () => {
-          if (!win || win.endMs < domainMaxMs) return null;
+          if (yr || !win || win.endMs < domainMaxMs) return null;
           const endLine = boundaryLine(xForMs(win.endMs));
           endLine.setAttribute('class', 'current-blocks-end');
           const last = current[current.length - 1];
@@ -792,7 +897,8 @@
             // Built per render, not once: `points` holds whichever series is
             // on screen, and that changes when a project is selected.
             const ledgerPts = points.map((p, i) => ({ ms: dates[i].getTime(), total: p.total, words: p.words }));
-            const rows = ledger.ledgerRows(ledgerPts, periodsFor(mode, dataEndMs), +now).reverse();
+            const periods = periodsFor(mode, Math.min(dataEndMs, domainMaxMs));
+            const rows = ledger.ledgerRows(ledgerPts, periods, +now).reverse();
             const daysCol = DAYS_UNITS.includes(mode);
             let html = '<thead><tr>' + th('Period') + th('Last day') + (daysCol ? th('Days', '', 'num') : '');
             if (lOn) html += th(seriesName, '(at close)', 'num col-lines') + th('Change', '(in period)', 'num col-lines');
@@ -919,9 +1025,12 @@
                `${p2(d.getHours())}:${p2(d.getMinutes())}`;
       };
 
+      // Only points inside the window answer the pointer.
       function nearestIndex(vbX) {
-        let best = 0, bestD = Infinity;
+        let best = -1, bestD = Infinity;
         for (let i = 0; i < points.length; i++) {
+          const t = +dates[i];
+          if (t < domainMinMs || t >= domainMaxMs) continue;
           const d = Math.abs(xs(dates[i]) - vbX);
           if (d < bestD) { bestD = d; best = i; }
         }
@@ -1050,11 +1159,18 @@
 
       // Resting state: no guide (nothing is being pointed at), but the line
       // still reports the most recent build rather than going blank — the
-      // number a visitor most likely wants is the current one.
+      // number a visitor most likely wants is the current one (in a past
+      // year, its last reading).
+      function restIndex() {
+        for (let i = points.length - 1; i >= 0; i--) {
+          if (+dates[i] < domainMaxMs) return i;
+        }
+        return points.length - 1;
+      }
       function restCrosshair() {
         activeIdx = -1;
         chLayer.style.display = 'none';
-        renderReadout(points.length - 1);
+        renderReadout(restIndex());
       }
 
       svg.addEventListener('pointermove', evt => {
@@ -1076,7 +1192,9 @@
         // The same 8-unit tolerance as the plot edges, so a point stamped
         // seconds ago is still reachable under the guide itself.
         if (v.x > xForMs(+now) + 8) { restCrosshair(); return; }
-        showAt(nearestIndex(v.x));
+        const i = nearestIndex(v.x);
+        if (i < 0) { restCrosshair(); return; }
+        showAt(i);
       });
       svg.addEventListener('pointerleave', restCrosshair);
       pinColumns();
@@ -1105,17 +1223,14 @@
       // ON SCREEN — then re-runs the measure → redraw → readout steps the
       // page load ran, so the paths, the crosshair and the ledger all follow
       // without a second code path. The time axis does NOT move: every
-      // project is drawn against the whole log, so a project begun in August
-      // starts two-thirds of the way across, where August is.
+      // project is drawn against the same year window, so a project begun in
+      // August starts two-thirds of the way across, where August is.
       // Re-run the measure → redraw → readout steps for whatever `points` now
       // holds. The default is the totals' path; where per-project series
       // exist (below) it becomes show(shown), which does the same for the
       // selected project.
       let reapply = () => {
-        totals = points.map(p => p.total).filter(v => v != null);
-        wordVals = points.map(p => p.words).filter(v => v != null);
-        lnLines = lnBounds(totals);
-        lnWords = wordVals.length ? lnBounds(wordVals) : { lo: 0, hi: 2, step: 0.5 };
+        measure();
         redraw(currentMode());
         applyVisibility();
         pinColumns();
@@ -1123,10 +1238,20 @@
         refreshTable();
       };
 
+      // The row above the pills: year arrows left, project picker right.
+      let navRow = null;
+      const navRowEl = () => {
+        if (!navRow) {
+          navRow = document.createElement('div');
+          navRow.className = 'chart-nav-row';
+          (controls || wrap).before(navRow);
+        }
+        return navRow;
+      };
+
       let series = {};
       try { series = JSON.parse(svg.dataset.chartSeries || '{}'); } catch (e) { series = {}; }
       if (Object.keys(series).length) {
-        const serverMax = { lines: yMaxLines, words: yMaxWords };
         // Steps back to one value per RAW snapshot: [[i, v], …] says v holds
         // from snapshot i until the next step, and nothing (null) before the
         // first. The server indexed the steps against its payload, so they
@@ -1144,22 +1269,8 @@
         for (const key of Object.keys(series)) {
           expanded[key] = { total: expand(series[key].lines), words: expand(series[key].words) };
         }
-        // The linear axis top for a series the server did not size: four
-        // equal whole-number steps, the smallest that cover the project's own
-        // maximum. A FINER ladder than the 1-2-5 the totals axis is sized on
-        // (source_stats.chart._round_up_axis_max): that one can leave a curve
-        // in the bottom 40% of the plot — 8,677 lines would sit under a
-        // 20,000 axis — which is tolerable for the one chart the page opens
-        // on and wrong for a view whose whole point is this project's shape.
-        // Here the same count gets 10,000, and no curve tops out below
-        // two-thirds of the height (bar a count too small for whole steps).
-        const AXIS_STEPS = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
-        const niceMax = vals => {
-          const raw = Math.max(1, Math.max(0, ...vals) / 4);
-          const mag = Math.pow(10, Math.floor(Math.log10(raw)));
-          return 4 * AXIS_STEPS.map(m => m * mag)
-            .find(step => Number.isInteger(step) && step >= raw - 1e-9);
-        };
+        // A project's axes are sized by niceMax (measure(), above) — a finer
+        // ladder than the totals' 1-2-5.
 
         // Rows that answer to this chart: a project it has a series for, or
         // the empty key — the Total row, which IS the totals.
@@ -1181,12 +1292,8 @@
           const t = pick(s ? s.total : all.total);
           const w = pick(s ? s.words : all.words);
           points.forEach((p, i) => { p.total = t[i]; p.words = w[i]; });
-          totals = t.filter(v => v != null);
-          wordVals = w.filter(v => v != null);
-          lnLines = lnBounds(totals);
-          lnWords = wordVals.length ? lnBounds(wordVals) : { lo: 0, hi: 2, step: 0.5 };
-          yMaxLines = s ? niceMax(totals) : serverMax.lines;
-          yMaxWords = s ? niceMax(wordVals) : serverMax.words;
+          scoped = !!s;
+          measure();
           // A project with no prose has no words curve. Its checkbox goes
           // inert rather than unchecked, so the choice it held is still the
           // reader's when the totals come back.
@@ -1233,7 +1340,7 @@
         window.addEventListener('storage', fillPicker);
         window.addEventListener('pageshow', e => { if (e.persisted) fillPicker(); });
         picker.addEventListener('change', () => show(picker.value));
-        if (controls) controls.appendChild(picker);
+        navRowEl().appendChild(picker);
 
         const calm = window.matchMedia('(prefers-reduced-motion: reduce)');
         rows.forEach(r => {
@@ -1265,6 +1372,53 @@
         // project that was showing so the view, not the selection, is what
         // changed.
         reapply = () => show(shown);
+      }
+
+      // ── Year navigation: ‹ 2026 › ─────────────────────────────────────
+      // Steps `years`; each arrow greys out at the first/last year with data.
+      if (yr) {
+        // The server's whole-history date labels would mislabel a year.
+        svg.querySelectorAll('.x-date-fallback').forEach(el => el.remove());
+        const nav = document.createElement('div');
+        nav.className = 'year-nav';
+        nav.setAttribute('role', 'group');
+        nav.setAttribute('aria-label', 'Year shown');
+        const step = (txt, label) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'year-step';
+          b.textContent = txt;
+          b.setAttribute('aria-label', label);
+          return b;
+        };
+        const prevBtn = step('‹', 'Previous year');
+        const nextBtn = step('›', 'Next year');
+        const label = document.createElement('span');
+        label.className = 'year-label';
+        label.setAttribute('aria-live', 'polite');
+        nav.append(prevBtn, label, nextBtn);
+        navRowEl().prepend(nav);
+
+        function applyYear() {
+          yr = years[yearIdx];
+          const lastDay = isoOf(yr.endMs - DAY_MS);
+          label.innerHTML = `<span class="year-name">${yr.name}</span>`
+            + `<span class="year-span">${isoOf(yr.startMs)} – `
+            + `${lastDay}</span>`;
+          prevBtn.disabled = yearIdx <= 0;
+          nextBtn.disabled = yearIdx >= years.length - 1;
+          setDomain();
+          activeIdx = -1;
+          reapply();
+          refreshAxis();
+        }
+        const stepYear = d => {
+          const i = yearIdx + d;
+          if (i >= 0 && i < years.length) { yearIdx = i; applyYear(); }
+        };
+        prevBtn.addEventListener('click', () => stepYear(-1));
+        nextBtn.addEventListener('click', () => stepYear(1));
+        applyYear();
       }
 
       // ── Snapshots / Days ────────────────────────────────────────────────

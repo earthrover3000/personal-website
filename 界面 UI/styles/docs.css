@@ -100,7 +100,15 @@ h6.page-h6 { counter-increment: s5; }
 h6.page-h6::before { content: var(--sl, counter(s1)) "." counter(s2) "." counter(s3) "." counter(s4) "." counter(s5) ". "; }
 
 /* ---- Page status badges ---- */
-.page-status { display: inline-block; font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 4px; font-weight: 600; margin-left: 0.6rem; vertical-align: middle; }
+.page-status {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 600;
+  margin-left: 0.6rem;
+  vertical-align: middle;
+}
 .page-status.live { background: var(--tag-green); color: var(--tag-green-text); }
 .page-status.wip { background: var(--tag-teal); color: var(--tag-teal-text); }
 .page-status.planned { background: var(--border); color: var(--muted); }
@@ -257,7 +265,25 @@ li.drop-before { border-top: 2px solid var(--accent); }
 li.drop-after { border-bottom: 2px solid var(--accent); }
 ul.drop-child { outline: 1px dashed var(--accent); border-radius: 4px; min-height: 1.5rem; }
 .editing section > ul:empty { min-height: 1.5rem; }
-.drag-ghost { position: fixed; pointer-events: none; z-index: 9999; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; padding: 0.3rem 0.7rem; box-shadow: 0 6px 20px rgba(0,0,0,0.35); opacity: 0.92; max-width: 480px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9em; transform: rotate(1.5deg); transition: transform 0.1s; list-style: none; }
+.drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+  opacity: 0.92;
+  max-width: 480px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.9em;
+  transform: rotate(1.5deg);
+  transition: transform 0.1s;
+  list-style: none;
+}
 .drag-ghost .li-controls, .drag-ghost .drag-handle { display: none; }
 
 /* ---- Filter bar ---- */
@@ -285,7 +311,22 @@ ul.drop-child { outline: 1px dashed var(--accent); border-radius: 4px; min-heigh
    half the leftover viewport, minus the 1rem left offset and a 1rem gap, so
    the legend fills the available space at any width without overlapping —
    capped at 18rem so it doesn't over-stretch on ultrawide screens. */
-.plan-legend { position: fixed; top: 4.5rem; right: 1rem; z-index: 40; display: flex; flex-direction: column; gap: 0.35rem; max-width: min(18rem, calc((100vw - 800px) / 2 - 2rem)); padding: 0.6rem 0.75rem; font-size: 0.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
+.plan-legend {
+  position: fixed;
+  top: 4.5rem;
+  right: 1rem;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: min(18rem, calc((100vw - 800px) / 2 - 2rem));
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+}
 .plan-legend-label { color: var(--muted); font-weight: 600; margin-bottom: 0.15rem; }
 /* The label is a link to /site-roadmap (the legend's source page) — keep the
    muted legend look over the global anchor blue; underline only on hover. */
@@ -300,7 +341,17 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
    stages as ordinary rows above the live ones — hidden by default. Past
    chips are muted rather than coloured — they decode no tag. */
 .plan-legend-toggles { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: -0.15rem 0 0.15rem; }
-.plan-legend-toggle { padding: 0 0.4rem; font: inherit; font-size: 0.72rem; line-height: 1.5; color: var(--muted); background: none; border: 1px solid var(--border); border-radius: 999px; cursor: pointer; }
+.plan-legend-toggle {
+  padding: 0 0.4rem;
+  font: inherit;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
 .plan-legend-toggle:hover { color: var(--text); border-color: var(--text); }
 /* Open, a row is a two-column grid (chip | title) so a long title wraps
    BESIDE its chip rather than under it, and the description spans both.
@@ -308,7 +359,15 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
    prose overrun a 1000px-tall window. */
 .plan-legend-open .plan-legend-item { display: grid; grid-template-columns: auto 1fr; column-gap: 0.45rem; align-items: center; }
 .plan-legend-open { max-height: calc(100vh - 6rem); overflow-y: auto; }
-.plan-legend-desc { grid-column: 1 / -1; margin: 0.05rem 0 0.25rem; padding-left: 0.2rem; font-size: 0.74rem; line-height: 1.4; color: var(--muted); opacity: 0.85; }
+.plan-legend-desc {
+  grid-column: 1 / -1;
+  margin: 0.05rem 0 0.25rem;
+  padding-left: 0.2rem;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: var(--muted);
+  opacity: 0.85;
+}
 .plan-legend-past-chip { opacity: 0.45; filter: saturate(0.4); }
 @media (max-width: 1200px) {
   .plan-legend { position: static; max-width: none; margin-bottom: 1.2rem; box-shadow: none; }
@@ -352,7 +411,18 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
 /* ---- Item controls ---- */
 .li-controls { display: none; gap: 0.2rem; margin-left: 0.4rem; vertical-align: middle; }
 .editing .li-controls { display: inline-flex; }
-.li-btn { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 3px; cursor: pointer; font-size: 0.68rem; padding: 0.05rem 0.3rem; line-height: 1.4; user-select: none; transition: transform 0.1s, color 0.1s, border-color 0.1s; }
+.li-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.68rem;
+  padding: 0.05rem 0.3rem;
+  line-height: 1.4;
+  user-select: none;
+  transition: transform 0.1s, color 0.1s, border-color 0.1s;
+}
 .li-btn:active { transform: scale(0.88); }
 .li-btn:hover { color: var(--text); border-color: var(--muted); }
 .li-btn.del:hover { color: var(--tag-red-text); border-color: var(--tag-red-text); }
@@ -361,7 +431,16 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
 .add-item-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.8rem; padding: 0; transition: transform 0.1s, color 0.1s; }
 .add-item-btn:hover { color: var(--accent); }
 .add-item-btn:active { transform: scale(0.94); }
-.section-del-btn { visibility: hidden; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.8rem; margin-left: 0.5rem; vertical-align: middle; }
+.section-del-btn {
+  visibility: hidden;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
 .editing .section-del-btn { visibility: visible; }
 
 /* ---- Toolbar ---- */
@@ -369,10 +448,35 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
 #toolbar button { transition: transform 0.1s, filter 0.1s, border-color 0.15s, color 0.15s; }
 #toolbar button:hover { filter: brightness(1.2); }
 #toolbar button:active { transform: scale(0.94); filter: brightness(0.9); }
-#edit-btn { padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.85rem; cursor: pointer; }
+#edit-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
 #edit-btn.active { border-color: var(--accent); color: var(--accent); }
-#save-btn { padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #fff; font-size: 0.85rem; cursor: pointer; display: none; }
-#reset-btn { padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.85rem; cursor: pointer; }
+#save-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: none;
+}
+#reset-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
 
 /* ---- Collapsible sections ---- */
 .section-collapse { margin-top: 0.5rem; }
