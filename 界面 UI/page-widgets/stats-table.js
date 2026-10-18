@@ -537,10 +537,18 @@
           .find(step => Number.isInteger(step) && step >= raw - 1e-9);
       };
       let scoped = false;   // `points` holds one project, not the totals
+      // OVERLAY (user decision 2026-10-18): two or more projects chosen at
+      // once are drawn together, one line each, on one left axis. Each rides
+      // `points` under its own key (o0, o1, …) — the same per-point shape the
+      // totals and words use — so tracing, the 24h deltas, the pinned
+      // columns and the log scale all serve every line with no second code
+      // path. Empty = the single-series chart, exactly as before.
+      let overlayKeys = [], overlayPaths = [], overlayDots = [], overlayInfo = [];
       // Size both axes to what the window shows.
       function measure() {
         const idx = onScreen();
-        totals = idx.map(i => points[i].total).filter(v => v != null);
+        const lineKeys = overlayKeys.length ? overlayKeys : ['total'];
+        totals = idx.flatMap(i => lineKeys.map(k => points[i][k])).filter(v => v != null);
         wordVals = idx.map(i => points[i].words).filter(v => v != null);
         lnLines = lnBounds(totals);
         lnWords = wordVals.length
@@ -647,7 +655,8 @@
 
       function redraw(mode) {
         const s = SCALES[mode] || SCALES.linear;
-        if (linesPath) linesPath.setAttribute('d', trace('total', s.yl));
+        if (linesPath) linesPath.setAttribute('d', overlayKeys.length ? '' : trace('total', s.yl));
+        overlayPaths.forEach((path, n) => path.setAttribute('d', trace(overlayKeys[n], s.yl)));
         if (wordsPath) wordsPath.setAttribute('d', trace('words', s.yw));
         leftLabels.forEach((el, i) => { el.textContent = s.labL(i); });
         rightLabels.forEach((el, i) => { el.textContent = s.labR(i); });
@@ -661,7 +670,14 @@
       const showWords = ctl('series-words');
       const setVis = (els, on) => els.forEach(el => { if (el) el.style.display = on ? '' : 'none'; });
       function applyVisibility() {
-        setVis([linesPath, legendLines, ...leftLabels], !showLines || showLines.checked);
+        const lOn = !showLines || showLines.checked;
+        if (overlayKeys.length) {
+          // The picker's swatches are the legend while several lines show.
+          setVis([linesPath, legendLines, wordsPath, legendWords, ...rightLabels], false);
+          setVis([...overlayPaths, ...leftLabels], lOn);
+          return;
+        }
+        setVis([linesPath, legendLines, ...leftLabels], lOn);
         setVis([wordsPath, legendWords, ...rightLabels], hasWords() && (!showWords || showWords.checked));
       }
       // No words series on this page → the Words checkbox controls nothing.
@@ -1085,7 +1101,7 @@
         probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
         readout.appendChild(probe);
         const longest = strs => strs.reduce((a, b) => b.length > a.length ? b : a, '');
-        for (const key of ['total', 'words']) {
+        for (const key of ['total', 'words', ...overlayKeys]) {
           const counts = longest(points.map(q => fmtCount(q[key])));
           const deltas = longest(points.map((q, i) => {
             const d = deltaAt(i, key);
@@ -1111,6 +1127,20 @@
         const field = (cls, key, val) =>
           `<span class="ch-field ${cls}"><span class="ch-key">${key}</span>` +
           `<span class="ch-val">${val}</span></span>`;
+        if (overlayKeys.length) {
+          const swatch = n => `<span class="ch-swatch" style="background:${overlayInfo[n].color}"></span>`;
+          let html = `<span class="ch-when">${fmtWhen(i)}</span>` + (lOn ? overlayKeys.map((k, n) =>
+            field('ch-f-overlay', swatch(n) + overlayInfo[n].label, fmtCount(p[k]))).join('') : '');
+          html += '<span class="ch-when ch-since">24h</span>' + (lOn ? overlayKeys.map(k => {
+            const d = deltaAt(i, k);
+            return field('ch-f-overlay ch-d', '', d === null ? DASH : fmtDelta(d));
+          }).join('') : '');
+          const track = w => w ? `${w}px` : 'auto';
+          readout.style.gridTemplateColumns = 'auto'
+            + (lOn ? overlayKeys.map(k => ` auto ${track(colW[k])}`).join('') : '');
+          readout.innerHTML = html;
+          return;
+        }
         let html =
           `<span class="ch-when">${fmtWhen(i)}</span>` +
           (lOn ? field('ch-f-lines', seriesName, fmtCount(p.total)) : '') +
@@ -1160,8 +1190,17 @@
           chDotWords.setAttribute('cx', x.toFixed(1));
           chDotWords.setAttribute('cy', s.yw(p.words).toFixed(1));
         }
-        chDotLines.style.display = lOn ? '' : 'none';
-        chDotWords.style.display = wOn ? '' : 'none';
+        chDotLines.style.display = lOn && !overlayKeys.length ? '' : 'none';
+        chDotWords.style.display = wOn && !overlayKeys.length ? '' : 'none';
+        overlayDots.forEach((dot, n) => {
+          const v = points[i][overlayKeys[n]];
+          const on = linesOn() && v != null;
+          if (on) {
+            dot.setAttribute('cx', x.toFixed(1));
+            dot.setAttribute('cy', s.yl(v).toFixed(1));
+          }
+          dot.style.display = on ? '' : 'none';
+        });
         chLayer.style.display = '';
         renderReadout(i);
       }
@@ -1287,14 +1326,32 @@
           .filter(r => r.dataset.series === '' || series[r.dataset.series]);
         const rowOf = key => rows.find(r => r.dataset.series === key);
         // The picker: the same choice from beside the chart, so comparing
-        // two projects is not a scroll back up to the table for each. It is
-        // also what says WHICH project the curve is, once the row that was
-        // clicked has scrolled away.
-        const picker = document.createElement('select');
-        picker.className = 'chart-scope';
-        picker.setAttribute('aria-label', 'Which project to chart');
+        // projects is not a scroll back up to the table for each. A
+        // MULTI-SELECT since 2026-10-18 (user decision): tick several and
+        // they are drawn together (the overlay above); one alone is the
+        // single-series chart as before; none is the totals. Each ticked
+        // project wears the colour of its line, so the list is the legend.
+        const picker = document.createElement('details');
+        picker.className = 'chart-scope chart-multi';
+        const summary = document.createElement('summary');
+        summary.setAttribute('aria-label', 'Which projects to chart');
+        const panel = document.createElement('div');
+        panel.className = 'chart-multi__panel';
+        picker.append(summary, panel);
+        // Line colours, in tick order: the page's accent first (a single
+        // project keeps the colour it always had), then distinct hues.
+        const PALETTE = ['var(--accent, #7c9ef5)', '#e07a5f', '#81b29a', '#f2cc8f',
+                         '#9b5de5', '#3d9be9', '#e76f51', '#2a9d8f', '#d4a5a5', '#8d99ae'];
+        const colourOf = n => PALETTE[n % PALETTE.length];
 
         let shown = '';
+        let chosen = [];
+        const labelOf = key => {
+          const r = rowOf(key);
+          // data-series-label: the row's name where the table's own cell is
+          // ambiguous out of its section (two `Scripts` rows, say).
+          return r ? (r.dataset.seriesLabel || r.cells[0].textContent.trim()) : key;
+        };
         function show(key) {
           const s = expanded[key];
           shown = s ? key : '';
@@ -1312,43 +1369,123 @@
           pinColumns();
           refreshCrosshair();
           refreshTable();
-          picker.value = shown;
-          picker.classList.toggle('scoped', !!shown);
+        }
+        function clearOverlay() {
+          overlayPaths.forEach(el => el.remove());
+          overlayDots.forEach(el => el.remove());
+          overlayKeys = []; overlayPaths = []; overlayDots = []; overlayInfo = [];
+        }
+        function showOverlay(keys) {
+          clearOverlay();
+          shown = '';
+          // `total` follows the first line (the ledger reads it); words are
+          // off — several projects' prose on one right axis would say
+          // nothing.
+          const first = pick(expanded[keys[0]].total);
+          points.forEach((p, i) => { p.total = first[i]; p.words = null; });
+          keys.forEach((key, n) => {
+            const k = 'o' + n;
+            const vals = pick(expanded[key].total);
+            points.forEach((p, i) => { p[k] = vals[i]; });
+            overlayKeys.push(k);
+            overlayInfo.push({ key, label: labelOf(key), color: colourOf(n) });
+            const path = linesPath.cloneNode(false);
+            path.removeAttribute('d');
+            path.classList.add('overlay-series');
+            path.style.stroke = colourOf(n);
+            linesPath.after(path);
+            overlayPaths.push(path);
+            const dot = mkDot('ch-dot-overlay');
+            dot.style.fill = colourOf(n);
+            overlayDots.push(dot);
+          });
+          scoped = true;
+          measure();
+          if (showWords && wordsPath) showWords.disabled = true;
+          redraw(currentMode());
+          applyVisibility();
+          pinColumns();
+          refreshCrosshair();
+          refreshTable();
+        }
+        function setChosen(keys) {
+          chosen = keys.filter(k => expanded[k] && listed(k));
+          if (chosen.length > 1) {
+            showOverlay(chosen);
+          } else {
+            clearOverlay();
+            show(chosen[0] || '');
+          }
+          syncChoice();
+        }
+        function syncChoice() {
+          summary.textContent = !chosen.length ? 'All projects ▾'
+            : chosen.length === 1 ? labelOf(chosen[0]) + ' ▾'
+              : `${chosen.length} projects ▾`;
+          picker.classList.toggle('scoped', chosen.length > 0);
+          panel.querySelectorAll('input[type=checkbox]').forEach(cb => {
+            const key = cb.dataset.key;
+            const n = chosen.indexOf(key);
+            cb.checked = key === '' ? !chosen.length : n >= 0;
+            const sw = cb.parentElement.querySelector('.chart-multi__swatch');
+            if (sw) sw.style.background = n >= 0 ? colourOf(n) : 'transparent';
+          });
           rows.forEach(r => {
-            const on = !!shown && r.dataset.series === shown;
+            const n = chosen.indexOf(r.dataset.series);
+            const on = !!r.dataset.series && n >= 0;
             r.classList.toggle('series-selected', on);
-            if (on) r.setAttribute('aria-current', 'true'); else r.removeAttribute('aria-current');
+            if (on) {
+              r.setAttribute('aria-current', 'true');
+              r.style.setProperty('--series-colour', colourOf(n));
+            } else {
+              r.removeAttribute('aria-current');
+              r.style.removeProperty('--series-colour');
+            }
           });
         }
+        const toggle = key => {
+          if (!key) { setChosen([]); return; }
+          const n = chosen.indexOf(key);
+          setChosen(n >= 0 ? chosen.filter(k => k !== key) : [...chosen, key]);
+        };
 
         // A row behind an off Settings switch (data-unlist — the site's
         // "Unlisted projects" fold) is not named in the table, so it is not
-        // named in the picker either; and if the switch goes off under the
-        // project being shown, the chart goes back to the totals. Refilled
-        // on the events the fold itself re-reads the switches on — its
-        // listeners are registered ahead of this module's, so <html> is
-        // already re-stamped by the time these run.
+        // named in the picker either; and if the switch goes off under a
+        // project being shown, it leaves the chart. Refilled on the events
+        // the fold itself re-reads the switches on — its listeners are
+        // registered ahead of this module's, so <html> is already re-stamped
+        // by the time these run.
         const listed = key => {
           const r = rowOf(key);
           return !r || !r.dataset.unlist
             || document.documentElement.hasAttribute('data-show-' + r.dataset.unlist);
         };
         function fillPicker() {
-          picker.textContent = '';
-          picker.add(new Option('All projects', ''));
-          Object.keys(series).filter(listed).forEach(key => {
-            const r = rowOf(key);
-            // data-series-label: the row's name where the table's own cell is
-            // ambiguous out of its section (two `Scripts` rows, say).
-            const label = r ? (r.dataset.seriesLabel || r.cells[0].textContent.trim()) : key;
-            picker.add(new Option(label, key));
-          });
-          if (shown && !listed(shown)) show(''); else picker.value = shown;
+          panel.textContent = '';
+          const option = (key, label) => {
+            const l = document.createElement('label');
+            l.className = 'chart-multi__option';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.dataset.key = key;
+            cb.addEventListener('change', () => toggle(key));
+            const sw = document.createElement('span');
+            sw.className = 'chart-multi__swatch';
+            l.append(cb, sw, document.createTextNode(label));
+            panel.appendChild(l);
+          };
+          option('', 'All projects');
+          Object.keys(series).filter(listed).forEach(key => option(key, labelOf(key)));
+          if (chosen.some(k => !listed(k))) setChosen(chosen); else syncChoice();
         }
         fillPicker();
         window.addEventListener('storage', fillPicker);
         window.addEventListener('pageshow', e => { if (e.persisted) fillPicker(); });
-        picker.addEventListener('change', () => show(picker.value));
+        // A click anywhere else folds the list away.
+        document.addEventListener('click', e => {
+          if (picker.open && !picker.contains(e.target)) picker.open = false;
+        });
         navRowEl().appendChild(picker);
 
         const calm = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -1356,9 +1493,13 @@
           const key = r.dataset.series;
           r.classList.add('series-row');
           r.tabIndex = 0;
+          // A row TOGGLES its project in the choice — click two rows and both
+          // are drawn; click one again and it leaves. The Total row (empty
+          // key) clears the choice: the totals again.
           const choose = () => {
-            if (key && key === shown) { show(''); return; }
-            show(key);
+            const adding = key && !chosen.includes(key);
+            toggle(key);
+            if (!adding) return;
             // The chart sits below the table and may be folded: open it and
             // bring it into view, or the click appears to have done nothing.
             const fold = svg.closest('details');
@@ -1377,10 +1518,9 @@
             choose();
           });
         });
-        // A resolution change rebuilds `points` on the totals; re-select the
-        // project that was showing so the view, not the selection, is what
-        // changed.
-        reapply = () => show(shown);
+        // A resolution change rebuilds `points` on the totals; re-apply the
+        // choice so the view, not the selection, is what changed.
+        reapply = () => setChosen(chosen);
       }
 
       // ── Year navigation: ‹ 2026 › ─────────────────────────────────────
