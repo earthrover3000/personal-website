@@ -139,9 +139,16 @@ body {
 .crumb-line {
   display: flex; flex-wrap: wrap; align-items: center;
   column-gap: 0.9rem; row-gap: 0.2rem; margin: 0 0 0.6rem;
+  /* ONE HEIGHT on every surface (user report 2026-10-18: Filter ▸ and the
+     Planned switch made the line taller than a bare breadcrumb). The line
+     is the breadcrumb's own line box (0.85em × 1.5) whatever sits beside
+     it; the controls below give back their vertical padding as negative
+     margin, so they keep their tap area but no longer push the line. */
+  min-height: calc(0.85em * 1.5);
 }
 .crumb-line > .breadcrumb { margin: 0; }
 .head-controls { margin-left: auto; display: inline-flex; align-items: center; gap: 0.9rem; }
+.head-controls > button { margin-block: -0.15rem; }
 
 /* ---- Head-region typography ---- */
 h1 {

@@ -210,9 +210,16 @@ body {
 .crumb-line {
   display: flex; flex-wrap: wrap; align-items: center;
   column-gap: 0.9rem; row-gap: 0.2rem; margin: 0 0 0.6rem;
+  /* ONE HEIGHT on every surface (user report 2026-10-18: Filter ▸ and the
+     Planned switch made the line taller than a bare breadcrumb). The line
+     is the breadcrumb's own line box (0.85em × 1.5) whatever sits beside
+     it; the controls below give back their vertical padding as negative
+     margin, so they keep their tap area but no longer push the line. */
+  min-height: calc(0.85em * 1.5);
 }
 .crumb-line > .breadcrumb { margin: 0; }
 .head-controls { margin-left: auto; display: inline-flex; align-items: center; gap: 0.9rem; }
+.head-controls > button { margin-block: -0.15rem; }
 
 /* ---- Head-region typography ---- */
 h1 {
@@ -1396,7 +1403,7 @@ a.app-card:hover {
 <div class="container">
 <div class="crumb-line"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="home/">Home</a> <span class="sep">›</span> <span aria-current="page">Protected Index</span></nav><span class="head-controls"><button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">22,373 lines · 14,385 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-18T11:38:47Z" title="2026-10-18 11:38 UTC" class="relative-time">2026-10-18</time></p>
+<p class="head-meta"><a href="site-stats/">22,373 lines · 14,385 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-18T12:51:09Z" title="2026-10-18 12:51 UTC" class="relative-time">2026-10-18</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
