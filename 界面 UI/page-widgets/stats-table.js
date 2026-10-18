@@ -1221,21 +1221,37 @@
         }
         return points.length - 1;
       }
+      // ── Pinning (user decision 2026-10-18) ──────────────────────────────
+      // A click PINS the crosshair at the moment under the pointer: the guide
+      // and the readout — every line's count at that point — stay there while
+      // the pointer moves on, and a click elsewhere moves the pin. A
+      // right-click lets go (and is left to the browser's own menu when
+      // nothing is pinned). Pinning never changes WHICH lines are drawn; a
+      // change of lines keeps the pin, and its readout follows them. Anything
+      // that rebuilds the time index (year, Snapshots/Days) lets go, through
+      // restCrosshair.
+      let pinned = false;
+      const setPinned = on => {
+        pinned = on;
+        chLayer.classList.toggle('pinned', on);
+      };
       function restCrosshair() {
         activeIdx = -1;
+        setPinned(false);
         chLayer.style.display = 'none';
         renderReadout(restIndex());
       }
 
-      svg.addEventListener('pointermove', evt => {
+      // The snapshot under a pointer event, or -1 for "pointing at nothing".
+      function indexAt(evt) {
         const ctm = svg.getScreenCTM();
-        if (!ctm) return;
+        if (!ctm) return -1;
         const q = svg.createSVGPoint();
         q.x = evt.clientX; q.y = evt.clientY;
         // Screen → viewBox units: the SVG is width:100% with a fixed viewBox,
         // so the CTM is the only reliable way to undo the responsive scaling.
         const v = q.matrixTransform(ctm.inverse());
-        if (v.x < padL - 8 || v.x > W - padR + 8) { restCrosshair(); return; }
+        if (v.x < padL - 8 || v.x > W - padR + 8) return -1;
         // Past now there is nothing to read — the series has no value yet
         // and the axis only runs on so it can close on a block boundary. The
         // cut is at NOW, not at the newest point: in Snapshots mode the last
@@ -1245,12 +1261,28 @@
         // "pointing at nothing": guide hidden, readout on the newest point.
         // The same 8-unit tolerance as the plot edges, so a point stamped
         // seconds ago is still reachable under the guide itself.
-        if (v.x > xForMs(+now) + 8) { restCrosshair(); return; }
-        const i = nearestIndex(v.x);
+        if (v.x > xForMs(+now) + 8) return -1;
+        return nearestIndex(v.x);
+      }
+
+      svg.addEventListener('pointermove', evt => {
+        if (pinned) return;
+        const i = indexAt(evt);
         if (i < 0) { restCrosshair(); return; }
         showAt(i);
       });
-      svg.addEventListener('pointerleave', restCrosshair);
+      svg.addEventListener('pointerleave', () => { if (!pinned) restCrosshair(); });
+      svg.addEventListener('click', evt => {
+        const i = indexAt(evt);
+        if (i < 0) return;
+        showAt(i);
+        setPinned(true);
+      });
+      svg.addEventListener('contextmenu', evt => {
+        if (!pinned) return;
+        evt.preventDefault();
+        restCrosshair();
+      });
       pinColumns();
       restCrosshair();
 
@@ -1547,52 +1579,6 @@
             choose();
           });
         });
-        // ── Click a line to choose it; right-click to go back ──────────────
-        // (user decision 2026-10-18). With several lines drawn, the one under
-        // the pointer — the line whose crosshair dot is nearest, within
-        // REACH — is lit; a click makes it the chart's only line. A
-        // right-click on the chart puts the totals back, as the Total row
-        // does; with only the totals showing it is left to the browser's own
-        // menu. Both go through setChosen, the door the rows and the picker
-        // use, so every stats page's chart gets them from this one file.
-        const REACH = 12;   // viewBox units, measured vertically
-        let hotKey = null;
-        const setHot = n => {
-          overlayPaths.forEach((p, m) => p.classList.toggle('overlay-hot', m === n));
-          hotKey = n >= 0 ? overlayInfo[n].key : null;
-          svg.style.cursor = hotKey !== null ? 'pointer' : '';
-        };
-        // Registered after the crosshair's own pointermove, so the dots are
-        // already at this pointer position when they are measured.
-        svg.addEventListener('pointermove', evt => {
-          if (!overlayKeys.length) { if (hotKey !== null) setHot(-1); return; }
-          const ctm = svg.getScreenCTM();
-          if (!ctm) return;
-          const q = svg.createSVGPoint();
-          q.x = evt.clientX; q.y = evt.clientY;
-          const v = q.matrixTransform(ctm.inverse());
-          let best = -1, bestD = REACH;
-          overlayDots.forEach((dot, n) => {
-            if (dot.style.display === 'none') return;
-            const d = Math.abs(+dot.getAttribute('cy') - v.y);
-            if (d <= bestD) { best = n; bestD = d; }
-          });
-          setHot(best);
-        });
-        svg.addEventListener('pointerleave', () => setHot(-1));
-        svg.addEventListener('click', () => {
-          if (hotKey === null) return;
-          const key = hotKey;
-          setHot(-1);
-          setChosen([key]);
-        });
-        svg.addEventListener('contextmenu', evt => {
-          if (chosen.length === 1 && chosen[0] === '') return;
-          evt.preventDefault();
-          setHot(-1);
-          setChosen(['']);
-        });
-
         // A resolution change rebuilds `points` on the totals; re-apply the
         // choice so the view, not the selection, is what changed.
         reapply = () => setChosen(chosen);
