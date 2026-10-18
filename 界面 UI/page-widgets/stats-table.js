@@ -527,9 +527,15 @@
       // 40% of the plot — 8,677 lines would sit under a 20,000 axis — which
       // is tolerable for the one chart the page opens on and wrong for a view
       // whose whole point is this project's shape. Here the same count gets
-      // 10,000, and no curve tops out below two-thirds of the height (bar a
-      // count too small for whole steps).
-      const AXIS_STEPS = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+      // 10,000.
+      //
+      // ROUND STEPS ONLY (user decision 2026-10-18): every gridline lands on
+      // a 1 / 2 / 2.5 / 5 × power-of-ten multiple, the same rule the log
+      // axis keeps. The ladder had 1.5, 3, 4, 6 and 8 too, which drew lines
+      // every 80,000 or 150,000 — whole numbers, but not round ones. A curve
+      // can now top out a little lower (at worst about half the height,
+      // where it was two-thirds), which buys a grid that reads at a glance.
+      const AXIS_STEPS = [1, 2, 2.5, 5, 10];
       const niceMax = vals => {
         const raw = Math.max(1, Math.max(0, ...vals) / 4);
         const mag = Math.pow(10, Math.floor(Math.log10(raw)));
@@ -1345,8 +1351,13 @@
         const colourOf = n => PALETTE[n % PALETTE.length];
 
         let shown = '';
-        let chosen = [];
+        // The lines on screen, in tick order. '' is the TOTALS — a line like
+        // any other since 2026-10-18 (user decision), so a project can be
+        // drawn against the whole. [''] alone is the default chart.
+        let chosen = [''];
+        const valuesOf = key => key === '' ? all.total : expanded[key].total;
         const labelOf = key => {
+          if (key === '') return 'All projects';
           const r = rowOf(key);
           // data-series-label: the row's name where the table's own cell is
           // ambiguous out of its section (two `Scripts` rows, say).
@@ -1381,11 +1392,11 @@
           // `total` follows the first line (the ledger reads it); words are
           // off — several projects' prose on one right axis would say
           // nothing.
-          const first = pick(expanded[keys[0]].total);
+          const first = pick(valuesOf(keys[0]));
           points.forEach((p, i) => { p.total = first[i]; p.words = null; });
           keys.forEach((key, n) => {
             const k = 'o' + n;
-            const vals = pick(expanded[key].total);
+            const vals = pick(valuesOf(key));
             points.forEach((p, i) => { p[k] = vals[i]; });
             overlayKeys.push(k);
             overlayInfo.push({ key, label: labelOf(key), color: colourOf(n) });
@@ -1409,30 +1420,33 @@
           refreshTable();
         }
         function setChosen(keys) {
-          chosen = keys.filter(k => expanded[k] && listed(k));
+          chosen = keys.filter(k => k === '' || (expanded[k] && listed(k)));
+          // Nothing ticked is not an empty chart: the totals come back.
+          if (!chosen.length) chosen = [''];
           if (chosen.length > 1) {
             showOverlay(chosen);
           } else {
             clearOverlay();
-            show(chosen[0] || '');
+            show(chosen[0]);
           }
           syncChoice();
         }
         function syncChoice() {
-          summary.textContent = !chosen.length ? 'All projects ▾'
-            : chosen.length === 1 ? labelOf(chosen[0]) + ' ▾'
-              : `${chosen.length} projects ▾`;
-          picker.classList.toggle('scoped', chosen.length > 0);
+          summary.textContent = chosen.length === 1 ? labelOf(chosen[0]) + ' ▾'
+            : `${chosen.length} lines ▾`;
+          picker.classList.toggle('scoped', !(chosen.length === 1 && chosen[0] === ''));
           panel.querySelectorAll('input[type=checkbox]').forEach(cb => {
             const key = cb.dataset.key;
             const n = chosen.indexOf(key);
-            cb.checked = key === '' ? !chosen.length : n >= 0;
+            cb.checked = n >= 0;
             const sw = cb.parentElement.querySelector('.chart-multi__swatch');
             if (sw) sw.style.background = n >= 0 ? colourOf(n) : 'transparent';
           });
           rows.forEach(r => {
             const n = chosen.indexOf(r.dataset.series);
-            const on = !!r.dataset.series && n >= 0;
+            // The Total row lights only when the totals are one line among
+            // several — alone they are just the chart's default.
+            const on = n >= 0 && (r.dataset.series !== '' || chosen.length > 1);
             r.classList.toggle('series-selected', on);
             if (on) {
               r.setAttribute('aria-current', 'true');
@@ -1444,7 +1458,6 @@
           });
         }
         const toggle = key => {
-          if (!key) { setChosen([]); return; }
           const n = chosen.indexOf(key);
           setChosen(n >= 0 ? chosen.filter(k => k !== key) : [...chosen, key]);
         };
@@ -1493,11 +1506,11 @@
           const key = r.dataset.series;
           r.classList.add('series-row');
           r.tabIndex = 0;
-          // A row TOGGLES its project in the choice — click two rows and both
-          // are drawn; click one again and it leaves. The Total row (empty
-          // key) clears the choice: the totals again.
+          // A row TOGGLES its line in the choice — click two rows and both
+          // are drawn; click one again and it leaves. The Total row is the
+          // totals' line, toggled the same way.
           const choose = () => {
-            const adding = key && !chosen.includes(key);
+            const adding = !chosen.includes(key);
             toggle(key);
             if (!adding) return;
             // The chart sits below the table and may be folded: open it and
