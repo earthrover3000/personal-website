@@ -222,7 +222,9 @@
   // and the site-stats link live in the shared StatusLine helper (status-line.js).
   function renderStatsLine() {
     const el = document.getElementById('project-stats');
-    if (!el || !manifestMeta) return;
+    // A workshop PART's plan page has its line written at build time from the
+    // workshop's own count (plan_page `part`, 2026-10-19) — leave it be.
+    if (!el || el.dataset.part || !manifestMeta) return;
     const lines = (manifestMeta.project_lines || {})[APP_PLAN_ID];
     const words = (manifestMeta.project_words || {})[APP_PLAN_ID];
     const chars = (manifestMeta.project_chars || {})[APP_PLAN_ID];
