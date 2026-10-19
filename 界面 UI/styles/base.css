@@ -164,6 +164,12 @@ body {
 }
 .crumb-line > .breadcrumb { margin: 0; }
 .head-controls { margin-left: auto; display: inline-flex; align-items: center; gap: 0.9rem; }
+/* EVERYTHING ON THE TRAIL LINE TAKES THE TRAIL'S LINE BOX (user report
+   2026-10-19: the part stats pages' `Workshop Stats 📊` link inherited the
+   page's taller line-height and pushed their h1 down 2.7px against every
+   other page). Set on the line, not on each item, so whatever sits there —
+   a link, a control, a future one — measures --crumb-h like the crumbs. */
+.crumb-line, .crumb-line .head-controls { line-height: var(--crumb-h); }
 .head-controls > button { margin-block: -0.15rem; }
 /* THE WAY UP from a page, in the same slot (user decision 2026-10-19): the
    five part stats pages' `Workshop Stats 📊` (source_stats.page,
