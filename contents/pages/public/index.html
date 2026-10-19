@@ -977,26 +977,9 @@ div.app-card--planned { cursor: default; }
   color: var(--muted); font-size: 0.75rem; line-height: 1.4;
   text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;
 }
-/* A caption's own stats link (`stats 📊`), RIGHT-ALIGNED (user decision
-   2026-10-16) with its right edge on the 📁 glyph's: .row-folder's 0.5rem
-   offset plus its 0.4rem padding. Baseline-aligned so the smaller link text
-   sits on the caption's line; the gap and wrap keep a narrow column from
-   running caption and link together — wrapped, the link stays right. */
-.row-group.has-stats {
-  justify-content: space-between; column-gap: 0.75rem; padding-right: 0.9rem;
-}
-.row-group.has-stats > a { margin-left: auto; }
-/* The link itself: inline, not a block row target —
-   `.row a` would otherwise pad it into a row. Lowercase, regular weight,
-   unspaced and in the caption's muted grey rather than link blue (user
-   decision 2026-10-16): a quiet aside to the caption, not one more door
-   competing with the rows. The 📊 and the hover underline say it's a link. */
-.row .row-group a {
-  display: inline; padding: 0; line-height: inherit; border-radius: 0;
-  font-size: 0.85rem; font-weight: 400; letter-spacing: normal;
-  text-transform: none; color: inherit;
-}
-.row .row-group a:hover { background: none; }
+/* (A caption's own `stats 📊` link — `.row-group.has-stats` and its anchor
+   — was styled here from 2026-10-16 until 2026-10-19, when stats links left
+   the captions: reached from plan pages and indented rows instead.) */
 /* A heading with nothing visible under it is noise, and there are two ways to
    get one: a group holding only teasers whose switch is off, and — already
    true before any of this — a text or category filter that excludes every row
@@ -1446,7 +1429,7 @@ a.app-card:hover {
 <div class="container">
 <div class="crumb-line"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Personal Website</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav><span class="head-controls"><button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">25,944 lines · 14,385 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-19" class="relative-time relative-time-coarse">2026-10-19</time></p>
+<p class="head-meta"><a href="site-stats/">25,917 lines · 14,385 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-19" class="relative-time relative-time-coarse">2026-10-19</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
@@ -1475,7 +1458,7 @@ a.app-card:hover {
 </div>
 <div class="row">
 <div class="main">
-<div class="row-group has-stats"><span>Apps</span><a href="/lifespan-atlas/public/stats/">Life Dial stats 📊</a></div>
+<div class="row-group">Apps</div>
 <div class="apps">
   <a class="app-card" href="/lifespan-atlas/public/life-dial/" target="_blank" rel="noopener" data-categories="art personal maths philosophy">
     <img class="app-card__icon app-card__icon--glyph" src="data:image/svg+xml;base64,PCEtLSBGbHVlbnQgRW1vamkgIlR3ZWx2ZSBvY2xvY2siIOKAlCBnaXRodWIuY29tL21pY3Jvc29mdC9mbHVlbnR1aS1lbW9qaSBAIDYyZWNkYzAsIE1JVCBsaWNlbnNlIC0tPgo8c3ZnIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMjggMTZDMjggMjIuNjI3NCAyMi42Mjc0IDI4IDE2IDI4QzkuMzcyNTggMjggNCAyMi42Mjc0IDQgMTZDNCA5LjM3MjU4IDkuMzcyNTggNCAxNiA0QzIyLjYyNzQgNCAyOCA5LjM3MjU4IDI4IDE2WiIgZmlsbD0iI0U2RTZFNiIvPgo8cGF0aCBkPSJNMTYuMDI4OCA3LjAwODc5QzE2LjU4MTEgNy4wMDg3OSAxNy4wMjg4IDcuNDU2NSAxNy4wMjg4IDguMDA4NzlWMTYuMDA0MkMxNy4wMjg4IDE2LjU1NjUgMTYuNTgxMSAxNy4wMDQyIDE2LjAyODggMTcuMDA0MkMxNS40NzY1IDE3LjAwNDIgMTUuMDI4OCAxNi41NTY1IDE1LjAyODggMTYuMDA0MlY4LjAwODc5QzE1LjAyODggNy40NTY1IDE1LjQ3NjUgNy4wMDg3OSAxNi4wMjg4IDcuMDA4NzlaIiBmaWxsPSIjQ0EwQjRBIi8+CjxwYXRoIGQ9Ik0xNiAyN0M5LjkyNDg3IDI3IDUgMjIuMDc1MSA1IDE2QzUgOS45MjQ4NyA5LjkyNDg3IDUgMTYgNUMyMi4wNzUxIDUgMjcgOS45MjQ4NyAyNyAxNkMyNyAyMi4wNzUxIDIyLjA3NTEgMjcgMTYgMjdaTTE2IDMwQzIzLjczMiAzMCAzMCAyMy43MzIgMzAgMTZDMzAgOC4yNjgwMSAyMy43MzIgMiAxNiAyQzguMjY4MDEgMiAyIDguMjY4MDEgMiAxNkMyIDIzLjczMiA4LjI2ODAxIDMwIDE2IDMwWiIgZmlsbD0iIzYzNjM2MyIvPgo8cGF0aCBkPSJNMTYuMDI4OCA5LjAzNjk5QzE2LjU4MTEgOS4wMzY5OSAxNy4wMjg4IDkuNDg0NyAxNy4wMjg4IDEwLjAzN1YxNi4wMDQyQzE3LjAyODggMTYuNTU2NCAxNi41ODExIDE3LjAwNDIgMTYuMDI4OCAxNy4wMDQyQzE1LjQ3NjUgMTcuMDA0MiAxNS4wMjg4IDE2LjU1NjQgMTUuMDI4OCAxNi4wMDQyVjEwLjAzN0MxNS4wMjg4IDkuNDg0NyAxNS40NzY1IDkuMDM2OTkgMTYuMDI4OCA5LjAzNjk5WiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTE4LjAyIDE2LjAxMTJDMTguMDIgMTcuMTA5NiAxNy4xMjk2IDE4IDE2LjAzMTIgMThDMTQuOTMyOCAxOCAxNC4wNDI0IDE3LjEwOTYgMTQuMDQyNCAxNi4wMTEyQzE0LjA0MjQgMTQuOTEyOCAxNC45MzI4IDE0LjAyMjMgMTYuMDMxMiAxNC4wMjIzQzE3LjEyOTYgMTQuMDIyMyAxOC4wMiAxNC45MTI4IDE4LjAyIDE2LjAxMTJaIiBmaWxsPSIjOUI5QjlCIi8+Cjwvc3ZnPgo=" alt="" style="--tile: #9b5de5" />

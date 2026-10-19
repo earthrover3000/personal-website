@@ -912,26 +912,9 @@ div.app-card--planned { cursor: default; }
   color: var(--muted); font-size: 0.75rem; line-height: 1.4;
   text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;
 }
-/* A caption's own stats link (`stats 📊`), RIGHT-ALIGNED (user decision
-   2026-10-16) with its right edge on the 📁 glyph's: .row-folder's 0.5rem
-   offset plus its 0.4rem padding. Baseline-aligned so the smaller link text
-   sits on the caption's line; the gap and wrap keep a narrow column from
-   running caption and link together — wrapped, the link stays right. */
-.row-group.has-stats {
-  justify-content: space-between; column-gap: 0.75rem; padding-right: 0.9rem;
-}
-.row-group.has-stats > a { margin-left: auto; }
-/* The link itself: inline, not a block row target —
-   `.row a` would otherwise pad it into a row. Lowercase, regular weight,
-   unspaced and in the caption's muted grey rather than link blue (user
-   decision 2026-10-16): a quiet aside to the caption, not one more door
-   competing with the rows. The 📊 and the hover underline say it's a link. */
-.row .row-group a {
-  display: inline; padding: 0; line-height: inherit; border-radius: 0;
-  font-size: 0.85rem; font-weight: 400; letter-spacing: normal;
-  text-transform: none; color: inherit;
-}
-.row .row-group a:hover { background: none; }
+/* (A caption's own `stats 📊` link — `.row-group.has-stats` and its anchor
+   — was styled here from 2026-10-16 until 2026-10-19, when stats links left
+   the captions: reached from plan pages and indented rows instead.) */
 /* A heading with nothing visible under it is noise, and there are two ways to
    get one: a group holding only teasers whose switch is off, and — already
    true before any of this — a text or category filter that excludes every row
