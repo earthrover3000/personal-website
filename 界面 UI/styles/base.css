@@ -89,26 +89,10 @@ body {
   -webkit-user-select: text;
 }
 
-/* Back-link sits at the top-right corner of the container so the h1
-   lands at the same vertical position across docs pages, regardless of
-   whether the back-link wraps or how long it is.
-   Armored against index.css's block-style global `a` rule — explicit
-   resets so cascade can't make the back-link a block-shaped button. */
-.back-link {
-  position: absolute;
-  top: 0;
-  right: 0;
-  color: var(--accent);
-  text-decoration: none;
-  font-size: 0.9rem;
-  display: inline;
-  padding: 0;
-  border-radius: 0;
-  line-height: inherit;
-  background: none;
-  transition: none;
-}
-.back-link:hover { background: none; text-decoration: underline; }
+/* (`.back-link`, a link pinned to the container's top-right corner, lived
+   here until 2026-10-19 — no page used it any more. The way up from a page
+   now sits at the right end of the trail line: `.crumb-line` /
+   `.up-link` below.) */
 
 /* Breadcrumb nav above the h1. Tells visitors WHERE they are within the
    site by spelling out the path from Home to the current page. Replaces
@@ -181,6 +165,15 @@ body {
 .crumb-line > .breadcrumb { margin: 0; }
 .head-controls { margin-left: auto; display: inline-flex; align-items: center; gap: 0.9rem; }
 .head-controls > button { margin-block: -0.15rem; }
+/* THE WAY UP from a page, in the same slot (user decision 2026-10-19): the
+   five part stats pages' `Workshop Stats 📊` (source_stats.page,
+   `workshop_link`). Trail-sized and accent like the crumbs it shares the
+   line with, so it reads as navigation rather than a control. */
+.head-controls > a.up-link {
+  color: var(--accent); text-decoration: none; font-size: var(--crumb-font);
+  display: inline; padding: 0; background: none;
+}
+.head-controls > a.up-link:hover { text-decoration: underline; }
 
 /* ---- Head-region typography ---- */
 h1 {
@@ -234,8 +227,10 @@ span.page-cat { cursor: help; }
   /* ONE LINE, EVEN EMPTY (user decision 2026-10-18): a head line filled in
      after load — the docs pages' status line, the Noticeboard's `today`
      readouts — keeps its room while it waits, or when its source never
-     answers, so nothing below it jumps. `1lh` is this line's own height,
-     whatever the font. */
+     answers, so nothing below it jumps. An index page with nothing to say
+     gets the empty line too (`index_page` always writes it, 2026-10-19), so
+     every page's content starts at the same height. `1lh` is this line's
+     own height, whatever the font. */
   min-height: 1lh;
 }
 /* Inline links inside .head-meta — explicit overrides because index pages'

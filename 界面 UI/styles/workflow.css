@@ -1,5 +1,5 @@
 /* Workflow-page-specific styles. Layered on top of base.css — theme tokens,
-   body, h1, .head-meta, .container, .back-link live there. This file owns
+   body, h1, .head-meta, .container live there. This file owns
    the workflow-specific surfaces: code blocks, step list, URL grid,
    collapsible details sections, kbd, inline tags. */
 

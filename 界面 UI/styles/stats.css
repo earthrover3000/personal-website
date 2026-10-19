@@ -1,5 +1,5 @@
 /* Stats-page skin, shared by the website's /site-stats (网站统计) and the
-   Personal Apps app-stats page (应用统计). Layered on top of base.css +
+   console app-stats pages (应用统计). Layered on top of base.css +
    docs.css; pairs with page-widgets/stats-table.js (sorting + live time
    refresh). Markup vocabulary it styles: .stats-table (+ .section-bar /
    .others / .agg / .group-divider / .totals rows, .num cells, th .th-label /
@@ -442,6 +442,17 @@ details.chart-section[open] > summary .section-heading::before { content: '▾ '
   border-radius: 8px;
   padding: 12px 16px;
 }
+/* NO FLASH (user decision 2026-10-19): the server draws the whole
+   history, and stats-table.js then narrows it to the year. Until the
+   script sets data-chart-ready the plot's contents stay invisible — the
+   frame keeps its size, so nothing shifts — and are never painted at the
+   wrong width. ONE rule for every chart drawn by source_stats.chart.
+   If the script never runs, the plot appears anyway after 2.5 s. */
+.line-history-svg[data-chart-points]:not([data-chart-ready]) > * {
+  opacity: 0;
+  animation: chart-reveal 0s 2.5s forwards;
+}
+@keyframes chart-reveal { to { opacity: 1; } }
 /* ── Chart hover crosshair ──────────────────────────────────────────────────
    Progressive enhancement assembled at runtime by stats-table.js: it wraps
    .line-history-svg in .chart-hover-wrap, appends the .chart-readout beneath
@@ -597,6 +608,13 @@ body:has(#view-ago:checked) .touched-ago { display: inline-block; }
    computed-style read to notice — text-underline-offset applied while
    text-decoration-line stayed `none`). */
 .head-meta a.site-log-link { text-decoration: underline; text-underline-offset: 0.15em; }
+
+/* A table row's label as a door to that row's own stats page (Overall Code
+   Stats' parts, 2026-10-19: the 📊 alone was too small a target). Accent like
+   every other link, underlined only on hover so the table still reads as a
+   table. */
+.stats-table a.row-door { color: var(--accent); text-decoration: none; }
+.stats-table a.row-door:hover { text-decoration: underline; }
 
 /* Calendar ink — the month names, their boundary ticks and the year numbers.
    The site's analog of the app's `t.labelMuted`, which is what the Rings

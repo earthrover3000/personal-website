@@ -1,6 +1,6 @@
 /* Docs-page-specific styles (site-map, site-stats, lifespan-atlas plan).
    Layered on top of base.css — theme tokens, body, h1, .head-meta,
-   .container, .back-link live there. This file owns the docs-specific
+   .container live there. This file owns the docs-specific
    surfaces: TOC, content sections, tables, edit-mode controls. */
 
 /* ---- Doc-specific theme tokens (status-pill tag colours) ----

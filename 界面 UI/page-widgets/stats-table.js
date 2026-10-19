@@ -1,5 +1,5 @@
 // Stats-page behaviours, shared by the website's /site-stats (网站统计) and
-// the Personal Apps app-stats page (应用统计). Pairs with styles/stats.css.
+// the console app-stats pages (应用统计). Pairs with styles/stats.css.
 //
 // Two independent behaviours:
 //   1. Click-to-sort on the first .stats-table (columns discovered from the
@@ -141,7 +141,7 @@
       // top under asc (which still reads as "lowest first").
       const txt = td.textContent.trim();
       if (txt === '—' || txt === '') return 0;
-      return parseInt(txt.replace(/,/g, ''), 10) || 0;
+      return parseFloat(txt.replace(/,/g, '')) || 0;
     }
     if (kind === 'date') {
       // Sort by underlying YYYY-MM-DD even when the toggle shows blocks,
@@ -334,6 +334,17 @@
       // The server sized these for the totals. `let`, like the log bounds
       // below: showing one project re-measures both axes (measure()).
       let yMaxLines = +svg.dataset.chartYMaxLines;
+      // Display unit (source_stats.chart `unit_scale` / `decimals`): the
+      // points are raw whole numbers (bytes); what the reader sees is
+      // divided by unitScale and shown to `decimals` places. 1 / 0 = as
+      // before.
+      const unitScale = +svg.dataset.chartUnitScale || 1;
+      const decimals = +svg.dataset.chartDecimals || 0;
+      const plain = unitScale === 1 && !decimals;
+      const fmtNum = (v, places) => plain ? v.toLocaleString()
+        : (v / unitScale).toLocaleString(
+          undefined, { minimumFractionDigits: places,
+                       maximumFractionDigits: places });
       let yMaxWords = +svg.dataset.chartYMaxWords;
       const chartW = W - padL - padR, chartH = H - padT - padB;
       const DAY_MS = 86400000;
@@ -559,7 +570,9 @@
         lnLines = lnBounds(totals);
         lnWords = wordVals.length
           ? lnBounds(wordVals) : { lo: 0, hi: 2, step: 0.5 };
-        yMaxLines = scoped ? niceMax(totals) : roundUpAxisMax(totals);
+        yMaxLines = unitScale !== 1
+          ? niceMax(totals.map(v => v / unitScale)) * unitScale
+          : scoped ? niceMax(totals) : roundUpAxisMax(totals);
         yMaxWords = scoped ? niceMax(wordVals)
           : wordVals.length ? roundUpAxisMax(wordVals) : 0;
       }
@@ -575,7 +588,10 @@
         linear: {
           yl: v => padT + chartH * (1 - v / yMaxLines),
           yw: v => yMaxWords <= 0 ? padT + chartH : padT + chartH * (1 - v / yMaxWords),
-          labL: i => Math.round(yMaxLines * i / 4).toLocaleString(),
+          labL: i => unitScale !== 1
+            ? (yMaxLines * i / 4 / unitScale).toLocaleString(
+              undefined, { maximumFractionDigits: 2 })
+            : Math.round(yMaxLines * i / 4).toLocaleString(),
           labR: i => Math.round(yMaxWords * i / 4).toLocaleString(),
         },
         log: {
@@ -704,8 +720,8 @@
       // tabular-nums column as the counts, and a hyphen is narrower than a digit.
       const DASH = '—';
       const fmtDelta = d =>
-        (d > 0 ? '+' : d < 0 ? '−' : '') + Math.abs(d).toLocaleString();
-      const fmtCount = v => v == null ? DASH : v.toLocaleString();
+        (d > 0 ? '+' : d < 0 ? '−' : '') + fmtNum(Math.abs(d), decimals);
+      const fmtCount = v => v == null ? DASH : fmtNum(v, decimals);
 
       // ── X-axis: block / month / week boundary labels ─────────────────────
       // Mirrors the lifespan-atlas clock view: a faint boundary gridline at each
@@ -986,6 +1002,13 @@
           const dd = String(now.getUTCDate()).padStart(2, '0');
           lbl.textContent = `${yyyy}-${mm}-${dd}`;
         }
+      }).finally(() => {
+        // NO FLASH (user decision 2026-10-19). The server draws the whole
+        // history; this script narrows it to the year and redraws the axis.
+        // stats.css keeps the plot hidden until this attribute is set, so
+        // the full-length line is never painted first. Set once the axis
+        // is settled either way — engine loaded or not.
+        svg.dataset.chartReady = '1';
       });
 
       // ── Hover crosshair: vertical guide + per-series readout ─────────────
@@ -1401,7 +1424,13 @@
         let chosen = [''];
         const valuesOf = key => key === '' ? all.total : expanded[key].total;
         const labelOf = key => {
-          if (key === '') return 'All projects';
+          // The totals row may name the whole (data-series-label on its
+          // `data-series=""` row: Repository Size's `All folders`); a page
+          // that does not says `All projects`, as before.
+          if (key === '') {
+            const t = rowOf('');
+            return (t && t.dataset.seriesLabel) || 'All projects';
+          }
           const r = rowOf(key);
           // data-series-label: the row's name where the table's own cell is
           // ambiguous out of its section (two `Scripts` rows, say).
@@ -1536,7 +1565,7 @@
             l.append(cb, sw, document.createTextNode(label));
             panel.appendChild(l);
           };
-          option('', 'All projects');
+          option('', labelOf(''));
           Object.keys(series).filter(listed).forEach(key => option(key, labelOf(key)));
           if (chosen.some(k => !listed(k))) setChosen(chosen); else syncChoice();
         }

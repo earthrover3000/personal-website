@@ -1,6 +1,6 @@
 /* Index-page-specific styles (root, protected, private). Layered on top of
-   base.css — theme tokens, body, h1, .head-meta, .container, .back-link
-   live there. Index pages render block-style anchor links and sidebar
+   base.css — theme tokens, body, h1, .head-meta, .container live
+   there. Index pages render block-style anchor links and sidebar
    layouts that don't apply to docs pages. */
 
 ul { list-style: none; padding: 0; margin: 0; }
@@ -8,7 +8,7 @@ li { margin: var(--row-gap) 0; }
 
 /* Block-style page-list links are the index-page tap-target pattern. Scoped
    to .row (the main + side columns wrapper) so the rule can't leak into
-   .head-meta a or .back-link, both of which need inline behavior. */
+   .head-meta a, which needs inline behavior. */
 .row a {
   color: var(--accent);
   text-decoration: none;
@@ -20,6 +20,11 @@ li { margin: var(--row-gap) 0; }
   transition: background 0.15s;
 }
 .row a:hover { background: var(--surface); text-decoration: underline; }
+/* A SUB-ROW sits under the row above it — a project inside that row's
+   folder (the Planning Room's PC Setup Companion and Digital Inventory under
+   System Environment, user decision 2026-10-19). Opt-in per entry (`sub`),
+   so every other page renders as before. */
+.row li.sub-row > a:not(.row-folder) { padding-left: 2rem; }
 
 hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
 
