@@ -24,7 +24,7 @@ li { margin: var(--row-gap) 0; }
    folder (the Planning Room's PC Setup Companion and Digital Inventory under
    System Environment, user decision 2026-10-19). Opt-in per entry (`sub`),
    so every other page renders as before. */
-.row li.sub-row > a:not(.row-folder) { padding-left: 2rem; }
+.row li.sub-row > a:not(.row-folder):not(.row-open) { padding-left: 2rem; }
 
 hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
 
@@ -438,14 +438,23 @@ div.app-card--planned { cursor: default; }
    page, which re-counts after every reveal and every filter pass. */
 .row-group--empty { display: none; }
 
-li.has-folder { position: relative; }
-.row-folder {
+li.has-folder, li.has-open { position: relative; }
+/* `.row li >` outranks `.row a`, whose padding and block display would
+   otherwise push the glyph off the centre of its box. */
+.row li > .row-folder, .row li > .row-open {
   position: absolute;
   right: 0.5rem;
+  /* ONE BOX SIZE for both icons, so the ↗ can sit a whole box plus a gap
+     to the left of the 📁 and their hover backgrounds never touch. */
+  box-sizing: border-box;
+  width: var(--row-icon-w); height: var(--row-icon-h);
+  /* The glyph CENTRED in its box (user decision 2026-10-19): no padding
+     to push it aside, a flex box to centre it both ways. */
+  display: flex; align-items: center; justify-content: center;
   top: 50%;
   transform: translateY(-50%);
   z-index: 1;
-  padding: 0.15rem 0.4rem;
+  padding: 0;
   border-radius: 6px;
   font-size: 0.95rem;
   line-height: 1;
@@ -453,9 +462,21 @@ li.has-folder { position: relative; }
   opacity: 0.4;
   transition: opacity 0.12s ease, background 0.12s ease;
 }
-li.has-folder:hover .row-folder { opacity: 0.75; }
-.row-folder:hover,
-.row-folder:focus-visible { opacity: 1; background: var(--surface); }
+li.has-folder:hover .row-folder,
+li.has-open:hover .row-open { opacity: 0.75; }
+.row-folder:hover, .row-open:hover,
+.row-folder:focus-visible, .row-open:focus-visible
+  { opacity: 1; background: var(--surface); }
+/* ↗️ OPENS THE APP (user decision 2026-10-19): left of the 📁 when the row
+   has both, in the 📁's place when it has no folder. */
+li.has-folder, li.has-open { --row-icon-w: 1.9rem; --row-icon-h: 1.6rem; }
+.row li.has-folder > .row-open
+  { right: calc(0.5rem + var(--row-icon-w) + 0.25rem); }
+/* 📍 YOU ARE HERE (user decision 2026-10-19): on the row for the app this
+   page belongs to, in the ↗️'s place — a mark, not a link, so it never
+   lights up or takes a click. */
+.row li > .row-here { opacity: 0.75; cursor: default; }
+.row li > .row-here:hover { background: none; }
 
 /* Entry count on a console's plan rows (page-widgets/plan-counts.js): the
    widget reads both authored halves off the plan store and stamps the total

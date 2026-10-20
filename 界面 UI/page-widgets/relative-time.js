@@ -3,24 +3,17 @@
    "in 2yr 1mo"). ONE copy for every page (2026-10-19, lifted out of
    the index engine's footer when the Noticeboard's "checked …" needed
    it): index_page inlines it via read_relative_time_js().
-
    window.relativeTime.render(root)  re-render every <time> under root
    window.relativeTime.text(iso)     the same words as a string
-   Fallback (no JS) is whatever text the element already holds. */
+   THE WORDS ARE `agoText`, 引擎 Engines/time-ago/time-ago.js (user
+   decision 2026-10-20: one spelling of "… ago" everywhere) — inlined
+   IN FRONT of this file by read_relative_time_js, so this file is never
+   served on its own. Fallback (no JS) is whatever text the element
+   already holds. */
 (function() {
   // Convert <time class="relative-time" datetime="..."> to "X ago" form.
   // Fallback (no JS) is the absolute YYYY-MM-DD already in the element body.
-  const ago = (n, unit) => `${n} ${unit}${n === 1 ? '' : 's'} ago`;
-  const fmt = (s) => {
-    if (s < 5) return 'just now';
-    if (s < 60) return `${s} seconds ago`;
-    if (s < 3600) return ago(Math.floor(s / 60), 'minute');
-    if (s < 86400) return ago(Math.floor(s / 3600), 'hour');
-    if (s < 1209600) return ago(Math.floor(s / 86400), 'day');
-    if (s < 5443200) return ago(Math.floor(s / 604800), 'week');
-    if (s < 31557600) return ago(Math.floor(s / 2629800), 'month');
-    return ago(Math.floor(s / 31557600), 'year');
-  };
+  const fmt = agoText;            // 引擎 Engines/time-ago, inlined above
   const fmtCoarse = (dt) => {
     const now = new Date();
     const e = Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());

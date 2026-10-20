@@ -19,18 +19,34 @@
 // plain reload (static pages have no worker cache to rotate); ✕ hides it
 // for this page-view only. Fetch failures (offline / flaky) are swallowed
 // and retried next tick.
+//
+// TWO OPTIONS ON THE SCRIPT TAG (user decision 2026-10-20, for the
+// Noticeboard on the tablet — the same check, not a second copy):
+//   data-version="<url>"  the version file to watch, resolved against the
+//                         page, instead of <site root>/version.json — for a
+//                         page built outside the site (its own build writes
+//                         it: site_build.deploy_state.write_tree_version);
+//   data-auto             no pill and no question: reload the moment the
+//                         fingerprint changes. For a wall display nobody is
+//                         reading closely enough to tap Refresh.
 (function () {
   var CHECK_INTERVAL_MS = 60000;
 
   var script = document.currentScript;
   if (!script || !script.src || !window.fetch) return;
-  // …/界面 UI/page-widgets/version-check.js → strip the last TWO path
-  // segments' folders to land on the site root the 界面 UI folder sits in.
-  var src = script.src;
-  var i = src.lastIndexOf('/page-widgets/version-check.js');
-  if (i < 0) return;
-  var root = src.slice(0, src.lastIndexOf('/', i - 1) + 1);
-  var url = root + 'version.json';
+  var auto = script.hasAttribute('data-auto');
+  var url = script.getAttribute('data-version');
+  if (url) {
+    url = new URL(url, window.location.href).href;
+  } else {
+    // …/界面 UI/page-widgets/version-check.js → strip the last TWO path
+    // segments' folders to land on the site root the 界面 UI folder sits in.
+    var src = script.src;
+    var i = src.lastIndexOf('/page-widgets/version-check.js');
+    if (i < 0) return;
+    var root = src.slice(0, src.lastIndexOf('/', i - 1) + 1);
+    url = root + 'version.json';
+  }
 
   var baseline = null;
   var shown = false;
@@ -61,6 +77,7 @@
 
   function showPill() {
     if (shown) return;
+    if (auto) { shown = true; window.location.reload(); return; }
     shown = true;
     stop();
     document.removeEventListener('visibilitychange', sync);

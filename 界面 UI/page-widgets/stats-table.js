@@ -277,27 +277,23 @@
   document.querySelectorAll('[data-date]').forEach(el => {
     el.textContent = fmtAgo(el.dataset.date);
   });
-  // "Last updated" head line — uses the index-page-style "X ago" format
-  // (seconds/minutes/hours/days/weeks/months/years), which fits a
-  // build-delta of minutes-to-days better than the projects-table
-  // format above (designed for years-scale spans).
-  const buildAgo = (n, unit) => `${n} ${unit}${n === 1 ? '' : 's'} ago`;
-  function fmtBuildAgo(secs) {
-    if (secs < 5) return 'just now';
-    if (secs < 60) return `${secs} seconds ago`;
-    if (secs < 3600) return buildAgo(Math.floor(secs / 60), 'minute');
-    if (secs < 86400) return buildAgo(Math.floor(secs / 3600), 'hour');
-    if (secs < 1209600) return buildAgo(Math.floor(secs / 86400), 'day');
-    if (secs < 5443200) return buildAgo(Math.floor(secs / 604800), 'week');
-    if (secs < 31557600) return buildAgo(Math.floor(secs / 2629800), 'month');
-    return buildAgo(Math.floor(secs / 31557600), 'year');
+  // "Last updated" head line — the one "X ago" spelling, `agoText` from
+  // 引擎 Engines/time-ago (user decision 2026-10-20: one copy everywhere),
+  // which fits a build-delta of minutes-to-days better than the
+  // projects-table format above (designed for years-scale spans).
+  // Imported relative to this file, as event-marks is below: every page
+  // that loads it keeps 界面 UI/ and 引擎 Engines/ side by side. Until it
+  // answers, the cell keeps the text the build wrote.
+  const builds = document.querySelectorAll('[data-build-ts]');
+  if (builds.length) {
+    import('../../引擎 Engines/time-ago/time-ago.js')
+      .then(({ agoText }) => builds.forEach(el => {
+        const dt = new Date(el.dataset.buildTs);
+        if (isNaN(dt.getTime())) return;
+        el.textContent = agoText((now - dt) / 1000);
+      }))
+      .catch(() => { /* not deployed yet: the built text stands */ });
   }
-  document.querySelectorAll('[data-build-ts]').forEach(el => {
-    const dt = new Date(el.dataset.buildTs);
-    if (isNaN(dt.getTime())) return;
-    const secs = Math.max(0, Math.floor((now - dt) / 1000));
-    el.textContent = fmtBuildAgo(secs);
-  });
 
   // Re-render each line-history chart so the time axis ends at now — or, once
   // the event-marks engine has loaded (below), at the end of the CURRENT

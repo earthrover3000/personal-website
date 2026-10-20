@@ -137,11 +137,16 @@ body {
   height: var(--crumb-h);
   border: 1px solid var(--border); border-radius: 999px; overflow: hidden;
 }
-.breadcrumb .part-switch > a,
-.breadcrumb .part-switch > [aria-current="page"] {
+/* Every part the same size — the open one, a link to another, and a part
+   that cannot be opened from here (a <span>: the Noticeboard on another
+   device turns the this-machine-only parts' links into text, 2026-10-20). */
+.breadcrumb .part-switch > * {
   padding: 0 0.7em; line-height: calc(var(--crumb-h) - 2px);
 }
 .breadcrumb .part-switch > a { color: var(--muted); }
+.breadcrumb .part-switch > span:not([aria-current]) {
+  color: var(--muted); opacity: 0.55;
+}
 .breadcrumb .part-switch > a:hover {
   color: var(--accent); text-decoration: none;
 }

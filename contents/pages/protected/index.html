@@ -209,11 +209,16 @@ body {
   height: var(--crumb-h);
   border: 1px solid var(--border); border-radius: 999px; overflow: hidden;
 }
-.breadcrumb .part-switch > a,
-.breadcrumb .part-switch > [aria-current="page"] {
+/* Every part the same size — the open one, a link to another, and a part
+   that cannot be opened from here (a <span>: the Noticeboard on another
+   device turns the this-machine-only parts' links into text, 2026-10-20). */
+.breadcrumb .part-switch > * {
   padding: 0 0.7em; line-height: calc(var(--crumb-h) - 2px);
 }
 .breadcrumb .part-switch > a { color: var(--muted); }
+.breadcrumb .part-switch > span:not([aria-current]) {
+  color: var(--muted); opacity: 0.55;
+}
 .breadcrumb .part-switch > a:hover {
   color: var(--accent); text-decoration: none;
 }
@@ -573,7 +578,7 @@ li { margin: var(--row-gap) 0; }
    folder (the Planning Room's PC Setup Companion and Digital Inventory under
    System Environment, user decision 2026-10-19). Opt-in per entry (`sub`),
    so every other page renders as before. */
-.row li.sub-row > a:not(.row-folder) { padding-left: 2rem; }
+.row li.sub-row > a:not(.row-folder):not(.row-open) { padding-left: 2rem; }
 
 hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
 
@@ -987,14 +992,23 @@ div.app-card--planned { cursor: default; }
    page, which re-counts after every reveal and every filter pass. */
 .row-group--empty { display: none; }
 
-li.has-folder { position: relative; }
-.row-folder {
+li.has-folder, li.has-open { position: relative; }
+/* `.row li >` outranks `.row a`, whose padding and block display would
+   otherwise push the glyph off the centre of its box. */
+.row li > .row-folder, .row li > .row-open {
   position: absolute;
   right: 0.5rem;
+  /* ONE BOX SIZE for both icons, so the ↗ can sit a whole box plus a gap
+     to the left of the 📁 and their hover backgrounds never touch. */
+  box-sizing: border-box;
+  width: var(--row-icon-w); height: var(--row-icon-h);
+  /* The glyph CENTRED in its box (user decision 2026-10-19): no padding
+     to push it aside, a flex box to centre it both ways. */
+  display: flex; align-items: center; justify-content: center;
   top: 50%;
   transform: translateY(-50%);
   z-index: 1;
-  padding: 0.15rem 0.4rem;
+  padding: 0;
   border-radius: 6px;
   font-size: 0.95rem;
   line-height: 1;
@@ -1002,9 +1016,21 @@ li.has-folder { position: relative; }
   opacity: 0.4;
   transition: opacity 0.12s ease, background 0.12s ease;
 }
-li.has-folder:hover .row-folder { opacity: 0.75; }
-.row-folder:hover,
-.row-folder:focus-visible { opacity: 1; background: var(--surface); }
+li.has-folder:hover .row-folder,
+li.has-open:hover .row-open { opacity: 0.75; }
+.row-folder:hover, .row-open:hover,
+.row-folder:focus-visible, .row-open:focus-visible
+  { opacity: 1; background: var(--surface); }
+/* ↗️ OPENS THE APP (user decision 2026-10-19): left of the 📁 when the row
+   has both, in the 📁's place when it has no folder. */
+li.has-folder, li.has-open { --row-icon-w: 1.9rem; --row-icon-h: 1.6rem; }
+.row li.has-folder > .row-open
+  { right: calc(0.5rem + var(--row-icon-w) + 0.25rem); }
+/* 📍 YOU ARE HERE (user decision 2026-10-19): on the row for the app this
+   page belongs to, in the ↗️'s place — a mark, not a link, so it never
+   lights up or takes a click. */
+.row li > .row-here { opacity: 0.75; cursor: default; }
+.row li > .row-here:hover { background: none; }
 
 /* Entry count on a console's plan rows (page-widgets/plan-counts.js): the
    widget reads both authored halves off the plan store and stamps the total
@@ -1431,7 +1457,7 @@ a.app-card:hover {
 <div class="container">
 <div class="crumb-line"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="home/">Personal Website</a> <span class="sep">›</span> <span aria-current="page">Protected Index</span></nav><span class="head-controls"><button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">25,917 lines · 14,385 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-19T10:34:44Z" title="2026-10-19 10:34 UTC" class="relative-time">2026-10-19</time></p>
+<p class="head-meta"><a href="site-stats/">26,290 lines · 14,385 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-20T12:31:52Z" title="2026-10-20 12:31 UTC" class="relative-time">2026-10-20</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
@@ -1477,6 +1503,7 @@ a.app-card:hover {
   <li class="row-group">Pages</li>
   <li data-categories="linguistics politics"><a href="../protected/chinese-languages/">Chinese Language(s)</a></li>
   <li data-categories="geography transport"><a href="../protected/cities-transport/">Cities & Transport</a></li>
+  <li data-categories="personal practical chemistry pharmacology"><a href="../protected/food-intolerances/">Food Intolerances</a></li>
   <li data-categories="practical"><a href="../protected/itinerary-calendar/">Itinerary Calendar</a></li>
   <li data-categories="linguistics maths"><a href="../protected/linguistics-dissertation/">Linguistics Dissertation</a></li>
   <li data-categories="geography maths"><a href="../protected/maps-projections/">Maps & Projections</a></li>
@@ -1521,29 +1548,63 @@ a.app-card:hover {
 </div>
 <script>window.__indexTopicKinds=[];</script>
 <script>
+(() => {
+// time-ago — how long ago, in words: THE one spelling of it (user decision
+// 2026-10-20: "SSOT the time countdown everywhere, using the same format").
+//
+//   just now · 1 second ago · 42 seconds ago · 3 minutes ago · 2 hours ago
+//   · 5 days ago · 3 weeks ago · 4 months ago · 2 years ago
+//
+// "just now" for the first second only (user decision 2026-10-20: a label
+// that ticks every second counts 1, 2, 3 … rather than jumping from "just
+// now" to "5 seconds"). Seconds only under a minute, then whole units — the format the website's
+// index pages, its stats pages' "Last updated" and the Lifespan Atlas's
+// About screen each spelled out separately until this file, and the
+// Noticeboard's "refreshed … ago". Who reads it:
+//
+//   · 界面 UI/page-widgets/relative-time.js — inlined into pages by
+//     `index_page.read_relative_time_js`, which places this file's text
+//     (its `export` dropped) in front of it;
+//   · 界面 UI/page-widgets/stats-table.js — `import()`s it from beside
+//     itself (../../引擎 Engines/time-ago/), the same hop on the website and
+//     on the /workshop/ mount;
+//   · the Lifespan Atlas — the `time-ago` alias (vite.config.ts,
+//     vitest.config.ts, tsconfig.app.json), as `sun-countdown` is.
+//
+// Ships with the website (`.public`). Pure: no DOM, no clock — the caller
+// passes the seconds.
+
+const agoUnit = (n, unit) => `${n} ${unit}${n === 1 ? "" : "s"} ago`;
+
+/** `seconds` elapsed (clamped at 0, floored) as words. */
+function agoText(seconds) {
+  const s = Math.max(0, Math.floor(seconds));
+  if (s < 1) return "just now";
+  if (s < 60) return agoUnit(s, "second");
+  if (s < 3600) return agoUnit(Math.floor(s / 60), "minute");
+  if (s < 86400) return agoUnit(Math.floor(s / 3600), "hour");
+  if (s < 1209600) return agoUnit(Math.floor(s / 86400), "day");
+  if (s < 5443200) return agoUnit(Math.floor(s / 604800), "week");
+  if (s < 31557600) return agoUnit(Math.floor(s / 2629800), "month");
+  return agoUnit(Math.floor(s / 31557600), "year");
+}
+
 /* relative-time — <time class="relative-time" datetime="…"> as
    "N minutes ago" (and `relative-time-coarse` as "3 days ago" /
    "in 2yr 1mo"). ONE copy for every page (2026-10-19, lifted out of
    the index engine's footer when the Noticeboard's "checked …" needed
    it): index_page inlines it via read_relative_time_js().
-
    window.relativeTime.render(root)  re-render every <time> under root
    window.relativeTime.text(iso)     the same words as a string
-   Fallback (no JS) is whatever text the element already holds. */
+   THE WORDS ARE `agoText`, 引擎 Engines/time-ago/time-ago.js (user
+   decision 2026-10-20: one spelling of "… ago" everywhere) — inlined
+   IN FRONT of this file by read_relative_time_js, so this file is never
+   served on its own. Fallback (no JS) is whatever text the element
+   already holds. */
 (function() {
   // Convert <time class="relative-time" datetime="..."> to "X ago" form.
   // Fallback (no JS) is the absolute YYYY-MM-DD already in the element body.
-  const ago = (n, unit) => `${n} ${unit}${n === 1 ? '' : 's'} ago`;
-  const fmt = (s) => {
-    if (s < 5) return 'just now';
-    if (s < 60) return `${s} seconds ago`;
-    if (s < 3600) return ago(Math.floor(s / 60), 'minute');
-    if (s < 86400) return ago(Math.floor(s / 3600), 'hour');
-    if (s < 1209600) return ago(Math.floor(s / 86400), 'day');
-    if (s < 5443200) return ago(Math.floor(s / 604800), 'week');
-    if (s < 31557600) return ago(Math.floor(s / 2629800), 'month');
-    return ago(Math.floor(s / 31557600), 'year');
-  };
+  const fmt = agoText;            // 引擎 Engines/time-ago, inlined above
   const fmtCoarse = (dt) => {
     const now = new Date();
     const e = Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
@@ -1585,6 +1646,8 @@ a.app-card:hover {
   };
   window.relativeTime = { text, render };
   render(document);
+})();
+
 })();
 (function() {
   const f = document.querySelector('.filter');
