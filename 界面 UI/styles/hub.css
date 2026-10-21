@@ -2,14 +2,12 @@
    2026-10-20: "SSOT page size"). Linked after base.css by the Noticeboard,
    the Dashboard and the Planning Room (surfaces.HUB_FRAME).
 
-   The column itself — base.css's --column, 2rem of page padding — is base.css's, as on
-   every page. This file holds only what the Hub does differently.
+   The column itself — base.css's --column, and its edge padding — is
+   base.css's, as on every page. This file holds only what the Hub does
+   differently.
 
-   A STRIP ON BOTH SIDES. base.css keeps a scrollbar strip on the right, so
-   a page that scrolls (the Planning Room) centred its column 7.5px left of
-   one that never does (the board and the Dashboard, which dropped the
-   strip) — the column jumped sideways on every switch. `both-edges` keeps
-   a matching strip on the left too: the column sits in the same place on
-   every part, scrolling or not. The strips are the page's own background,
-   nothing drawn; phones' floating scrollbars take no strip at all. */
-html { scrollbar-gutter: stable both-edges; }
+   Nothing, today. Its one rule — a scrollbar strip on BOTH sides, so the
+   column sat in the same place on every part, scrolling or not — moved
+   into base.css on 2026-10-21 (user decision: every page alike), which
+   is where to look for it. The file stays linked, the place for the next
+   thing the Hub does differently. */
