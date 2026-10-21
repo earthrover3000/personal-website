@@ -89,6 +89,10 @@
    page-widgets/theme-init.js, so navigation never flashes the wrong theme. */
 :root {
   color-scheme: dark light;                    /* auto (OS-driven, dark default) */
+  /* THE COLUMN (user decision 2026-10-21: 800px -> 880px, one value for
+     every site, docs and Hub page): `.container`'s width, and anything
+     that measures the gutter beside it, reads this. */
+  --column: 880px;
   /* THE ROW (user decision 2026-10-17): every one-line control or entry —
      a link row, a search box, a dropdown, a caption — is exactly this tall,
      and rows stack with this gap, so two columns side by side stay on one
@@ -148,11 +152,11 @@ body {
 }
 
 /* ---- Layout ---- */
-/* 800px keeps prose/index lines around the readability sweet spot
-   (50–75 characters at default font size). Apps that benefit from more
+/* The column (--column above) keeps prose/index lines near the
+   readability sweet spot (50–75 characters at default font size). Apps that benefit from more
    horizontal space (lifespan-atlas, life-clock) override this. */
 .container {
-  max-width: 800px;
+  max-width: var(--column);
   margin: 0 auto;
   position: relative;
   user-select: text;
@@ -267,7 +271,7 @@ h1 {
    site-structure.yaml's `categories:` (same emoji SSOT as the tier-index
    chips and the category-matrix column heads). Sit INLINE right after the
    title rather than floated to the container edge (user decision
-   2026-08-17): at 800px a short title leaves the far right so distant that
+   2026-08-17): at the column's width a short title leaves the far right so distant that
    the glyphs read as a stray corner widget instead of an attribute of the
    title. Inline also follows a wrapped title's last line and stays beside
    the title on phones. Emoji-only with a title/aria-label tooltip, matching
@@ -1228,7 +1232,7 @@ a.app-card:hover {
     .col-sizer > span { display: block; }
     /* Paying for that width out of the mark columns: each holds a single
        glyph, so the 0.6rem text padding is pure air. Trimming it keeps the
-       15-column private grid inside the 800px container instead of pushing
+       15-column private grid inside the column (base.css --column) instead of pushing
        the page into a horizontal scroll. */
     .cat-matrix th.cat-col, .cat-matrix td.mark-cell {
       text-align: center; padding-left: 0.25rem; padding-right: 0.25rem;
@@ -1338,7 +1342,7 @@ a.app-card:hover {
 <p class="head-meta"><span class="t-live">11</span><span class="t-all">12</span> categories · <span class="proj-tally"><span class="t-live">9</span><span class="t-all">10</span> projects</span></p>
 <div class="matrix-scroll">
 <table class="cat-matrix">
-<tr><th>Project<span class="col-sizer" aria-hidden="true"><span>Linguistics Dissertation</span><span>Chinese Language(s)</span><span>Itinerary Calendar</span></span></th><th class="cat-col"><button type="button" class="cat-head" data-cat="art" aria-pressed="false" title="Art" aria-label="Art">🪅</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="chemistry" aria-pressed="false" title="Chemistry" aria-label="Chemistry">⚗️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="geography" aria-pressed="false" title="Geography" aria-label="Geography">🗺️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="linguistics" aria-pressed="false" title="Linguistics" aria-label="Linguistics">🔤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="maths" aria-pressed="false" title="Maths" aria-label="Maths">📐</button></th><th class="cat-col col-planned-only"><button type="button" class="cat-head" data-cat="music" aria-pressed="false" title="Music" aria-label="Music">🎵</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="personal" aria-pressed="false" title="Personal" aria-label="Personal">👤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="pharmacology" aria-pressed="false" title="Pharmacology" aria-label="Pharmacology">💊</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="philosophy" aria-pressed="false" title="Philosophy" aria-label="Philosophy">🕯️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="politics" aria-pressed="false" title="Politics" aria-label="Politics">🏛️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="practical" aria-pressed="false" title="Practical" aria-label="Practical">🪪</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="transport" aria-pressed="false" title="Transport" aria-label="Transport">🚦</button></th></tr>
+<tr><th>Project<span class="col-sizer" aria-hidden="true"><span>Linguistics Dissertation</span><span>Chinese Language(s)</span><span>Maps &amp; Projections</span></span></th><th class="cat-col"><button type="button" class="cat-head" data-cat="art" aria-pressed="false" title="Art" aria-label="Art">🪅</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="chemistry" aria-pressed="false" title="Chemistry" aria-label="Chemistry">⚗️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="geography" aria-pressed="false" title="Geography" aria-label="Geography">🗺️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="linguistics" aria-pressed="false" title="Linguistics" aria-label="Linguistics">🔤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="maths" aria-pressed="false" title="Maths" aria-label="Maths">📐</button></th><th class="cat-col col-planned-only"><button type="button" class="cat-head" data-cat="music" aria-pressed="false" title="Music" aria-label="Music">🎵</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="personal" aria-pressed="false" title="Personal" aria-label="Personal">👤</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="pharmacology" aria-pressed="false" title="Pharmacology" aria-label="Pharmacology">💊</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="philosophy" aria-pressed="false" title="Philosophy" aria-label="Philosophy">🕯️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="politics" aria-pressed="false" title="Politics" aria-label="Politics">🏛️</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="practical" aria-pressed="false" title="Practical" aria-label="Practical">🪪</button></th><th class="cat-col"><button type="button" class="cat-head" data-cat="transport" aria-pressed="false" title="Transport" aria-label="Transport">🚦</button></th></tr>
 <tr data-categories="linguistics politics"><td><a href="../../protected/chinese-languages/">Chinese Language(s)</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell col-planned-only"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td></tr>
 <tr data-categories="geography transport"><td><a href="../../protected/cities-transport/">Cities &amp; Transport</a></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell col-planned-only"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td></tr>
 <tr data-categories="chemistry personal pharmacology practical"><td><a href="../../protected/food-intolerances/">Food Intolerances</a></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell col-planned-only"></td><td class="mark-cell">✓</td><td class="mark-cell">✓</td><td class="mark-cell"></td><td class="mark-cell"></td><td class="mark-cell">✓</td><td class="mark-cell"></td></tr>

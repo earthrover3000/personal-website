@@ -307,7 +307,8 @@ ul.drop-child { outline: 1px dashed var(--accent); border-radius: 4px; min-heigh
    per row) fixed to the LEFT so it sits near the tags themselves while
    reading/editing; on narrow viewports it falls back inline above the content
    so it never covers anything. */
-/* Width tracks the left gutter beside the 800px centered content column:
+/* Width tracks the left gutter beside the centered content column
+   (base.css --column):
    half the leftover viewport, minus the 1rem left offset and a 1rem gap, so
    the legend fills the available space at any width without overlapping —
    capped at 18rem so it doesn't over-stretch on ultrawide screens. */
@@ -319,7 +320,7 @@ ul.drop-child { outline: 1px dashed var(--accent); border-radius: 4px; min-heigh
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  max-width: min(18rem, calc((100vw - 800px) / 2 - 2rem));
+  max-width: min(18rem, calc((100vw - var(--column)) / 2 - 2rem));
   padding: 0.6rem 0.75rem;
   font-size: 0.8rem;
   background: var(--surface);

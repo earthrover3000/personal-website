@@ -220,7 +220,7 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   margin: 0.5rem 0 0;
 }
 .chart-controls .view-toggle { margin: 0; }
-/* Tighter pills, so all thirteen fit one line at 800px. */
+/* Tighter pills, so all thirteen fit one line in the column. */
 .chart-controls { gap: 0.4rem 0.8rem; }
 .chart-controls .view-toggle,
 .chart-controls .series-toggle { gap: 0.25rem; }

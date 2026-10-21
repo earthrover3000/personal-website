@@ -19,6 +19,10 @@
    page-widgets/theme-init.js, so navigation never flashes the wrong theme. */
 :root {
   color-scheme: dark light;                    /* auto (OS-driven, dark default) */
+  /* THE COLUMN (user decision 2026-10-21: 800px -> 880px, one value for
+     every site, docs and Hub page): `.container`'s width, and anything
+     that measures the gutter beside it, reads this. */
+  --column: 880px;
   /* THE ROW (user decision 2026-10-17): every one-line control or entry —
      a link row, a search box, a dropdown, a caption — is exactly this tall,
      and rows stack with this gap, so two columns side by side stay on one
@@ -78,11 +82,11 @@ body {
 }
 
 /* ---- Layout ---- */
-/* 800px keeps prose/index lines around the readability sweet spot
-   (50–75 characters at default font size). Apps that benefit from more
+/* The column (--column above) keeps prose/index lines near the
+   readability sweet spot (50–75 characters at default font size). Apps that benefit from more
    horizontal space (lifespan-atlas, life-clock) override this. */
 .container {
-  max-width: 800px;
+  max-width: var(--column);
   margin: 0 auto;
   position: relative;
   user-select: text;
@@ -197,7 +201,7 @@ h1 {
    site-structure.yaml's `categories:` (same emoji SSOT as the tier-index
    chips and the category-matrix column heads). Sit INLINE right after the
    title rather than floated to the container edge (user decision
-   2026-08-17): at 800px a short title leaves the far right so distant that
+   2026-08-17): at the column's width a short title leaves the far right so distant that
    the glyphs read as a stray corner widget instead of an attribute of the
    title. Inline also follows a wrapped title's last line and stays beside
    the title on phones. Emoji-only with a title/aria-label tooltip, matching

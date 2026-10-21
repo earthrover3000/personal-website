@@ -29,11 +29,16 @@
 //   data-auto             no pill and no question: reload the moment the
 //                         fingerprint changes. For a wall display nobody is
 //                         reading closely enough to tap Refresh.
+//
+// PUSHED, FOR A PAGE THAT IS TOLD (user decision 2026-10-21, the
+// Noticeboard's push channel): `window.versionCheck.now()` checks at once,
+// so a page that hears of a build asks then rather than at its next tick;
+// `data-interval="<seconds>"` slows the tick to a backup for such a page.
 (function () {
-  var CHECK_INTERVAL_MS = 60000;
-
   var script = document.currentScript;
   if (!script || !script.src || !window.fetch) return;
+  var CHECK_INTERVAL_MS =
+    (Number(script.getAttribute('data-interval')) || 60) * 1000;
   var auto = script.hasAttribute('data-auto');
   var url = script.getAttribute('data-version');
   if (url) {
@@ -126,6 +131,7 @@
     document.body.appendChild(pill);
   }
 
+  window.versionCheck = { now: check };
   sync();
   document.addEventListener('visibilitychange', sync);
 })();
