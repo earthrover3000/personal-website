@@ -23,6 +23,11 @@
      every site, docs and Hub page): `.container`'s width, and anything
      that measures the gutter beside it, reads this. */
   --column: 880px;
+  /* THE PAGE'S EDGE, named (2026-10-22): `body`'s padding below, and
+     anything that paints the gap — the Hub's bedtime frame — reads these
+     rather than restating the rule. */
+  --edge-y: 2rem;
+  --edge-x: clamp(1rem, (100vw - var(--column)) / 2, 2rem);
   /* THE ROW (user decision 2026-10-17): every one-line control or entry —
      a link row, a search box, a dropdown, a caption — is exactly this tall,
      and rows stack with this gap, so two columns side by side stay on one
@@ -89,7 +94,7 @@ body {
      strip inside the 2rem was tried and dropped the same day: Chrome
      leaves reserved strips out of 100vw, so CSS cannot measure one
      (user chose this over a script that would). */
-  padding: 2rem clamp(1rem, (100vw - var(--column)) / 2, 2rem);
+  padding: var(--edge-y) var(--edge-x);
 }
 
 /* ---- Layout ---- */
