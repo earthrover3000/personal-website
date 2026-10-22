@@ -455,6 +455,139 @@
     tag.textContent = PlanOrder.tokenLabel(next);
   }
 
+  // ---- One entry row ----
+  // How a plan leaf is read — authored `stage` / `summary_en` / `summary_zh`,
+  // legacy `status` / `text` / `zh` still accepted (see plan-renderer's
+  // AUTHORED FIELD NAMES note for why both).
+  const leafStatus = (it) => it.stage      || it.status;
+  const leafText   = (it) => it.summary_en || it.text;
+  const leafZh     = (it) => it.summary_zh || it.zh;
+
+  // THE row an entry is drawn as, appended to `ul`: stage chip, agent chip,
+  // bilingual line and the long body behind the delegated click below. Lives
+  // on the chrome (moved from plan-renderer.js 2026-10-22) so every page that
+  // shows a plan entry draws the same row — the plan pages, and the Planning
+  // Room's Overnight view, which lists entries gathered from many plans.
+  // Returns the <li>.
+  function renderLeafItem(ul, item) {
+    const li = document.createElement('li');
+    // A stage-less entry is tagged `unset` rather than left bare (2026-08-25).
+    // It had been rendering as an untagged line, which cost it two things: the
+    // 'unset' filter button matched nothing, because the button filters on
+    // li.dataset.status and there was none to match; and there was no chip to
+    // click, so the one status you could not reach by cycling was the one every
+    // new entry starts in. The chip is the TOKEN in every case — `now`, `p0.4`,
+    // `unset` alike — and the legend is what decodes it (PlanOrder.UNSET.title,
+    // 'No stage'). Authored files still say it by OMITTING `stage:`; see
+    // extractItemsFromUl, which writes the absence back as an absence.
+    const text = leafText(item), zh = leafZh(item);
+    const status = leafStatus(item) || PlanOrder.UNSET.token;
+    li.dataset.status = status;
+
+    // The shared card look (styles/planner-cards.css) — the same `.plan-mini`
+    // the website's site map uses, so a plan entry and a site-map entry are
+    // one thing wearing one design rather than two that happen to rhyme. The
+    // left edge carries the stage's colour: a computed hue for a version
+    // token, and for a rung of the named ladder the palette docs.css maps off
+    // the class below.
+    li.classList.add('plan-mini');
+    const stageCls = PlanOrder.stageClass(status);
+    if (stageCls) li.classList.add(stageCls);
+    const hue = versionColor(status);
+    if (hue) li.style.setProperty('--stage-color', hue);
+
+    const handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.textContent = '⠇';
+    li.appendChild(handle);
+
+    const tag = document.createElement('span');
+    styleVersionEl(tag, 'tag', status);
+    tag.setAttribute('contenteditable', 'false');
+    tag.textContent = PlanOrder.tokenLabel(status);
+    tag.addEventListener('click', (e) => toggleStatus(tag, e));
+    li.appendChild(tag);
+
+    // The agent chip — the second axis (see plan-chrome's AGENT block for the
+    // model). Sits next to the stage chip on the right edge, and carries the
+    // token the same way, so the two read as one row of state rather than a
+    // chip and an ornament.
+    //
+    // AN ENTRY THAT IS NOT A CANDIDATE SHOWS NOTHING outside edit mode
+    // (docs.css hides it), so reading a plan looks exactly as it did before
+    // this axis existed and only the tagged rows carry a mark. Which is most
+    // of them: since 2026-09-07 the axis is `overnight` or an absent key, so
+    // the silent state is the normal one rather than a backlog. In edit mode
+    // every leaf shows its chip, unmarked ones included — marking is what
+    // edit mode is for, and a state you cannot click is one you cannot
+    // leave.
+    const agent = item.agent || AGENT_UNSET;
+    li.dataset.agent = agent;
+    const agentTag = document.createElement('span');
+    styleAgentEl(agentTag, agent);
+    agentTag.setAttribute('contenteditable', 'false');
+    agentTag.addEventListener('click', (e) => toggleAgent(agentTag, e));
+    li.appendChild(agentTag);
+
+    const textSpan = document.createElement('span');
+    textSpan.className = 'li-text';
+    appendLinkedText(textSpan, ' ' + (text || ''));
+    if (zh) {
+      const zhSpan = document.createElement('span');
+      zhSpan.className = 'zh';
+      appendLinkedText(zhSpan, zh);
+      textSpan.appendChild(document.createTextNode(' '));
+      textSpan.appendChild(zhSpan);
+    }
+    li.appendChild(textSpan);
+
+    const ctrl = document.createElement('span');
+    ctrl.className = 'li-controls';
+    ctrl.setAttribute('contenteditable', 'false');
+    li.appendChild(ctrl);
+
+    // Optional long-form body (detail_en/detail_zh) behind a disclosure — the
+    // leaf stays a one-liner until opened. View-only in the browser (edit via
+    // the YAML / terminal editor); the rendered divs are ALSO the save-path
+    // source (see extractItemsFromUl), so the DOM stays the one copy.
+    // Opened by clicking the entry LINE, which also selects it — see
+    if (item.detail_en || item.detail_zh) {
+      const det = document.createElement('details');
+      det.className = 'li-detail';
+      det.setAttribute('contenteditable', 'false');
+      // The li is a flex row with ordered children (docs.css: num 0 → tag 4);
+      // order 5 + full basis drops the disclosure onto its own full-width row
+      // BELOW the entry line instead of defaulting into slot 0 before the title.
+      det.style.order = '5';
+      det.style.flexBasis = '100%';
+      det.style.whiteSpace = 'pre-wrap';
+      det.style.color = 'var(--muted)';
+      det.style.fontSize = '0.88rem';
+      det.style.margin = '0.15rem 0 0.3rem';
+      // The <summary> exists but shows nothing: a <details> WITHOUT one gets
+      // the UA's own 'Details' marker, so it cannot simply be dropped. Hidden
+      // by docs.css, which leaves <details>'s open/closed machinery — and the
+      // browser's find-in-page reveal — intact while the entry line becomes
+      // the only control (user decision 2026-08-25).
+      const sum = document.createElement('summary');
+      det.appendChild(sum);
+      [['detail-en', item.detail_en], ['detail-zh', item.detail_zh]].forEach(([cls, val]) => {
+        if (!val) return;
+        const div = document.createElement('div');
+        div.className = cls;
+        appendLinkedText(div, String(val).replace(/\s+$/, ''));
+        det.appendChild(div);
+      });
+      // Marks the row as carrying a body. The click that opens it is handled
+      // by plan-chrome's ONE delegated listener, not a listener per row.
+      li.classList.add('has-detail');
+      li.appendChild(det);
+    }
+
+    ul.appendChild(li);
+    return li;
+  }
+
   // ---- Row selection + the long-body disclosure ----
   // Clicking an entry SELECTS it, and the highlight persists after the pointer
   // leaves so you keep your place while reading (user decision 2026-08-25).
@@ -502,6 +635,39 @@
     if (det) det.open = !det.open;
   }
   document.addEventListener('click', _onRowClick);
+
+  // ---- Arriving at one entry: `#entry-U.2.1` ----
+  // A link from elsewhere (the Planning Room's Overnight view) names an entry
+  // by its NUMBER — already its address on this page, so nothing new is
+  // stored. The row is scrolled to and SELECTED, the highlight a click
+  // gives; its long body stays shut (user decision 2026-10-22). Numbers are
+  // computed fresh on every load, so a link kept while entries are added
+  // above it lands on whatever holds that number now.
+  //
+  // The browser's own fragment jump cannot do this: the rows do not exist
+  // when it fires, since the page fills in after its fetches. So each
+  // renderer calls this once its rows are numbered, and a later change of
+  // hash (a second link followed in the same tab) calls it again.
+  const ENTRY_HASH = 'entry-';
+  function entryHash(number) {
+    return '#' + ENTRY_HASH + String(number).replace(/\.$/, '');
+  }
+  function revealFromHash() {
+    let h = '';
+    try { h = decodeURIComponent(location.hash.slice(1)); } catch (_) { return; }
+    if (!h.startsWith(ENTRY_HASH)) return;
+    const want = h.slice(ENTRY_HASH.length).replace(/\.$/, '') + '.';
+    const li = [...document.querySelectorAll('section li')].find(x => {
+      const n = x.querySelector(':scope > .num');
+      return n && n.textContent.trim() === want;
+    });
+    if (!li) return;
+    clearSelection();
+    _selected = li;
+    li.classList.add('selected');
+    li.scrollIntoView({ block: 'center' });
+  }
+  window.addEventListener('hashchange', revealFromHash);
 
   // The legend's rows: whatever the build supplied, then ALWAYS the 'No stage'
   // row (PlanOrder.UNSET). That last one is not part of either vocabulary — it
@@ -1128,6 +1294,7 @@
     appendLinkedText, renumberLis, updateCounts, setLiNum, isEditing, sortList,
     toggleStatus, legendRows, buildLegend, buildFilterBar,
     AGENT_UNSET, styleAgentEl, toggleAgent,
+    leafStatus, leafText, leafZh, renderLeafItem, entryHash, revealFromHash,
     filterItems, liAtPoint, firstLiAbovePoint, emptyUlAtPoint, onDragMove,
     onDragEnd, addHandle, dropZone, showIndicator, doMove, clearIndicators,
     addControls, moveLi, addBelow, deleteLi, addItemToSection,

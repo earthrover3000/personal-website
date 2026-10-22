@@ -163,10 +163,17 @@
   // Stable version sort that remembers each entry's original index, so callers
   // that mutate the underlying file (the launchpad) can map a displayed entry
   // back to its real position. Returns [{ item, srcIndex }].
+  //
+  // Sorts on `stage`, the authored key, falling back to legacy `status` —
+  // the same read plan-chrome's leafStatus makes. Until 2026-10-22 this read
+  // `status` alone, which no live entry carries, so nothing sorted here while
+  // the plan pages sorted by stage: the terminal Planner and the page gave
+  // the same entry different numbers on any list not already in stage order.
   function sortedEntries(list) {
     var arr = (list || []).map(function (it, i) { return { item: it, srcIndex: i }; });
+    function st(rec) { return rec.item && pick(rec.item.stage, rec.item.status); }
     arr.sort(function (a, b) {
-      var d = compareVersion(a.item && a.item.status, b.item && b.item.status);
+      var d = compareVersion(st(a), st(b));
       return d !== 0 ? d : a.srcIndex - b.srcIndex;   // stable
     });
     return arr;
