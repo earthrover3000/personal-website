@@ -210,6 +210,20 @@
 
   function isLeaf(p) { return !p || !p.pages || !p.pages.length; }
 
+  // The site map's tree has two kinds of node: a GROUPING, which carries a
+  // `pages:` key, and a PROJECT, which does not. An app project is planned
+  // on its own App Plan page, so the site map leaves it out — it would plan
+  // the app twice (user decision 2026-08-20). The rule lives HERE, not in
+  // the site map, because it decides numbering: the site map drew it and
+  // buildModel did not, so every project after a hidden app was numbered one
+  // apart in the terminal Planner and the Overnight view (fixed 2026-10-22).
+  function isProjectNode(n) {
+    return !!n && typeof n === 'object' && !('pages' in n);
+  }
+  function plannedElsewhere(n) {
+    return isProjectNode(n) && n.type === 'app';
+  }
+
   function leafSorted(pages) {
     if (!pages || !pages.length) return pages || [];
     if (!pages.every(isLeaf)) return pages;           // mixed: keep declared order
@@ -352,6 +366,14 @@
     var dev = opts.dev || { sections: [] };
     var devTitle = opts.devTitle || '🔧 Development';
     var doLeafSort = !!opts.leafSort;
+    // Leave out nodes planned on a page of their own (plannedElsewhere) —
+    // the site map's rule, asked for by plan id via plan_page.model_options.
+    var doHide = !!opts.hidePlannedElsewhere;
+    function shown(pages) {
+      var list = doLeafSort ? leafSorted(pages) : (pages || []);
+      return doHide ? list.filter(function (p) { return !plannedElsewhere(p); })
+                    : list;
+    }
 
     var rows = [];
     // Top-level sections are lettered by a mnemonic of their title (see
@@ -440,8 +462,9 @@
       };
       rows.push(row);
       emitEntriesFor(key, ctx, L, row);
-      var kids = doLeafSort ? leafSorted(page.pages) : (page.pages || []);
-      kids.forEach(function (c) { walkPage(c, ctx, L + 1, page.id, pageDepth + 1); });
+      shown(page.pages).forEach(function (c) {
+        walkPage(c, ctx, L + 1, page.id, pageDepth + 1);
+      });
     }
 
     // ---- Development section (first) ----------------------------------------
@@ -478,8 +501,7 @@
       };
       rows.push(row);
       emitEntriesFor(sec.id, ctx, 2, row);          // section-level entries (activeDepth 0)
-      var pages = doLeafSort ? leafSorted(sec.pages) : (sec.pages || []);
-      pages.forEach(function (p) { walkPage(p, ctx, 3, null, 1); });
+      shown(sec.pages).forEach(function (p) { walkPage(p, ctx, 3, null, 1); });
     });
 
     // Stamp the canonical display name on every heading row (single source for
@@ -502,6 +524,8 @@
     versionColors: versionColors,
     sortedEntries: sortedEntries,
     leafSorted: leafSorted,
+    isProjectNode: isProjectNode,
+    plannedElsewhere: plannedElsewhere,
     isSubgroup: isSubgroup,
     entriesKeyFor: entriesKeyFor,
     displayName: displayName,

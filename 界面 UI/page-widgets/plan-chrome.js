@@ -285,6 +285,21 @@
   // we only walk the DOM into the {h}/{u} step sequence it expects, then stamp the
   // numbers it returns back onto the <li>s — so the page and the launchpad number
   // identically.
+  // ---- Which <li> is an ENTRY ----
+  // A plan page holds other bullet lists too — the site map's Privacy-spec
+  // notes under each project — and the numbering and counting walks below
+  // took every <ul> they met, so those notes were numbered as entries (the
+  // site map showed F.8.1–F.8.3 twice) and counted under their heading. An
+  // entry row is now MARKED where it is made — renderLeafItem, addBelow,
+  // addItemToSection, the site map's renderItem — and the walks count marked
+  // rows only. Marking the entries rather than the exceptions means a new
+  // kind of list can never be numbered by accident; an unmarked new entry
+  // builder shows itself at once, as a row with no number.
+  function markEntry(li) { li.dataset.entry = ''; return li; }
+  function isEntryRow(el) {
+    return el.tagName === 'LI' && el.dataset.entry !== undefined;
+  }
+
   function renumberLis() {
     const SL = _hooks.sectionLetters();
     const sectionEls = [
@@ -300,7 +315,7 @@
           if (m) {
             seq.push({ h: parseInt(m[1]) });
           } else if (c.tagName === 'UL') {
-            const lis = [...c.children].filter(x => x.tagName === 'LI');
+            const lis = [...c.children].filter(isEntryRow);
             seq.push({ u: lis.length });
             uls.push(lis);
           } else if (c.children.length) {
@@ -316,6 +331,41 @@
       });
     });
     updateCounts();
+  }
+
+  // ---- The numbering tripwire ----
+  // A page numbers its entries by walking what it DREW (renumberLis, which
+  // edit mode needs); the terminal Planner and the Overnight view number the
+  // same plan from its DATA (PlanOrder.buildModel). Two ways to one answer
+  // drift silently — the site map was nine rows apart before anyone looked
+  // (2026-10-22). So each page, once numbered at load, asks the engine for
+  // the same plan and compares; a mismatch is reported in the console with
+  // the first row that differs. `opts` is buildModel's input as this page
+  // understands its own plan. Load-time only: after an edit the DOM is
+  // AHEAD of the data, and a difference then is the edit, not drift.
+  function checkNumbering(opts) {
+    let model;
+    try { model = PlanOrder.buildModel(opts); } catch (e) {
+      console.warn('plan numbering check could not run:', e);
+      return;
+    }
+    const want = model.rows.filter(r => r.type === 'entry').map(r => r.number);
+    const got = [...document.querySelectorAll(
+      '#dev-container li, #sections-container li')].filter(isEntryRow)
+      .map(li => {
+        const n = li.querySelector(':scope > .num');
+        return n ? n.textContent.trim() : '';
+      });
+    const len = Math.max(want.length, got.length);
+    for (let i = 0; i < len; i++) {
+      if (want[i] !== got[i]) {
+        console.warn('plan numbering drift: this page has ' + got.length
+          + ' entries, PlanOrder.buildModel ' + want.length + '; first'
+          + ' difference at row ' + (i + 1) + ': page "' + (got[i] || '—')
+          + '", engine "' + (want[i] || '—') + '"');
+        return;
+      }
+    }
   }
 
   // ---- Entry counts on headings and TOC rows ----
@@ -388,7 +438,7 @@
             open.push({ el: c, level: +m[1], n: 0 });
           } else if (c.tagName === 'UL') {
             const n = [...c.children].filter(x =>
-              x.tagName === 'LI' && !x.classList.contains('hidden')).length;
+              isEntryRow(x) && !x.classList.contains('hidden')).length;
             total += n;
             open.forEach(h => { h.n += n; });
           } else if (c.children.length) {
@@ -470,7 +520,7 @@
   // Room's Overnight view, which lists entries gathered from many plans.
   // Returns the <li>.
   function renderLeafItem(ul, item) {
-    const li = document.createElement('li');
+    const li = markEntry(document.createElement('li'));
     // A stage-less entry is tagged `unset` rather than left bare (2026-08-25).
     // It had been rendering as an untagged line, which cost it two things: the
     // 'unset' filter button matched nothing, because the button filters on
@@ -1008,7 +1058,7 @@
 
   function addBelow(btn) {
     const li = btn.closest('li');
-    const newLi = document.createElement('li');
+    const newLi = markEntry(document.createElement('li'));
     newLi.dataset.status = PlanOrder.UNSET.token;
     li.parentNode.insertBefore(newLi, li.nextSibling);
     addHandle(newLi);
@@ -1041,7 +1091,7 @@
   }
 
   function addItemToSection(ul) {
-    const newLi = document.createElement('li');
+    const newLi = markEntry(document.createElement('li'));
     newLi.dataset.status = PlanOrder.UNSET.token;
     ul.appendChild(newLi);
     addHandle(newLi);
@@ -1295,6 +1345,7 @@
     toggleStatus, legendRows, buildLegend, buildFilterBar,
     AGENT_UNSET, styleAgentEl, toggleAgent,
     leafStatus, leafText, leafZh, renderLeafItem, entryHash, revealFromHash,
+    markEntry, isEntryRow, checkNumbering,
     filterItems, liAtPoint, firstLiAbovePoint, emptyUlAtPoint, onDragMove,
     onDragEnd, addHandle, dropZone, showIndicator, doMove, clearIndicators,
     addControls, moveLi, addBelow, deleteLi, addItemToSection,

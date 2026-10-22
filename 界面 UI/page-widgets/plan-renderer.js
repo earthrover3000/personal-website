@@ -263,6 +263,9 @@
     updateZhBreaks();
     // Numbered and laid out, so an `#entry-U.2.1` link can land now.
     PC.revealFromHash();
+    // And numbered as the engine numbers this plan (see checkNumbering).
+    PC.checkNumbering({ structure: structureData, entries: entriesData,
+                        dev: devData, devTitle: DEV_SECTION });
   }
 
   // ---- TOC ----
