@@ -1475,7 +1475,7 @@ a.app-card:hover {
 <div class="container">
 <div class="crumb-line"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Personal Website</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav><span class="head-controls"><button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">26,302 lines · 14,385 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-22" class="relative-time relative-time-coarse">2026-10-22</time></p>
+<p class="head-meta"><a href="site-stats/">26,334 lines · 14,385 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-22" class="relative-time relative-time-coarse">2026-10-22</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
@@ -1592,6 +1592,33 @@ function agoText(seconds) {
   return agoUnit(Math.floor(s / 31557600), "year");
 }
 
+// THE SHORT FORM — a duration as at most two units, larger first, the
+// second always two digits: 45s · 3m45s · 2h05m · 1d03h (user decisions
+// 2026-10-22, for the 💬 Sessions widget). As parts, one per unit, so a
+// page can stand each unit in its own column and every m sits under every
+// m. The SAME RULE in Python is claude_sessions.fmt_age (📟 Readouts) —
+// change both together.
+const pad2 = (n) => String(n).padStart(2, "0");
+
+/** `seconds` (clamped at 0, floored) as {d, h, m, s}: each "" or e.g. "3m". */
+function durationUnits(seconds) {
+  const s = Math.max(0, Math.floor(seconds));
+  const out = { d: "", h: "", m: "", s: "" };
+  if (s < 60) {
+    out.s = `${s}s`;
+  } else if (s < 3600) {
+    out.m = `${Math.floor(s / 60)}m`;
+    out.s = `${pad2(s % 60)}s`;
+  } else if (s < 86400) {
+    out.h = `${Math.floor(s / 3600)}h`;
+    out.m = `${pad2(Math.floor((s % 3600) / 60))}m`;
+  } else {
+    out.d = `${Math.floor(s / 86400)}d`;
+    out.h = `${pad2(Math.floor((s % 86400) / 3600))}h`;
+  }
+  return out;
+}
+
 /* relative-time — <time class="relative-time" datetime="…"> as
    "N minutes ago" (and `relative-time-coarse` as "3 days ago" /
    "in 2yr 1mo"). ONE copy for every page (2026-10-19, lifted out of
@@ -1603,7 +1630,10 @@ function agoText(seconds) {
    decision 2026-10-20: one spelling of "… ago" everywhere) — inlined
    IN FRONT of this file by read_relative_time_js, so this file is never
    served on its own. Fallback (no JS) is whatever text the element
-   already holds. */
+   already holds.
+   `relative-time-units` (2026-10-22, the 💬 Sessions widget): the age
+   as time-ago's SHORT form (`durationUnits`, 3m45s), one child per unit
+   — <span data-u="d|h|m|s"> — so a page can give each unit a column. */
 (function() {
   // Convert <time class="relative-time" datetime="..."> to "X ago" form.
   // Fallback (no JS) is the absolute YYYY-MM-DD already in the element body.
@@ -1639,7 +1669,12 @@ function agoText(seconds) {
     (root || document).querySelectorAll('time.relative-time').forEach(t => {
       const dt = new Date(t.getAttribute('datetime'));
       if (isNaN(dt.getTime())) return;
-      if (t.classList.contains('relative-time-coarse')) {
+      if (t.classList.contains('relative-time-units')) {
+        const parts = durationUnits((Date.now() - dt.getTime()) / 1000);
+        t.querySelectorAll('[data-u]').forEach((u) => {
+          u.textContent = parts[u.dataset.u] || '';
+        });
+      } else if (t.classList.contains('relative-time-coarse')) {
         t.textContent = fmtCoarse(dt);
       } else {
         const seconds = Math.max(0, Math.floor((Date.now() - dt.getTime()) / 1000));
