@@ -1166,8 +1166,9 @@ a.app-card:hover {
    names beside it) but the line box is pinned to the 1.54rem the unscaled
    name occupies (1.1rem × 1.4), so the card height arithmetic above holds.
    A tall face overflows that box invisibly — its INK must fit (Caveat's
-   spans 0.93 em, 1.30rem at this size). The fallback paints until the
-   woff2 arrives (font-display: swap); the head preloads it. */
+   spans 0.93 em, 1.30rem at this size). The name stays invisible until
+   the woff2 arrives (font-display: block, so no fallback flashes first);
+   the head preloads it. */
 .app-card__name--wordmark {
   font-family: var(--wordmark-family);
   font-weight: var(--wordmark-weight, 400);

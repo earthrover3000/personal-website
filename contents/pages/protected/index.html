@@ -1168,8 +1168,9 @@ a.app-card:hover {
    names beside it) but the line box is pinned to the 1.54rem the unscaled
    name occupies (1.1rem × 1.4), so the card height arithmetic above holds.
    A tall face overflows that box invisibly — its INK must fit (Caveat's
-   spans 0.93 em, 1.30rem at this size). The fallback paints until the
-   woff2 arrives (font-display: swap); the head preloads it. */
+   spans 0.93 em, 1.30rem at this size). The name stays invisible until
+   the woff2 arrives (font-display: block, so no fallback flashes first);
+   the head preloads it. */
 .app-card__name--wordmark {
   font-family: var(--wordmark-family);
   font-weight: var(--wordmark-weight, 400);
@@ -1200,7 +1201,7 @@ a.app-card:hover {
 }
 </style>
 <link rel="preload" href="/lifespan-atlas/protected/app/fonts/Caveat-SemiBold.woff2" as="font" type="font/woff2" crossorigin>
-<style>@font-face{font-family:"Caveat";font-weight:600;font-style:normal;font-display:swap;src:url("/lifespan-atlas/protected/app/fonts/Caveat-SemiBold.woff2") format("woff2")}</style>
+<style>@font-face{font-family:"Caveat";font-weight:600;font-style:normal;font-display:block;src:url("/lifespan-atlas/protected/app/fonts/Caveat-SemiBold.woff2") format("woff2")}</style>
 <script>// page-nav.js — shared in-page search + navigation wiring (was auto-toc.js).
 //
 // Two responsibilities, dispatched from DOM structure (no per-page opt-in):
@@ -1477,7 +1478,7 @@ a.app-card:hover {
 <div class="container">
 <div class="crumb-line"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="home/">Personal Website</a> <span class="sep">›</span> <span aria-current="page">Protected Index</span></nav><span class="head-controls"><button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">23,942 lines · 14,385 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-23T14:16:11Z" title="2026-10-23 14:16 UTC" class="relative-time">2026-10-23</time></p>
+<p class="head-meta"><a href="site-stats/">23,963 lines · 14,385 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-23T16:27:44Z" title="2026-10-23 16:27 UTC" class="relative-time">2026-10-23</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
