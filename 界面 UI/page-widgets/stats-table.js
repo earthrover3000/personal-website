@@ -662,7 +662,43 @@
       todayLine.appendChild(todayTip);
       todayLayer.appendChild(todayLine);
       svg.insertBefore(todayLayer, svg.firstChild);
+      // ── Marks ────────────────────────────────────────────────────────────
+      // Dated guides the page asked for (source_stats.chart `marks`, user
+      // decision 2026-10-23 — the day the repository was built): a quiet
+      // dashed line behind the series with its label at the top, hidden
+      // when its day falls outside the window. Placed with today's line.
+      let markData = [];
+      try { markData = JSON.parse(svg.dataset.chartMarks || '[]'); } catch (e) { markData = []; }
+      const markEls = markData.map(([ts, label]) => {
+        const g = document.createElementNS(SVGNS, 'g');
+        g.setAttribute('class', 'mark-layer');
+        const line = document.createElementNS(SVGNS, 'line');
+        line.setAttribute('class', 'mark-line');
+        line.setAttribute('y1', padT);
+        line.setAttribute('y2', H - padB);
+        const tip = document.createElementNS(SVGNS, 'title');
+        tip.textContent = `${label} · ${ts.slice(0, 10)}`;
+        line.appendChild(tip);
+        const text = document.createElementNS(SVGNS, 'text');
+        text.setAttribute('class', 'mark-label');
+        text.setAttribute('y', padT + 10);
+        text.textContent = label;
+        g.appendChild(line);
+        g.appendChild(text);
+        svg.insertBefore(g, svg.firstChild);
+        return { ms: +new Date(ts), g, line, text };
+      });
+      function placeMarks() {
+        markEls.forEach(m => {
+          const x = xForMs(m.ms);
+          m.line.setAttribute('x1', x.toFixed(1));
+          m.line.setAttribute('x2', x.toFixed(1));
+          m.text.setAttribute('x', (x + 4).toFixed(1));
+          m.g.style.display = x > padL + 0.5 && x < W - padR - 0.5 ? '' : 'none';
+        });
+      }
       function placeToday() {
+        placeMarks();
         const x = xForMs(+now);
         todayLine.setAttribute('x1', x.toFixed(1));
         todayLine.setAttribute('x2', x.toFixed(1));

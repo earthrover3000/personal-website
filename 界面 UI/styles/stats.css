@@ -635,3 +635,16 @@ body:has(#mode-roadmap:checked) .mode-only-roadmap,
 body:has(#mode-roadmap:checked) #mode-roadmap-view { display: block; }
 body:has(#mode-whatsnew:checked) .mode-only-whatsnew,
 body:has(#mode-whatsnew:checked) #mode-whatsnew-view { display: block; }
+/* Dated guides a chart asks for (source_stats.chart `marks`): quieter than
+   today's red line — they annotate the history, they do not end it. */
+.mark-layer .mark-line {
+  stroke: currentColor;
+  stroke-opacity: 0.4;
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+.mark-layer .mark-label {
+  font-size: 10px;
+  fill: currentColor;
+  fill-opacity: 0.6;
+}
