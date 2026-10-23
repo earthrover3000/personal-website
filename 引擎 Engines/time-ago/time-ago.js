@@ -42,7 +42,7 @@ export function agoText(seconds) {
 // second always two digits: 45s · 3m45s · 2h05m · 1d03h (user decisions
 // 2026-10-22, for the 💬 Sessions widget). As parts, one per unit, so a
 // page can stand each unit in its own column and every m sits under every
-// m. The SAME RULE in Python is claude_sessions.fmt_age (📟 Readouts) —
+// m. The SAME RULE in Python is claude_sessions.fmt_age (Readouts) —
 // change both together.
 const pad2 = (n) => String(n).padStart(2, "0");
 

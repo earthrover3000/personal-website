@@ -159,7 +159,7 @@
   //
   // THE VOCABULARY IS THE REGISTRY'S, mirrored here rather than fetched:
   // plan-fields/fields.json declares `agent`'s `values` and its `unset`, and
-  // 📝 Agenda's picker reads them from there. This side cannot — a leaf renders
+  // Agenda's picker reads them from there. This side cannot — a leaf renders
   // synchronously and a fetch would make every chip wait on the network — so
   // it mirrors, exactly as plan-order.js mirrors stages.json's `unset` key for
   // the same reason. Change the tokens in the registry and change them here.

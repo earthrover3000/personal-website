@@ -5,6 +5,8 @@
    it): index_page inlines it via read_relative_time_js().
    window.relativeTime.render(root)  re-render every <time> under root
    window.relativeTime.text(iso)     the same words as a string
+   window.relativeTime.units(sec)    a duration as {d,h,m,s} strings,
+                                     the cells `relative-time-units` fills
    THE WORDS ARE `agoText`, 引擎 Engines/time-ago/time-ago.js (user
    decision 2026-10-20: one spelling of "… ago" everywhere) — inlined
    IN FRONT of this file by read_relative_time_js, so this file is never
@@ -61,6 +63,9 @@
       }
     });
   };
-  window.relativeTime = { text, render };
+  // A fixed duration in the same unit cells (the Sessions card's
+  // finished-turn length, 2026-10-22).
+  const units = (seconds) => durationUnits(Math.max(0, seconds));
+  window.relativeTime = { text, render, units };
   render(document);
 })();
