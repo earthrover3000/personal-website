@@ -174,7 +174,6 @@ section li.stage-now   { --stage-color: var(--tag-green-text); }
 section li.stage-next  { --stage-color: var(--tag-teal-text); }
 section li.stage-later { --stage-color: var(--tag-yellow-text); }
 
-section li.dragging:hover { background: none; box-shadow: none; }
 
 /* Planner mini-cards come from the shared planner-cards.css (`.plan-mini`, added
    to entry <li>s by site-map.html) — the single source both the site map and the
@@ -260,10 +259,21 @@ section li.dragging:hover { background: none; box-shadow: none; }
 .drag-handle:active { cursor: grabbing; }
 .editing .drag-handle { visibility: visible; }
 .editing section li > .tag { cursor: pointer; }
-li.dragging { opacity: 0.25; }
-li.drop-before { border-top: 2px solid var(--accent); }
-li.drop-after { border-bottom: 2px solid var(--accent); }
-ul.drop-child { outline: 1px dashed var(--accent); border-radius: 4px; min-height: 1.5rem; }
+/* The shelf's drag-order.js (2026-10-24) — the drag every new list uses —
+   wears this same grip and ghost. A list that is always reorderable
+   (`.drag-order`) shows its grips without an editing mode. Its grip is a
+   <button>, so it can take focus: plain, and a finger's drag on it stays a
+   drag rather than a scroll. While an item is dragged the list opens a GAP
+   its size where it will land (`.drop-gap`, user decision same day: "show
+   where I was gonna drop it"), rather than drawing a line. */
+.drag-order .drag-handle { visibility: visible; }
+button.drag-handle { background: none; border: 0; padding: 0;
+  font-family: inherit; line-height: 1; touch-action: none; }
+.drag-order .drag-handle:hover,
+.drag-order .drag-handle:focus-visible { color: var(--accent); }
+.drop-gap { list-style: none; box-sizing: border-box; margin: 2px 0;
+  border: 2px dashed var(--accent); border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .editing section > ul:empty { min-height: 1.5rem; }
 .drag-ghost {
   position: fixed;
@@ -459,6 +469,24 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
   cursor: pointer;
 }
 #edit-btn.active { border-color: var(--accent); color: var(--accent); }
+/* A page that saves live says how its last save went, beside its buttons. */
+#save-state { align-self: center; font-size: 0.8rem; color: var(--muted);
+  background: var(--surface); padding: 0.2rem 0.5rem; border-radius: 4px; }
+#save-state:empty { display: none; }
+#save-state.bad { color: var(--anchor-red, #c0392b); }
+/* The shelf's edit-mode.js (2026-10-24): text edited where it is read. A
+   field keeps the font, size and place of the text it stands for; only a
+   faint dashed outline says it can be typed in, solid accent while it is.
+   An empty one shows its name, greyed. A many-line field is a block that
+   grows with its text. */
+.inline-edit { outline: 1px dashed color-mix(in srgb, var(--muted) 55%,
+  transparent); outline-offset: 2px; border-radius: 2px; cursor: text; }
+span.inline-edit { display: inline-block; min-width: 3ch; }
+.inline-edit:focus { outline: 1px solid var(--accent); }
+.inline-edit:empty::before { content: attr(data-placeholder);
+  color: var(--muted); opacity: 0.7; }
+.inline-edit-multi { display: block; white-space: pre-wrap;
+  min-height: 1.4em; margin-top: 0.3rem; }
 #save-btn {
   padding: 0.5rem 1rem;
   border-radius: 6px;
@@ -468,15 +496,6 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
   font-size: 0.85rem;
   cursor: pointer;
   display: none;
-}
-#reset-btn {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 0.85rem;
-  cursor: pointer;
 }
 
 /* ---- Collapsible sections ---- */

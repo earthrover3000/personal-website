@@ -375,13 +375,26 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   padding: 0.22rem 0.7rem; cursor: pointer; white-space: nowrap;
 }
 .chart-multi__option:hover { background: var(--bg); }
+/* All / None above the list. */
+.chart-multi__bulk {
+  display: flex; gap: 0.4rem; padding: 0.15rem 0.7rem 0.35rem;
+  margin-bottom: 0.2rem; border-bottom: 1px solid var(--border);
+}
+.chart-multi__bulk-btn {
+  font: inherit; font-size: 0.85em; cursor: pointer;
+  padding: 0.1rem 0.55rem; border: 1px solid var(--border);
+  border-radius: 4px; background: transparent; color: var(--text);
+}
+.chart-multi__bulk-btn:hover { border-color: var(--accent); color: var(--accent); }
 .chart-multi__option input { margin: 0; accent-color: var(--accent); }
 .chart-multi__swatch {
   width: 0.7rem; height: 0.18rem; border-radius: 1px; flex: none;
   background: transparent;
 }
-/* The readout's per-line key carries the same swatch. */
-.chart-readout .ch-swatch {
+/* The readout's per-line key carries the same swatch, and so does each
+   line's column head in the Table view while several lines show. */
+.chart-readout .ch-swatch,
+.ledger-table .ch-swatch {
   display: inline-block; width: 0.6rem; height: 0.18rem; border-radius: 1px;
   margin-right: 0.3rem; vertical-align: middle;
 }
@@ -403,6 +416,10 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
    others carry their last day, and its figures are provisional. */
 .ledger-table .ledger-sofar { color: var(--muted); font-style: italic; }
 .ledger-table td.delta { color: var(--muted); }
+/* Several lines at once: each line's change under its value, one cell. */
+.ledger-table .ledger-change {
+  display: block; color: var(--muted); font-size: 0.85em;
+}
 
 /* Lock all three spans to the same minimum width so column sizing
    stays stable when the toggle swaps which one is visible. The widest

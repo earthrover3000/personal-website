@@ -50,6 +50,11 @@
     // Every heading and TOC row carries a live entry count — see
     // PlanChrome.updateCounts for what "live" means here.
     entryCounts: true,
+    // A page reading the live store saves every edit into it (see LIVE
+    // SAVE below); the website's copies keep Save to file.
+    savesLive: !!window.PLAN_DATA_BASE,
+    changed: () => scheduleSave(),
+    left: () => flushSave(),
   });
 
   // Ordering + numbering come from the shared plan-order engine (loaded as a
@@ -194,8 +199,17 @@
     }
     return {
       structure: jsyaml.load(await structRes.text()),
-      entries: jsyaml.load(await entriesRes.text()) || {},
-      dev: jsyaml.load(await devRes.text()) || { sections: [] },
+      ...(await (async () => {
+        // The texts as loaded, kept for the live save's changed-elsewhere
+        // check (plan_write `base`).
+        const entriesText = await entriesRes.text();
+        const devText = await devRes.text();
+        return {
+          entries: jsyaml.load(entriesText) || {},
+          dev: jsyaml.load(devText) || { sections: [] },
+          texts: { entries: entriesText, dev: devText },
+        };
+      })()),
       manifest: manifest,
       versions: versions,
       legendMeta: legendMeta,
@@ -209,6 +223,7 @@
       entriesData = data.entries;
       devData = data.dev;
       loadedEntries = JSON.parse(JSON.stringify(data.entries || {}));
+      baseTexts = data.texts;
       manifestMeta = data.manifest || manifestMeta;
       PC.setLegend(data.versions || null, data.legendMeta || {});
       render();
@@ -456,9 +471,13 @@
     // Entries key resolved by the shared PlanOrder.entriesKeyFor — subviews
     // (third-level nodes) key `<parentPageId>.<id>`, levels 1-2 bare — so
     // this renderer and the launchpad tree read/write the same lists.
-    renderEntriesFor(parent,
-      PlanOrder.entriesKeyFor(entriesData, page.id, parentPageId || null, pageDepth || 1),
-      lvl + 1);
+    const key = PlanOrder.entriesKeyFor(entriesData, page.id,
+                                        parentPageId || null, pageDepth || 1);
+    // The heading's id is the page's (an anchor); the key its entries are
+    // saved under can differ (`clock.clockface`), so it rides along — the
+    // save read the id until 2026-10-24 and wrote such entries twice.
+    heading.dataset.entriesKey = key;
+    renderEntriesFor(parent, key, lvl + 1);
 
     (page.pages || []).forEach(child => renderPage(parent, child, lvl + 1, page.id, (pageDepth || 1) + 1));
   }
@@ -603,7 +622,8 @@
         if (!result[parent]) result[parent] = [];
         result[parent].push(group);
       } else {
-        if (curUlItems.length) result[curHeading.id] = (result[curHeading.id] || []).concat(curUlItems);
+        const k = curHeading.dataset.entriesKey || curHeading.id;
+        if (curUlItems.length) result[k] = (result[k] || []).concat(curUlItems);
       }
     };
 
@@ -621,7 +641,14 @@
   }
 
   function extractDevData() {
+    // Every key the page does not draw is carried from the file as loaded
+    // (a section's desc_en / desc_zh, keys beside `sections`), so a save
+    // never drops what it could not show (2026-10-24: live saves made the
+    // old losses silent).
     const result = { sections: [] };
+    Object.keys(devData || {}).forEach(k => {
+      if (k !== 'sections') result[k] = devData[k];
+    });
     const devContainer = document.getElementById('dev-container');
     const section = devContainer.querySelector('section');
     if (!section) return result;
@@ -632,13 +659,11 @@
     for (const el of els) {
       if (el.tagName === 'H3' && el.id) {
         const orig = ((devData && devData.sections) || []).find(s => s.id === el.id) || {};
-        curSub = {
-          id: el.id,
-          title: el.textContent.trim(),
-          entries: [],
-        };
-        if (orig.description) curSub.description = orig.description;
-        if (orig.description_zh) curSub.description_zh = orig.description_zh;
+        curSub = {};
+        Object.keys(orig).forEach(k => { curSub[k] = orig[k]; });
+        curSub.id = el.id;
+        curSub.title = el.textContent.trim();
+        curSub.entries = [];
         result.sections.push(curSub);
       } else if (el.tagName === 'UL' && curSub) {
         curSub.entries = curSub.entries.concat(extractItemsFromUl(el));
@@ -648,18 +673,96 @@
   }
 
 
-  // ---- Save ----
+  // ---- LIVE SAVE (user decision 2026-10-24) ----
+  // A page that reads the live store (window.PLAN_DATA_BASE, the console
+  // pages) writes every edit back into it a moment after it is made — a
+  // field left, a row dragged, added or deleted, a chip cycled — through
+  // the website server's /plan-write/ (引擎 Engines/plan_write), which
+  // merges it in the way Agenda's Planner writes, comments kept, and
+  // refuses when the files changed elsewhere since this page read them.
+  // Saves run one at a time; edits made during one are saved after it.
+  // If a save fails, the toolbar says so and Save to file comes back.
+  let baseTexts = null;
+  let saveTimer = 0;
+  let saving = null;
+  let saveAgain = false;
+
+  function saveState(text, bad) {
+    let el = document.getElementById('save-state');
+    if (!el) {
+      el = document.createElement('span');
+      el.id = 'save-state';
+      el.setAttribute('role', 'status');
+      // In the controls row under the status line (2026-10-24), after its
+      // buttons; the old fixed toolbar on a page not yet rebuilt.
+      const row = document.querySelector('.controls-row');
+      const bar = row || document.getElementById('toolbar');
+      if (!bar) return;
+      if (row) row.appendChild(el);
+      else bar.prepend(el);
+    }
+    el.textContent = text;
+    el.classList.toggle('bad', !!bad);
+  }
+
+  function scheduleSave() {
+    if (!window.PLAN_DATA_BASE) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveLive, 700);
+  }
+
+  function flushSave() {
+    if (!window.PLAN_DATA_BASE) return;
+    clearTimeout(saveTimer);
+    return saveLive();
+  }
+
+  async function saveLive() {
+    if (saving) {
+      saveAgain = true;
+      return saving;
+    }
+    saving = (async () => {
+      saveState('Saving…');
+      PC.beginExtract();
+      const body = { base: baseTexts, entries: extractEntries(),
+                     dev: extractDevData() };
+      reportEmptyEntries();
+      try {
+        const res = await fetch('/plan-write/'
+          + encodeURIComponent(APP_PLAN_ID), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || ('the save helper answered '
+                                         + res.status));
+        }
+        baseTexts = data;
+        saveState('Saved ✓');
+      } catch (e) {
+        saveState('Not saved — ' + e.message, true);
+        const saveBtn = document.getElementById('save-btn');
+        if (saveBtn) saveBtn.style.display = 'inline-block';
+      }
+    })();
+    await saving;
+    saving = null;
+    if (saveAgain) {
+      saveAgain = false;
+      return saveLive();
+    }
+  }
+
+  // ---- Save to file ----
   async function saveFile() {
-    const c = document.querySelector('.container');
-    const btn = document.getElementById('edit-btn');
-    const saveBtn = document.getElementById('save-btn');
     document.querySelectorAll('section ul').forEach(ul => sortList(ul));
     renumberLis();
-    removeEditables();
-    c.classList.remove('editing');
-    btn.textContent = '✏ Edit';
-    btn.classList.remove('active');
-    saveBtn.style.display = 'none';
+    // Out of edit mode through the page's one switch (plan-chrome
+    // toggleEdit → edit-mode.js), which also words the button.
+    if (isEditing()) window.toggleEdit();
 
     PC.beginExtract();
     const currentEntries = extractEntries();
@@ -684,20 +787,6 @@
                  empties.join(', ') + '. Use the ✕ button to delete instead.');
   }
 
-  async function resetData() {
-    try {
-      const data = await fetchYamlFiles();
-      structureData = data.structure;
-      entriesData = data.entries;
-      devData = data.dev;
-      loadedEntries = JSON.parse(JSON.stringify(data.entries || {}));
-      manifestMeta = data.manifest || manifestMeta;
-      render();
-    } catch (e) {
-      alert('Cannot reset: failed to reload the plan YAML. Are you serving the page?');
-      console.error(e);
-    }
-  }
 
 
 
@@ -706,7 +795,6 @@
   // toggleEdit, filterItems, onTocSearch, tocToggleAll and _appPlan are
   // attached by plan-chrome.js, which owns them.
   window.saveFile = saveFile;
-  window.resetData = resetData;
 
   // ---- Init ----
   loadData();

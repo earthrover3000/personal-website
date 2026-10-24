@@ -345,6 +345,17 @@
       const chartW = W - padL - padR, chartH = H - padT - padB;
       const DAY_MS = 86400000;
 
+      // ── Counts / Share (user decision 2026-10-24) ────────────────────────
+      // Where the server names parts in data-chart-share (source_stats.chart
+      // `share`), the Share radio redraws the chart as each part's
+      // percentage of the record's total, one line per part. Nothing new
+      // rides in the payload: a share is a part's own series divided by the
+      // totals, point by point (see "One project at a time" below). The
+      // axis is linear and runs to at most 100%; the scale radios go inert.
+      let shareKeys = [];
+      try { shareKeys = JSON.parse(svg.dataset.chartShare || '[]'); } catch (e) { shareKeys = []; }
+      const shareOn = () => shareKeys.length > 0 && isOn('measure-share');
+
       // ── Point resolution: every snapshot, or one point per day ───────────
       // The public page's payload arrives collapsed to days (data-chart-daily
       // — a privacy rule the engine applies before the timestamps reach the
@@ -557,6 +568,9 @@
       // columns and the log scale all serve every line with no second code
       // path. Empty = the single-series chart, exactly as before.
       let overlayKeys = [], overlayPaths = [], overlayDots = [], overlayInfo = [];
+      // Nothing ticked in the picker (user decision 2026-10-24): an empty
+      // frame, in Counts and Share alike.
+      let emptyChart = false;
       // Size both axes to what the window shows.
       function measure() {
         const idx = onScreen();
@@ -566,9 +580,14 @@
         lnLines = lnBounds(totals);
         lnWords = wordVals.length
           ? lnBounds(wordVals) : { lo: 0, hi: 2, step: 0.5 };
-        yMaxLines = unitScale !== 1
-          ? niceMax(totals.map(v => v / unitScale)) * unitScale
-          : scoped ? niceMax(totals) : roundUpAxisMax(totals);
+        // An empty chart keeps the counts axis it had; a share axis is 100%.
+        if (shareOn()) {
+          yMaxLines = totals.length ? Math.min(100, niceMax(totals)) : 100;
+        } else if (totals.length) {
+          yMaxLines = unitScale !== 1
+            ? niceMax(totals.map(v => v / unitScale)) * unitScale
+            : scoped ? niceMax(totals) : roundUpAxisMax(totals);
+        }
         yMaxWords = scoped ? niceMax(wordVals)
           : wordVals.length ? roundUpAxisMax(wordVals) : 0;
       }
@@ -584,7 +603,8 @@
         linear: {
           yl: v => padT + chartH * (1 - v / yMaxLines),
           yw: v => yMaxWords <= 0 ? padT + chartH : padT + chartH * (1 - v / yMaxWords),
-          labL: i => unitScale !== 1
+          labL: i => shareOn() ? `${Math.round(yMaxLines * i / 4)}%`
+            : unitScale !== 1
             ? (yMaxLines * i / 4 / unitScale).toLocaleString(
               undefined, { maximumFractionDigits: 2 })
             : Math.round(yMaxLines * i / 4).toLocaleString(),
@@ -725,6 +745,12 @@
       const setVis = (els, on) => els.forEach(el => { if (el) el.style.display = on ? '' : 'none'; });
       function applyVisibility() {
         const lOn = !showLines || showLines.checked;
+        if (emptyChart) {
+          // Every line unticked: an empty frame, its axis kept.
+          setVis([linesPath, legendLines, wordsPath, legendWords, ...rightLabels], false);
+          setVis([...leftLabels], lOn);
+          return;
+        }
         if (overlayKeys.length) {
           // The picker's swatches are the legend while several lines show.
           setVis([linesPath, legendLines, wordsPath, legendWords, ...rightLabels], false);
@@ -739,7 +765,13 @@
 
       // Initial y-scale draw + series visibility (Linear default), then wire the
       // scale + series controls to re-scale / re-filter in place.
-      const currentMode = () => isOn('scale-log') ? 'log' : 'linear';
+      // A share is always drawn linear: the log radio keeps its state but
+      // stands aside while Share shows, as it does for the Table.
+      const currentMode = () => !shareOn() && isOn('scale-log') ? 'log' : 'linear';
+      let tableShown = () => false;   // the Table view's own test, once built
+      const syncScaleRadios = () => ctlGroup('chart-scale').forEach(r => {
+        r.disabled = tableShown() || shareOn();
+      });
       redraw(currentMode());
       applyVisibility();
       ctlGroup('chart-scale').forEach(radio => {
@@ -751,9 +783,17 @@
       // ledger table. U+2212 MINUS, not a hyphen: the deltas sit in the same
       // tabular-nums column as the counts, and a hyphen is narrower than a digit.
       const DASH = '—';
-      const fmtDelta = d =>
-        (d > 0 ? '+' : d < 0 ? '−' : '') + fmtNum(Math.abs(d), decimals);
-      const fmtCount = v => v == null ? DASH : fmtNum(v, decimals);
+      // A share reads to one place, its movement in percentage POINTS — a
+      // part going from 20% to 22% moved two points, not ten percent.
+      const fmtDelta = d => {
+        if (!shareOn()) {
+          return (d > 0 ? '+' : d < 0 ? '−' : '') + fmtNum(Math.abs(d), decimals);
+        }
+        const r = Math.abs(d).toFixed(1);
+        return (r === '0.0' ? '' : d > 0 ? '+' : '−') + r + ' pt';
+      };
+      const fmtCount = v => v == null ? DASH
+        : shareOn() ? `${v.toFixed(1)}%` : fmtNum(v, decimals);
 
       // ── X-axis: block / month / week boundary labels ─────────────────────
       // Mirrors the lifespan-atlas clock view: a faint boundary gridline at each
@@ -963,7 +1003,6 @@
           table.hidden = true;
           const wrapEl = svg.closest('.chart-hover-wrap') || svg;
           wrapEl.parentNode.insertBefore(table, wrapEl.nextSibling);
-          const scaleRadios = ctlGroup('chart-scale');
           // Last calendar day of a period: endMs is 00:00 UTC of the day AFTER,
           // so one millisecond back lands on the last day itself.
           const lastDay = ms => new Date(ms - 1).toISOString().slice(0, 10);
@@ -975,37 +1014,64 @@
             const lOn = linesOn(), wOn = wordsOn();
             // Built per render, not once: `points` holds whichever series is
             // on screen, and that changes when a project is selected.
-            const ledgerPts = points.map((p, i) => ({ ms: dates[i].getTime(), total: p.total, words: p.words }));
             const periods = periodsFor(mode, Math.min(dataEndMs, domainMaxMs));
-            const rows = ledger.ledgerRows(ledgerPts, periods, +now).reverse();
+            const rowsFor = key => ledger.ledgerRows(points.map((p, i) => ({
+              ms: dates[i].getTime(), total: p[key], words: p.words,
+            })), periods, +now).reverse();
+            const rows = rowsFor('total');
+            // Several lines on the chart (the overlay, and every Share view)
+            // → a pair of columns per line, headed by its swatch and name.
+            // The periods are the same list, so row r of each lines up.
+            const lineCols = overlayKeys.length
+              ? overlayKeys.map((k, n) => ({
+                rows: rowsFor(k),
+                head: `<span class="ch-swatch" style="background:${overlayInfo[n].color}"></span>`
+                  + overlayInfo[n].label,
+              }))
+              : [{ rows, head: seriesName }];
             const daysCol = DAYS_UNITS.includes(mode);
             let html = '<thead><tr>' + th('Period') + th('Last day') + (daysCol ? th('Days', '', 'num') : '');
-            if (lOn) html += th(seriesName, '(at close)', 'num col-lines') + th('Change', '(in period)', 'num col-lines');
+            // ONE column per line when there are several: its change sits
+            // under its value in the same cell, or five parts' pairs run the
+            // table off the side of the page.
+            const stacked = lineCols.length > 1;
+            if (lOn) {
+              lineCols.forEach(c => {
+                html += stacked ? th(c.head, '(at close · change)', 'num col-lines')
+                  : th(c.head, '(at close)', 'num col-lines') + th('Change', '(in period)', 'num col-lines');
+              });
+            }
             if (wOn) html += th('Words', '(at close)', 'num col-words') + th('Change', '(in period)', 'num col-words');
             html += '</tr></thead><tbody>';
-            for (const r of rows) {
+            rows.forEach((r, ri) => {
               html += `<tr${r.open ? ' class="ledger-open"' : ''}>` +
                 `<td>${labelFor(r.period, true)}</td>` +
                 (r.open ? '<td class="ledger-sofar">so far</td>' : `<td>${lastDay(r.period.endMs)}</td>`) +
                 (daysCol ? num(fmtDays(r.period)) : '');
               if (lOn) {
-                html += num(fmtCount(r.closing.total)) +
-                  num(r.movement.total == null ? DASH : fmtDelta(r.movement.total), 'delta');
+                lineCols.forEach(c => {
+                  const lr = c.rows[ri];
+                  const d = lr.movement.total == null ? DASH : fmtDelta(lr.movement.total);
+                  html += stacked
+                    ? num(`${fmtCount(lr.closing.total)}<span class="ledger-change">${d}</span>`)
+                    : num(fmtCount(lr.closing.total)) + num(d, 'delta');
+                });
               }
               if (wOn) {
                 html += num(fmtCount(r.closing.words)) +
                   num(r.movement.words == null ? DASH : fmtDelta(r.movement.words), 'delta');
               }
               html += '</tr>';
-            }
+            });
             table.innerHTML = html + '</tbody>';
           }
           const tableOn = () => viewTableRadio.checked;
+          tableShown = tableOn;
           function applyView() {
             const on = tableOn();
             wrapEl.style.display = on ? 'none' : '';
             table.hidden = !on;
-            scaleRadios.forEach(r => { r.disabled = on; });
+            syncScaleRadios();
             if (on) renderLedger(xMode());
           }
           applyView();
@@ -1410,6 +1476,17 @@
         for (const key of Object.keys(series)) {
           expanded[key] = { total: expand(series[key].lines), words: expand(series[key].words) };
         }
+        // Each shared part's percentage of the totals at every raw snapshot:
+        // null where the part has no reading or the totals none yet (a
+        // merged chart's Total starts once every part is recorded).
+        const shareSet = new Set(shareKeys.filter(k => expanded[k]));
+        const shares = {};
+        shareSet.forEach(key => {
+          shares[key] = expanded[key].total.map((v, i) => {
+            const t = all.total[i];
+            return v == null || !t ? null : 100 * v / t;
+          });
+        });
         // A project's axes are sized by niceMax (measure(), above) — a finer
         // ladder than the totals' 1-2-5.
 
@@ -1454,7 +1531,22 @@
         // any other since 2026-10-18 (user decision), so a project can be
         // drawn against the whole. [''] alone is the default chart.
         let chosen = [''];
-        const valuesOf = key => key === '' ? all.total : expanded[key].total;
+        const valuesOf = key => shareOn() && shares[key] ? shares[key]
+          : key === '' ? all.total : expanded[key].total;
+        // The lines actually drawn. Counts: the choice. Share: the shared
+        // parts in it — the totals would be a flat 100% and a part outside
+        // the total has no share — or, when it names none, every shared
+        // part, so switching to Share on the default chart shows the split.
+        // An EMPTY choice — None, or the last line unticked — draws an empty
+        // frame in either measure (user decision 2026-10-24).
+        const sharedParts = () =>
+          Object.keys(series).filter(k => shareSet.has(k) && listed(k));
+        const drawnKeys = () => {
+          if (!shareOn()) return chosen;
+          if (!chosen.length) return [];
+          const ks = chosen.filter(k => shareSet.has(k) && listed(k));
+          return ks.length ? ks : sharedParts();
+        };
         const labelOf = key => {
           // The totals row may name the whole (data-series-label on its
           // `data-series=""` row: Repository Size's `All folders`); a page
@@ -1530,32 +1622,52 @@
         }
         function setChosen(keys) {
           chosen = keys.filter(k => k === '' || (expanded[k] && listed(k)));
-          // Nothing ticked is not an empty chart: the totals come back.
-          if (!chosen.length) chosen = [''];
-          if (chosen.length > 1) {
-            showOverlay(chosen);
+          // Nothing ticked IS an empty chart (user decision 2026-10-24; until
+          // then the totals came back, so unticking the last line looked like
+          // a reset). The page still opens on the totals.
+          const drawn = drawnKeys();
+          emptyChart = !drawn.length;
+          if (emptyChart) {
+            clearOverlay();
+            shown = '';
+            points.forEach(p => { p.total = null; p.words = null; });
+            scoped = true;
+            measure();
+            redraw(currentMode());
+            applyVisibility();
+            pinColumns();
+            refreshCrosshair();
+            refreshTable();
+          } else if (drawn.length > 1 || shareOn()) {
+            // Share is always the overlay, even for one part: its line
+            // wears the part's colour and its readout the part's name.
+            showOverlay(drawn);
           } else {
             clearOverlay();
-            show(chosen[0]);
+            show(drawn[0]);
           }
           syncChoice();
         }
         function syncChoice() {
-          summary.textContent = chosen.length === 1 ? labelOf(chosen[0]) + ' ▾'
-            : `${chosen.length} lines ▾`;
-          picker.classList.toggle('scoped', !(chosen.length === 1 && chosen[0] === ''));
+          const drawn = drawnKeys();
+          summary.textContent = !drawn.length ? 'No lines ▾'
+            : drawn.length === 1 ? labelOf(drawn[0]) + ' ▾'
+            : `${drawn.length} lines ▾`;
+          picker.classList.toggle('scoped', !(drawn.length === 1 && drawn[0] === ''));
           panel.querySelectorAll('input[type=checkbox]').forEach(cb => {
             const key = cb.dataset.key;
-            const n = chosen.indexOf(key);
+            const n = drawn.indexOf(key);
             cb.checked = n >= 0;
+            // Under Share only the shared parts can be ticked.
+            cb.disabled = shareOn() && !shareSet.has(key);
             const sw = cb.parentElement.querySelector('.chart-multi__swatch');
             if (sw) sw.style.background = n >= 0 ? colourOf(key) : 'transparent';
           });
           rows.forEach(r => {
-            const n = chosen.indexOf(r.dataset.series);
+            const n = drawn.indexOf(r.dataset.series);
             // The Total row lights only when the totals are one line among
             // several — alone they are just the chart's default.
-            const on = n >= 0 && (r.dataset.series !== '' || chosen.length > 1);
+            const on = n >= 0 && (r.dataset.series !== '' || drawn.length > 1);
             r.classList.toggle('series-selected', on);
             if (on) {
               r.setAttribute('aria-current', 'true');
@@ -1566,9 +1678,14 @@
             }
           });
         }
+        // Toggles against what is DRAWN: under Share the default chart shows
+        // every part, so a click on one part takes it away rather than
+        // narrowing the chart to it. A row with no share does nothing there.
         const toggle = key => {
-          const n = chosen.indexOf(key);
-          setChosen(n >= 0 ? chosen.filter(k => k !== key) : [...chosen, key]);
+          if (shareOn() && !shareSet.has(key)) return;
+          const base = drawnKeys();
+          const n = base.indexOf(key);
+          setChosen(n >= 0 ? base.filter(k => k !== key) : [...base, key]);
         };
 
         // A row behind an off Settings switch (data-unlist — the site's
@@ -1583,8 +1700,27 @@
           return !r || !r.dataset.unlist
             || document.documentElement.hasAttribute('data-show-' + r.dataset.unlist);
         };
+        // All / None (user request 2026-10-24), above the list. All ticks
+        // every project — not the totals, which would flatten them against
+        // the whole; tick that row too to draw it. None empties the chart,
+        // ready for the lines you tick next.
+        const bulk = (label, keys) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'chart-multi__bulk-btn';
+          b.textContent = label;
+          b.addEventListener('click', () => setChosen(keys()));
+          return b;
+        };
         function fillPicker() {
           panel.textContent = '';
+          const bulkRow = document.createElement('div');
+          bulkRow.className = 'chart-multi__bulk';
+          bulkRow.append(
+            bulk('All', () => shareOn() ? sharedParts()
+              : Object.keys(series).filter(listed)),
+            bulk('None', () => []));
+          panel.appendChild(bulkRow);
           const option = (key, label) => {
             const l = document.createElement('label');
             l.className = 'chart-multi__option';
@@ -1619,7 +1755,7 @@
           // are drawn; click one again and it leaves. The Total row is the
           // totals' line, toggled the same way.
           const choose = () => {
-            const adding = !chosen.includes(key);
+            const adding = !drawnKeys().includes(key);
             toggle(key);
             if (!adding) return;
             // The chart sits below the table and may be folded: open it and
@@ -1643,6 +1779,18 @@
         // A resolution change rebuilds `points` on the totals; re-apply the
         // choice so the view, not the selection, is what changed.
         reapply = () => setChosen(chosen);
+      }
+
+      // Counts ⇄ Share: the same choice, redrawn in the other measure — the
+      // axis, the readout, its 24h row and the ledger all follow reapply().
+      // A browser restoring the radios on Back may open on Share, so the
+      // first state is applied here too.
+      if (shareKeys.length) {
+        ctlGroup('chart-measure').forEach(radio => {
+          radio.addEventListener('change', () => { syncScaleRadios(); reapply(); });
+        });
+        syncScaleRadios();
+        if (shareOn()) reapply();
       }
 
       // ── Year navigation: ‹ 2026 › ─────────────────────────────────────

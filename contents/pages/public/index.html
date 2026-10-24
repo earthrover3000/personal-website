@@ -278,6 +278,30 @@ body {
 }
 .head-controls > a.up-link:hover { text-decoration: underline; }
 
+/* THE CONTROLS ROW (user decisions 2026-10-24: "put [the edit button] as a
+   button in the first row below the status line … so the status line is
+   purely the status line", then "this should be SSOT of a plan page"): one
+   row of buttons right under a page's status line — a plan page's Edit and
+   Save to file, the Termination Planner's Edit, Add and lock.
+   Here, not in docs.css, because the planner's part pages load only this
+   sheet. The buttons share one size; each keeps its own colours (Save to
+   file stays the filled one). */
+.controls-row { display: flex; flex-wrap: wrap; gap: 0.5rem;
+  align-items: center; margin: 0.3rem 0 0.9rem; }
+.controls-row [hidden] { display: none !important; }
+.controls-row > button, .controls-row .lock-controls > button,
+.controls-row #edit-btn, .controls-row #save-btn {
+  font: inherit; font-size: 0.9rem; padding: 0.3rem 0.9rem;
+  border-radius: 4px; cursor: pointer; margin: 0; }
+.controls-row > button.button, .controls-row .lock-controls > button,
+.controls-row #edit-btn {
+  color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); }
+.controls-row #edit-btn.active { border-color: var(--accent);
+  color: var(--accent); }
+.controls-row .lock-controls { display: inline-flex; gap: 0.5rem; }
+.controls-row .lock-controls:empty { display: none; }
+
 /* ---- Head-region typography ---- */
 h1 {
   font-size: 1.6rem;
@@ -1476,7 +1500,7 @@ a.app-card:hover {
 <div class="container">
 <div class="crumb-line"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Personal Website</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav><span class="head-controls"><button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">23,941 lines · 14,385 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-23" class="relative-time relative-time-coarse">2026-10-23</time></p>
+<p class="head-meta"><a href="site-stats/">23,953 lines · 14,385 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-24" class="relative-time relative-time-coarse">2026-10-24</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">

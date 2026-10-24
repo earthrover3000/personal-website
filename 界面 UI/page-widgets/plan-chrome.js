@@ -60,9 +60,32 @@
   let _legendOpen = false;    // descriptions shown?
   let _legendEarlier = false; // past stages shown as rows? (hidden by default)
   let _activeFilter = 'all';
-  let dragSrc = null;
-  let _dragging = false;
-  let _ghost = null;
+
+  // THE SHELF'S DRAG AND EDIT MODE (user decision 2026-10-24: one drag and
+  // one edit mode for every page): drag-order.js and edit-mode.js, ES
+  // modules beside this file, loaded from this classic script. The plan
+  // pages render after fetching their YAML, by which time these are in;
+  // whatever arrives first waits on `_mods`.
+  const _here = document.currentScript ? document.currentScript.src
+    : location.href;
+  let DragOrder = null;
+  let EditMode = null;
+  let Controls = null;      // controls.js: every control's emoji and words
+  const _mods = Promise.all([
+    import(new URL('drag-order.js', _here).href),
+    import(new URL('edit-mode.js', _here).href),
+    import(new URL('controls.js', _here).href),
+  ]).then(([d, e, c]) => {
+    DragOrder = d; EditMode = e; Controls = c;
+    c.paintControls();      // the controls row's [data-control] buttons
+  }).catch((err) => console.error('plan-chrome.js: shelf modules', err));
+  // "➕ Add item", as controls.js says it (before it loads: the bare words,
+  // and painted as soon as it does).
+  function addItemLabel(btn) {
+    btn.dataset.control = 'add';
+    btn.dataset.controlMore = 'item';
+    btn.textContent = Controls ? Controls.label('add', 'item') : 'Add item';
+  }
 
   // ---- Host hooks (see TWO HOOKS above) ----
   let _hooks = {
@@ -84,6 +107,14 @@
     // plan pages do (user decision 2026-09-15) — see updateCounts. Off by
     // default for the same reason zhBreaks is: a host opts in.
     entryCounts: false,
+    // Called after every edit to the plan — a drag, a row added or deleted,
+    // a field left changed, a chip cycled — so a host that saves live can.
+    changed: () => {},
+    // A host that saves every edit as it happens says so; edit mode then
+    // keeps "Save to file" out of sight. `left()` is called when edit mode
+    // is switched off.
+    savesLive: false,
+    left: null,
   };
   function configure(hooks) { _hooks = Object.assign({}, _hooks, hooks || {}); }
 
@@ -200,6 +231,7 @@
     const next = AGENT_RING[(i + step + AGENT_RING.length) % AGENT_RING.length];
     li.dataset.agent = next;
     styleAgentEl(tag, next);
+    _hooks.changed();
   }
 
   function buildTocOl(pages, prefix, parentPageId) {
@@ -253,7 +285,7 @@
     row.className = 'add-item-row';
     const btn = document.createElement('button');
     btn.className = 'add-item-btn';
-    btn.textContent = '+ Add item';
+    addItemLabel(btn);
     btn.onclick = () => addItemToSection(ul);
     row.appendChild(btn);
     parent.appendChild(row);
@@ -503,6 +535,7 @@
     li.dataset.status = next;
     styleVersionEl(tag, 'tag', next);
     tag.textContent = PlanOrder.tokenLabel(next);
+    _hooks.changed();
   }
 
   // ---- One entry row ----
@@ -533,6 +566,7 @@
     const text = leafText(item), zh = leafZh(item);
     const status = leafStatus(item) || PlanOrder.UNSET.token;
     li.dataset.status = status;
+    li.__planItem = item;     // its keys the row does not show, for a save
 
     // The shared card look (styles/planner-cards.css) — the same `.plan-mini`
     // the website's site map uses, so a plan entry and a site-map entry are
@@ -901,136 +935,40 @@
     updateCounts();
   }
 
-  function liAtPoint(x, y) {
-    for (const li of document.querySelectorAll('section li')) {
-      if (li === dragSrc) continue;
-      const r = li.getBoundingClientRect();
-      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return li;
-    }
-    return null;
-  }
-
-  function firstLiAbovePoint(x, y) {
-    for (const ul of document.querySelectorAll(_hooks.dropTargetSelector)) {
-      const firstLi = ul.querySelector(':scope > li');
-      if (!firstLi || firstLi === dragSrc) continue;
-      const ur = ul.getBoundingClientRect();
-      const lr = firstLi.getBoundingClientRect();
-      if (x >= ur.left && x <= ur.right && y >= ur.top && y < lr.top) return firstLi;
-    }
-    return null;
-  }
-
-  function emptyUlAtPoint(x, y) {
-    for (const ul of document.querySelectorAll(_hooks.dropTargetSelector)) {
-      if (ul.querySelector('li')) continue;
-      const r = ul.getBoundingClientRect();
-      if (r.height < 2) {
-        const prev = ul.previousElementSibling;
-        if (!prev) continue;
-        const pr = prev.getBoundingClientRect();
-        if (x >= pr.left && x <= pr.right && y >= pr.bottom && y <= pr.bottom + 40) return ul;
-      } else if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
-        return ul;
-      }
-    }
-    return null;
-  }
-
-  function onDragMove(e) {
-    if (!dragSrc) return;
-    if (!_dragging) {
-      _dragging = true;
-      dragSrc.classList.add('dragging');
-      _ghost = dragSrc.cloneNode(true);
-      _ghost.className = 'drag-ghost';
-      document.body.appendChild(_ghost);
-    }
-    _ghost.style.left = (e.clientX + 14) + 'px';
-    _ghost.style.top  = (e.clientY - 10) + 'px';
-    document.body.style.userSelect = 'none';
-    document.body.style.cursor = 'grabbing';
-    const target = liAtPoint(e.clientX, e.clientY) || firstLiAbovePoint(e.clientX, e.clientY);
-    if (target) { showIndicator(target, e.clientY); }
-    else {
-      clearIndicators();
-      const ul = emptyUlAtPoint(e.clientX, e.clientY);
-      if (ul) ul.classList.add('drop-child');
-    }
-  }
-
-  function onDragEnd(e) {
-    document.removeEventListener('mousemove', onDragMove);
-    document.removeEventListener('mouseup', onDragEnd);
-    document.body.style.userSelect = '';
-    document.body.style.cursor = '';
-    if (_ghost) { _ghost.remove(); _ghost = null; }
-    if (dragSrc) dragSrc.classList.remove('dragging');
-    if (_dragging) {
-      const target = liAtPoint(e.clientX, e.clientY) || firstLiAbovePoint(e.clientX, e.clientY);
-      if (target) doMove(target, e.clientY);
-      else {
-        const ul = emptyUlAtPoint(e.clientX, e.clientY);
-        if (ul) {
-          ul.appendChild(dragSrc);
-          document.querySelectorAll('section li').forEach(li => { addHandle(li); addControls(li); wrapLiText(li); });
-          renumberLis();
-          applyEditables();
-        }
-      }
-    }
-    dragSrc = null;
-    _dragging = false;
-    clearIndicators();
-    if (isEditing()) applyEditables();
-  }
-
+  // ---- Drag (the shelf's drag-order.js, since 2026-10-24) ----
+  // Every list that holds rows, and every list the host names as a drop
+  // target (`dropTargetSelector`, empty ones included), is one drag group:
+  // a row goes anywhere among them, as it could before. Only in edit mode.
   function addHandle(li) {
+    if (!DragOrder) { _mods.then(() => addHandle(li)); return; }
     const old = li.querySelector(':scope > .drag-handle');
     if (old) old.remove();
-    const h = document.createElement('span');
-    h.className = 'drag-handle';
-    h.textContent = '⠇';
-    h.addEventListener('mousedown', e => {
-      if (!isEditing()) return;
-      e.preventDefault();
-      dragSrc = li;
-      _dragging = false;
-      document.addEventListener('mousemove', onDragMove);
-      document.addEventListener('mouseup', onDragEnd);
+    li.prepend(DragOrder.dragHandle());
+    wireDrag(li.parentNode);
+    queueWireTargets();
+  }
+
+  function wireDrag(ul) {
+    if (!ul || ul.tagName !== 'UL' || !DragOrder) return;
+    DragOrder.dragOrder(ul, { group: 'plan', items: 'li', always: false,
+                              enabled: isEditing, onDrop: afterDrop });
+  }
+
+  let _wireQueued = false;
+  function queueWireTargets() {
+    if (_wireQueued) return;
+    _wireQueued = true;
+    queueMicrotask(() => {
+      _wireQueued = false;
+      document.querySelectorAll(_hooks.dropTargetSelector).forEach(wireDrag);
     });
-    li.prepend(h);
   }
 
-  function dropZone(target, clientY) {
-    const rect = target.getBoundingClientRect();
-    const rel = (clientY - rect.top) / rect.height;
-    return rel < 0.5 ? 'before' : 'after';
-  }
-
-  function showIndicator(target, clientY) {
-    if (!dragSrc || dragSrc === target) return;
-    clearIndicators();
-    const zone = dropZone(target, clientY);
-    target.classList.add(zone === 'before' ? 'drop-before' : 'drop-after');
-  }
-
-  function doMove(target, clientY) {
-    if (!dragSrc || dragSrc === target) return;
-    const zone = dropZone(target, clientY);
-    if (zone === 'before') {
-      target.parentNode.insertBefore(dragSrc, target);
-    } else {
-      target.parentNode.insertBefore(dragSrc, target.nextSibling);
-    }
-    clearIndicators();
-    document.querySelectorAll('section li').forEach(li => { addHandle(li); addControls(li); wrapLiText(li); });
+  function afterDrop() {
+    document.querySelectorAll('section li').forEach(li => { addControls(li); wrapLiText(li); });
     renumberLis();
     applyEditables();
-  }
-
-  function clearIndicators() {
-    document.querySelectorAll('.drop-before, .drop-after, .drop-child').forEach(el => el.classList.remove('drop-before', 'drop-after', 'drop-child'));
+    _hooks.changed();
   }
 
   // ---- Item controls ----
@@ -1040,9 +978,8 @@
     const ctrl = document.createElement('span');
     ctrl.className = 'li-controls';
     ctrl.setAttribute('contenteditable', 'false');
+    // No ↑ ↓ since 2026-10-24: the grip drags (drag-order.js).
     ctrl.innerHTML =
-      '<button class="li-btn" title="Move up" onclick="window._appPlan.moveLi(this,-1)">↑</button>' +
-      '<button class="li-btn" title="Move down" onclick="window._appPlan.moveLi(this,1)">↓</button>' +
       '<button class="li-btn" title="Add below" onclick="window._appPlan.addBelow(this)">＋</button>' +
       '<button class="li-btn del" title="Delete" onclick="window._appPlan.deleteLi(this)">✕</button>';
     li.appendChild(ctrl);
@@ -1069,7 +1006,7 @@
     newLi.querySelector('.drag-handle').after(tag);
     const textSpan = document.createElement('span');
     textSpan.className = 'li-text';
-    if (isEditing()) textSpan.setAttribute('contenteditable', 'true');
+    if (isEditing()) makeEditable(textSpan);
     textSpan.appendChild(document.createTextNode(' '));
     newLi.appendChild(textSpan);
     addControls(newLi);
@@ -1083,11 +1020,15 @@
     newLi.focus();
   }
 
+  // Asked in the row's own controls, not a browser dialog (edit-mode.js
+  // `confirmInline`, 2026-10-24).
   function deleteLi(btn) {
     const li = btn.closest('li');
-    if (!confirm('Delete this item?')) return;
-    li.remove();
-    renumberLis();
+    const ctrl = btn.closest('.li-controls');
+    const gone = () => { li.remove(); renumberLis(); _hooks.changed(); };
+    if (!EditMode) { if (confirm('Delete this item?')) gone(); return; }
+    EditMode.confirmInline(ctrl, 'Delete?', { onYes: gone,
+                                              onNo: () => addControls(li) });
   }
 
   function addItemToSection(ul) {
@@ -1102,7 +1043,7 @@
     newLi.querySelector('.drag-handle').after(tag);
     const textSpan = document.createElement('span');
     textSpan.className = 'li-text';
-    if (isEditing()) textSpan.setAttribute('contenteditable', 'true');
+    if (isEditing()) makeEditable(textSpan);
     textSpan.appendChild(document.createTextNode(' '));
     newLi.appendChild(textSpan);
     addControls(newLi);
@@ -1122,7 +1063,7 @@
       row.className = 'add-item-row';
       const btn = document.createElement('button');
       btn.className = 'add-item-btn';
-      btn.textContent = '+ Add item';
+      addItemLabel(btn);
       btn.onclick = () => addItemToSection(ul);
       row.appendChild(btn);
       ul.after(row);
@@ -1143,31 +1084,59 @@
   }
 
   // ---- Edit mode ----
+  // The shelf's edit-mode.js since 2026-10-24: a row's text and the
+  // headings are edited in place with its one behaviour and look (Enter or
+  // leaving commits, Esc puts it back), keeping the row's bilingual
+  // children (`editableRegion`); each commit is an edit (`_hooks.changed`).
+  const EDITABLE = 'section .li-text, section h3, section h4, section h5, section h6';
+  function makeEditable(el) {
+    if (!EditMode) { el.setAttribute('contenteditable', 'true'); return; }
+    EditMode.editableRegion(el, { onCommit: () => _hooks.changed() });
+  }
+
   function applyEditables() {
-    document.querySelectorAll('section .li-text, section h3, section h4, section h5, section h6')
-      .forEach(el => el.setAttribute('contenteditable', 'true'));
+    document.querySelectorAll(EDITABLE).forEach(makeEditable);
   }
 
   function removeEditables() {
-    document.querySelectorAll('[contenteditable="true"]').forEach(el => el.removeAttribute('contenteditable'));
+    document.querySelectorAll('[contenteditable]').forEach(el => {
+      if (EditMode) EditMode.stopEditing(el);
+      else el.removeAttribute('contenteditable');
+    });
   }
 
+  // The page's ✏ Edit (its markup calls this on click): edit-mode.js's
+  // switch, so the mode is `.container.editing` and the button reads as it
+  // does on every page. A host that saves live (`_hooks.savesLive`) keeps
+  // "Save to file" hidden — it is the fallback, shown by the host if a
+  // live save fails.
+  let _setEditing = null;
   function toggleEdit() {
-    const c = document.querySelector('.container');
-    const btn = document.getElementById('edit-btn');
+    if (!EditMode) { _mods.then(toggleEdit); return; }
+    if (!_setEditing) {
+      _setEditing = EditMode.editToggle(document.getElementById('edit-btn'),
+        { listen: false, onChange: onEditMode });
+    }
+    _setEditing(!isEditing());
+  }
+
+  function onEditMode(on) {
+    on ? applyEditables() : removeEditables();
     const saveBtn = document.getElementById('save-btn');
-    const editing = c.classList.contains('editing');
-    c.classList.toggle('editing', !editing);
-    editing ? removeEditables() : applyEditables();
-    btn.textContent = editing ? '✏ Edit' : '✏ Editing…';
-    btn.classList.toggle('active', !editing);
-    saveBtn.style.display = editing ? 'none' : 'inline-block';
+    if (saveBtn) {
+      saveBtn.style.display = on && !_hooks.savesLive ? 'inline-block'
+        : 'none';
+    }
+    if (!on && _hooks.left) _hooks.left();
   }
 
   // ---- Save-path extraction ----
   // Entries whose text was cleared in the browser. Collected here rather than
   // returned, because extraction happens per-<ul> and the report is per-save.
   let _extractWarnings = [];
+  const _ROW_KEYS = new Set(['stage', 'status', 'agent', 'summary_en',
+    'summary_zh', 'text', 'zh', 'title_en', 'title_zh', 'detail_en',
+    'detail_zh']);
   function beginExtract() { _extractWarnings = []; }
 
   // Entries keyed to a page the STRUCTURE does not contain never render, so
@@ -1274,6 +1243,15 @@
         if (dEn) item.detail_en = dEn.textContent;
         if (dZh) item.detail_zh = dZh.textContent;
       }
+      // Keys the row does not show come back from the entry it was drawn
+      // from, so a save keeps them (2026-10-24). The ones this function
+      // writes — and their legacy names — are its own.
+      const orig = li.__planItem;
+      if (orig) {
+        Object.keys(orig).forEach(k => {
+          if (!(k in item) && !_ROW_KEYS.has(k)) item[k] = orig[k];
+        });
+      }
       if (item.summary_en === undefined) return;   // not an entry row at all
       if (!item.summary_en && !item.summary_zh) _extractWarnings.push(_liLabel(li));
       items.push(item);
@@ -1346,8 +1324,7 @@
     AGENT_UNSET, styleAgentEl, toggleAgent,
     leafStatus, leafText, leafZh, renderLeafItem, entryHash, revealFromHash,
     markEntry, isEntryRow, checkNumbering,
-    filterItems, liAtPoint, firstLiAbovePoint, emptyUlAtPoint, onDragMove,
-    onDragEnd, addHandle, dropZone, showIndicator, doMove, clearIndicators,
+    filterItems, addHandle,
     addControls, moveLi, addBelow, deleteLi, addItemToSection,
     addSectionControls, wrapLiText, applyEditables, removeEditables,
     toggleEdit, extractItemsFromUl, downloadFile, updateZhBreaks,
