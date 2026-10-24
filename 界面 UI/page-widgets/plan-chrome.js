@@ -107,14 +107,17 @@
     // plan pages do (user decision 2026-09-15) — see updateCounts. Off by
     // default for the same reason zhBreaks is: a host opts in.
     entryCounts: false,
-    // Called after every edit to the plan — a drag, a row added or deleted,
-    // a field left changed, a chip cycled — so a host that saves live can.
-    changed: () => {},
-    // A host that saves every edit as it happens says so; edit mode then
-    // keeps "Save to file" out of sight. `left()` is called when edit mode
-    // is switched off.
-    savesLive: false,
-    left: null,
+    // SAVE, OR DISCARD (user decision 2026-10-24, edit-mode.js's draft):
+    // editing is a draft; every edit — a drag, a row deleted, a field left
+    // changed, a chip cycled — is counted, and nothing is written until
+    // 💾 Save calls `save()` (false: not saved, editing goes on). ✏ again
+    // with changes offers Discard, which calls `discard()` to draw the
+    // page afresh from what was last saved. `saveKey` is the button's
+    // words in controls.js: `commit` (Save) where the host writes the
+    // store, `save` (Save to file) where it downloads.
+    save: () => (window.saveFile ? window.saveFile() : false),
+    discard: () => {},
+    saveKey: 'save',
   };
   function configure(hooks) { _hooks = Object.assign({}, _hooks, hooks || {}); }
 
@@ -231,7 +234,7 @@
     const next = AGENT_RING[(i + step + AGENT_RING.length) % AGENT_RING.length];
     li.dataset.agent = next;
     styleAgentEl(tag, next);
-    _hooks.changed();
+    edited();
   }
 
   function buildTocOl(pages, prefix, parentPageId) {
@@ -535,7 +538,7 @@
     li.dataset.status = next;
     styleVersionEl(tag, 'tag', next);
     tag.textContent = PlanOrder.tokenLabel(next);
-    _hooks.changed();
+    edited();
   }
 
   // ---- One entry row ----
@@ -968,7 +971,7 @@
     document.querySelectorAll('section li').forEach(li => { addControls(li); wrapLiText(li); });
     renumberLis();
     applyEditables();
-    _hooks.changed();
+    edited();
   }
 
   // ---- Item controls ----
@@ -1025,7 +1028,7 @@
   function deleteLi(btn) {
     const li = btn.closest('li');
     const ctrl = btn.closest('.li-controls');
-    const gone = () => { li.remove(); renumberLis(); _hooks.changed(); };
+    const gone = () => { li.remove(); renumberLis(); edited(); };
     if (!EditMode) { if (confirm('Delete this item?')) gone(); return; }
     EditMode.confirmInline(ctrl, 'Delete?', { onYes: gone,
                                               onNo: () => addControls(li) });
@@ -1087,11 +1090,11 @@
   // The shelf's edit-mode.js since 2026-10-24: a row's text and the
   // headings are edited in place with its one behaviour and look (Enter or
   // leaving commits, Esc puts it back), keeping the row's bilingual
-  // children (`editableRegion`); each commit is an edit (`_hooks.changed`).
+  // children (`editableRegion`); each commit is an edit (`edited`).
   const EDITABLE = 'section .li-text, section h3, section h4, section h5, section h6';
   function makeEditable(el) {
     if (!EditMode) { el.setAttribute('contenteditable', 'true'); return; }
-    EditMode.editableRegion(el, { onCommit: () => _hooks.changed() });
+    EditMode.editableRegion(el, { onCommit: () => edited() });
   }
 
   function applyEditables() {
@@ -1105,29 +1108,29 @@
     });
   }
 
+  // One edit made to the plan, counted for the draft's Save button.
+  function edited() {
+    if (EditMode) EditMode.noteChange();
+  }
+
   // The page's ✏ Edit (its markup calls this on click): edit-mode.js's
   // switch, so the mode is `.container.editing` and the button reads as it
-  // does on every page. A host that saves live (`_hooks.savesLive`) keeps
-  // "Save to file" hidden — it is the fallback, shown by the host if a
-  // live save fails.
+  // does on every page — and its draft: the page's #save-btn becomes 💾
+  // Save (n changes), and ✏ with changes made asks before discarding them.
   let _setEditing = null;
   function toggleEdit() {
     if (!EditMode) { _mods.then(toggleEdit); return; }
     if (!_setEditing) {
       _setEditing = EditMode.editToggle(document.getElementById('edit-btn'),
-        { listen: false, onChange: onEditMode });
+        { listen: false, onChange: onEditMode,
+          draft: { save: () => _hooks.save(), discard: () => _hooks.discard(),
+                   saveKey: _hooks.saveKey } });
     }
-    _setEditing(!isEditing());
+    _setEditing.toggle();
   }
 
   function onEditMode(on) {
     on ? applyEditables() : removeEditables();
-    const saveBtn = document.getElementById('save-btn');
-    if (saveBtn) {
-      saveBtn.style.display = on && !_hooks.savesLive ? 'inline-block'
-        : 'none';
-    }
-    if (!on && _hooks.left) _hooks.left();
   }
 
   // ---- Save-path extraction ----

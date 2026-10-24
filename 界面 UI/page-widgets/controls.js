@@ -3,7 +3,8 @@
 // the left of text … and of course make it SSOT").
 //
 // The row (base.css `.controls-row`) is the plan pages', the site map's and
-// 临终规划器 Termination Planner's: Edit, Save to file, Add, and the lock's
+// 临终规划器 Termination Planner's: Edit, Save (a draft) or Save to file
+// (a download), Add, and the lock's
 // Unlock / Lock / Change passphrase. Each one's emoji and words live HERE
 // and nowhere else. Markup a Python builder writes names the control and
 // leaves the words to this file —
@@ -25,6 +26,7 @@ export const CONTROLS = {
   edit:       { glyph: '✏️', text: 'Edit' },
   editing:    { glyph: '✏️', text: 'Editing…' },
   save:       { glyph: '💾', text: 'Save to file' },  // not-identity
+  commit:     { glyph: '💾', text: 'Save' },  // not-identity
   add:        { glyph: '➕', text: 'Add' },
   lock:       { glyph: '🔒', text: 'Lock' },
   unlock:     { glyph: '🔓', text: 'Unlock' },

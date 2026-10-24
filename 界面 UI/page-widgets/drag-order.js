@@ -2,8 +2,8 @@
 // put in order by hand uses this, rather than writing its own (user
 // decision 2026-10-24: "SSOT it so in the future other apps can use this
 // drag logic"). First callers: 临终规划器 Termination Planner's Checklist
-// (items within a method) and Schedule (entries within a stage, and the
-// stages themselves).
+// (items, within a method or into another) and Schedule (entries between
+// stages, stages between methods) — each a `group`.
 //
 // WHAT THE USER SEES. Each item has a ⠇ grip. Drag it (mouse, pen or
 // finger): the item lifts out of the list, a tilted copy follows the

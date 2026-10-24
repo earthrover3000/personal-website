@@ -439,6 +439,36 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
 .li-btn.del:hover { color: var(--tag-red-text); border-color: var(--tag-red-text); }
 .add-item-row { visibility: hidden; margin-top: 0.5rem; padding-left: calc(3.4rem + 0.5rem + 1rem); }
 .editing .add-item-row { visibility: visible; }
+/* edit-mode.js (2026-10-24): an add button keeps its place in reading
+   mode, unseen, so switching to editing moves nothing — the plan pages'
+   .add-item-row rule, for any `.add-item`. */
+.container:not(.editing) .add-item { visibility: hidden; }
+/* A VALUE SHOWN DECRYPTED (user decision 2026-10-24): a grey ground marks
+   text that is stored encrypted and was opened in this tab, so encrypted
+   values stand apart from plain ones wherever the two mix — the Intentions
+   and Tasks pages now, any page that shows opened values later. Plain
+   colour only: it marks, it does not hide. */
+.sealed-value { background: color-mix(in srgb, var(--muted) 20%,
+  transparent); border-radius: 3px; padding: 0 0.15em;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+/* The floating panel (edit-mode.js `openPopover`): over the page, never in
+   it, so opening it pushes nothing. */
+.edit-popover { position: absolute; z-index: 50; min-width: 16rem;
+  max-width: min(32rem, calc(100vw - 16px)); max-height: 60vh;
+  overflow: auto; padding: 0.6rem 0.8rem; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18); font-size: 0.9rem; }
+.edit-popover .pop-field { display: flex; flex-direction: column;
+  gap: 0.15rem; margin: 0 0 0.5rem; }
+.edit-popover .pop-field:last-child { margin-bottom: 0; }
+.edit-popover .pop-label { font-size: 0.78rem; color: var(--muted); }
+.edit-popover input, .edit-popover textarea, .edit-popover select {
+  font: inherit; color: var(--text); background: var(--bg, transparent);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 0.2rem 0.4rem; }
+.edit-popover label.pick { display: block; padding: 0.1rem 0; }
+.edit-popover .picks-group { display: block; font-weight: 600;
+  margin-top: 0.3rem; }
 .add-item-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.8rem; padding: 0; transition: transform 0.1s, color 0.1s; }
 .add-item-btn:hover { color: var(--accent); }
 .add-item-btn:active { transform: scale(0.94); }

@@ -50,11 +50,13 @@
     // Every heading and TOC row carries a live entry count — see
     // PlanChrome.updateCounts for what "live" means here.
     entryCounts: true,
-    // A page reading the live store saves every edit into it (see LIVE
-    // SAVE below); the website's copies keep Save to file.
-    savesLive: !!window.PLAN_DATA_BASE,
-    changed: () => scheduleSave(),
-    left: () => flushSave(),
+    // Editing is a draft (edit-mode.js, user decision 2026-10-24): 💾 Save
+    // writes it into the live store on a page that reads it (SAVE INTO
+    // THE STORE below), or downloads it on the website's copies; Discard
+    // draws the page afresh from what was last saved.
+    saveKey: window.PLAN_DATA_BASE ? 'commit' : 'save',
+    save: () => (window.PLAN_DATA_BASE ? saveLive() : saveFile()),
+    discard: () => render(),
   });
 
   // Ordering + numbering come from the shared plan-order engine (loaded as a
@@ -673,19 +675,17 @@
   }
 
 
-  // ---- LIVE SAVE (user decision 2026-10-24) ----
+  // ---- SAVE INTO THE STORE (user decisions 2026-10-24) ----
   // A page that reads the live store (window.PLAN_DATA_BASE, the console
-  // pages) writes every edit back into it a moment after it is made — a
-  // field left, a row dragged, added or deleted, a chip cycled — through
-  // the website server's /plan-write/ (引擎 Engines/plan_write), which
-  // merges it in the way Agenda's Planner writes, comments kept, and
-  // refuses when the files changed elsewhere since this page read them.
-  // Saves run one at a time; edits made during one are saved after it.
-  // If a save fails, the toolbar says so and Save to file comes back.
+  // pages) writes the draft back into it on 💾 Save — every edit since ✏
+  // Edit at once — through the website server's /plan-write/ (引擎
+  // Engines/plan_write), which merges it in the way Agenda's Planner
+  // writes, comments kept, and refuses when the files changed elsewhere
+  // since this page read them. (It saved every edit as it was made until
+  // the draft came, the same day.) A failed save says so and keeps the
+  // page in edit mode, the draft still on it.
   let baseTexts = null;
-  let saveTimer = 0;
   let saving = null;
-  let saveAgain = false;
 
   function saveState(text, bad) {
     let el = document.getElementById('save-state');
@@ -705,23 +705,9 @@
     el.classList.toggle('bad', !!bad);
   }
 
-  function scheduleSave() {
-    if (!window.PLAN_DATA_BASE) return;
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveLive, 700);
-  }
-
-  function flushSave() {
-    if (!window.PLAN_DATA_BASE) return;
-    clearTimeout(saveTimer);
-    return saveLive();
-  }
-
-  async function saveLive() {
-    if (saving) {
-      saveAgain = true;
-      return saving;
-    }
+  // Resolves to whether it was saved.
+  function saveLive() {
+    if (saving) return saving;
     saving = (async () => {
       saveState('Saving…');
       PC.beginExtract();
@@ -741,37 +727,39 @@
                                          + res.status));
         }
         baseTexts = data;
+        keepAsSaved(body.entries, body.dev);
         saveState('Saved ✓');
+        return true;
       } catch (e) {
         saveState('Not saved — ' + e.message, true);
-        const saveBtn = document.getElementById('save-btn');
-        if (saveBtn) saveBtn.style.display = 'inline-block';
+        return false;
       }
     })();
-    await saving;
-    saving = null;
-    if (saveAgain) {
-      saveAgain = false;
-      return saveLive();
-    }
+    return saving.finally(() => { saving = null; });
+  }
+
+  // What Discard draws from: the plan as last saved.
+  function keepAsSaved(entries, dev) {
+    entriesData = JSON.parse(JSON.stringify(entries));
+    devData = JSON.parse(JSON.stringify(dev));
   }
 
   // ---- Save to file ----
   async function saveFile() {
     document.querySelectorAll('section ul').forEach(ul => sortList(ul));
     renumberLis();
-    // Out of edit mode through the page's one switch (plan-chrome
-    // toggleEdit → edit-mode.js), which also words the button.
-    if (isEditing()) window.toggleEdit();
+    // edit-mode.js leaves edit mode once this resolves true.
 
     PC.beginExtract();
     const currentEntries = extractEntries();
     const currentDev = extractDevData();
     reportEmptyEntries();
+    keepAsSaved(currentEntries, currentDev);
     const entriesYaml = jsyaml.dump(currentEntries, { lineWidth: -1, quotingType: '"', forceQuotes: false });
     const devYaml = jsyaml.dump(currentDev, { lineWidth: -1, quotingType: '"', forceQuotes: false });
     downloadFile(`${APP_PLAN_ID}-entries.yaml`, entriesYaml, 'application/x-yaml');
     setTimeout(() => downloadFile(`${APP_PLAN_ID}-dev.yaml`, devYaml, 'application/x-yaml'), 300);
+    return true;
   }
 
 
