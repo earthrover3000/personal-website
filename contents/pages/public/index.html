@@ -286,12 +286,21 @@ body {
    Here, not in docs.css, because the planner's part pages load only this
    sheet. The buttons share one size; each keeps its own colours (Save to
    file stays the filled one). */
-.controls-row { display: flex; flex-wrap: wrap; gap: 0.5rem;
-  align-items: center; margin: 0.3rem 0 0.9rem; }
+/* ITS HEIGHT IS RESERVED (user decision 2026-10-25: "reserve space for
+   the controls line in advance so UI doesn't move"): the lock's buttons
+   are drawn by script, so the row used to open at 0px and grow to a
+   button's height a moment later, pushing the page down 36px. It is one
+   button tall from the start — the buttons' own height, from the same
+   numbers (font size × line height + padding + border). */
+.controls-row { --control-h: calc(0.9rem * 1.5 + 0.6rem + 2px);
+  display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+  min-height: var(--control-h); margin: 0.3rem 0 0.9rem; }
 .controls-row [hidden] { display: none !important; }
 .controls-row > button, .controls-row .lock-controls > button,
 .controls-row #edit-btn, .controls-row #save-btn {
-  font: inherit; font-size: 0.9rem; padding: 0.3rem 0.9rem;
+  font: inherit; font-size: 0.9rem; line-height: 1.5;
+  padding: 0.3rem 0.9rem; box-sizing: border-box;
+  min-height: var(--control-h);
   border-radius: 4px; cursor: pointer; margin: 0; }
 .controls-row > button.button, .controls-row .lock-controls > button,
 .controls-row #edit-btn {
@@ -1500,7 +1509,7 @@ a.app-card:hover {
 <div class="container">
 <div class="crumb-line"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Personal Website</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav><span class="head-controls"><button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">23,960 lines · 14,404 words · 907 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-24" class="relative-time relative-time-coarse">2026-10-24</time></p>
+<p class="head-meta"><a href="site-stats/">23,965 lines · 14,404 words · 907 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-25" class="relative-time relative-time-coarse">2026-10-25</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">

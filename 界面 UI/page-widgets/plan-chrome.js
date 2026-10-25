@@ -51,6 +51,38 @@
     console.error('plan-chrome.js: 引擎 Engines/plan-order/plan-order.js must load first');
     return;
   }
+  // Every entry's uuid (user decision 2026-10-25): minted and shown by the
+  // shelf's entry-ids.js, which loads before this file.
+  const EntryIds = window.EntryIds;
+  if (!EntryIds) {
+    console.error('plan-chrome.js: page-widgets/entry-ids.js must load first');
+    return;
+  }
+
+  // AN ENTRY'S UUID ON ITS ROW (user decisions 2026-10-25: a uuid for every
+  // plan entry, enforced; shown on the first line, right of the number,
+  // with the stage chip moved there too). `li.dataset.uuid` is the row's
+  // copy, which a save writes back (extractItemsFromUl); the label shows
+  // the short form, the whole uuid on hover. A row drawn from an entry that
+  // has none — the plan-data check should have stopped that — says so in
+  // red rather than minting one silently. A new row (`id` omitted with
+  // `fresh`) is given its uuid here, as it is made.
+  function setEntryId(li, id, fresh) {
+    if (!id && fresh) id = EntryIds.newId();
+    li.querySelectorAll(':scope > .uid').forEach((n) => n.remove());
+    if (id) {
+      li.dataset.uuid = id;
+      li.appendChild(EntryIds.idLabel(id));
+    } else {
+      delete li.dataset.uuid;
+      const miss = document.createElement('span');
+      miss.className = 'uid missing';
+      miss.textContent = 'no uuid';
+      miss.setAttribute('contenteditable', 'false');
+      li.appendChild(miss);
+    }
+    return id;
+  }
 
   // ---- Chrome state (see STATE above) ----
   let _versionOrder = [];
@@ -615,6 +647,7 @@
     agentTag.setAttribute('contenteditable', 'false');
     agentTag.addEventListener('click', (e) => toggleAgent(agentTag, e));
     li.appendChild(agentTag);
+    setEntryId(li, item[EntryIds.KEY]);
 
     const textSpan = document.createElement('span');
     textSpan.className = 'li-text';
@@ -642,15 +675,9 @@
       const det = document.createElement('details');
       det.className = 'li-detail';
       det.setAttribute('contenteditable', 'false');
-      // The li is a flex row with ordered children (docs.css: num 0 → tag 4);
-      // order 5 + full basis drops the disclosure onto its own full-width row
-      // BELOW the entry line instead of defaulting into slot 0 before the title.
-      det.style.order = '5';
-      det.style.flexBasis = '100%';
-      det.style.whiteSpace = 'pre-wrap';
-      det.style.color = 'var(--muted)';
-      det.style.fontSize = '0.88rem';
-      det.style.margin = '0.15rem 0 0.3rem';
+      // Its look and its place below the entry line are docs.css's
+      // (`.li-detail`: the detail field's one style, shared with the
+      // Termination Planner since 2026-10-25), no longer inline here.
       // The <summary> exists but shows nothing: a <details> WITHOUT one gets
       // the UA's own 'Details' marker, so it cannot simply be dropped. Hidden
       // by docs.css, which leaves <details>'s open/closed machinery — and the
@@ -1007,6 +1034,8 @@
     tag.textContent = PlanOrder.tokenLabel(PlanOrder.UNSET.token);
     tag.addEventListener('click', (e) => toggleStatus(tag, e));
     newLi.querySelector('.drag-handle').after(tag);
+    newLi.classList.add('plan-mini');   // the card every entry row wears
+    setEntryId(newLi, null, true);
     const textSpan = document.createElement('span');
     textSpan.className = 'li-text';
     if (isEditing()) makeEditable(textSpan);
@@ -1044,6 +1073,8 @@
     tag.textContent = PlanOrder.tokenLabel(PlanOrder.UNSET.token);
     tag.addEventListener('click', (e) => toggleStatus(tag, e));
     newLi.querySelector('.drag-handle').after(tag);
+    newLi.classList.add('plan-mini');   // the card every entry row wears
+    setEntryId(newLi, null, true);
     const textSpan = document.createElement('span');
     textSpan.className = 'li-text';
     if (isEditing()) makeEditable(textSpan);
@@ -1137,9 +1168,9 @@
   // Entries whose text was cleared in the browser. Collected here rather than
   // returned, because extraction happens per-<ul> and the report is per-save.
   let _extractWarnings = [];
-  const _ROW_KEYS = new Set(['stage', 'status', 'agent', 'summary_en',
-    'summary_zh', 'text', 'zh', 'title_en', 'title_zh', 'detail_en',
-    'detail_zh']);
+  const _ROW_KEYS = new Set(['uuid', 'stage', 'status', 'agent',
+    'summary_en', 'summary_zh', 'text', 'zh', 'title_en', 'title_zh',
+    'detail_en', 'detail_zh']);
   function beginExtract() { _extractWarnings = []; }
 
   // Entries keyed to a page the STRUCTURE does not contain never render, so
@@ -1205,6 +1236,8 @@
     const items = [];
     ul.querySelectorAll(':scope > li').forEach(li => {
       const item = {};
+      // The uuid first, so it heads the entry in the file (entry_ids).
+      if (li.dataset.uuid) item[EntryIds.KEY] = li.dataset.uuid;
       // `unset` is this module's name for a MISSING stage, never an authored
       // value: an entry with no stage saves with no `stage:` key, exactly as
       // it was written. Every li carries dataset.status (renderLeafItem tags
@@ -1326,7 +1359,7 @@
     toggleStatus, legendRows, buildLegend, buildFilterBar,
     AGENT_UNSET, styleAgentEl, toggleAgent,
     leafStatus, leafText, leafZh, renderLeafItem, entryHash, revealFromHash,
-    markEntry, isEntryRow, checkNumbering,
+    markEntry, isEntryRow, checkNumbering, setEntryId,
     filterItems, addHandle,
     addControls, moveLi, addBelow, deleteLi, addItemToSection,
     addSectionControls, wrapLiText, applyEditables, removeEditables,

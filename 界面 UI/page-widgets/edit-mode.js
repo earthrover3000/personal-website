@@ -152,7 +152,8 @@ function paintSave() {
   const b = D.saveButton;
   const on = isEditing();
   b.hidden = !on;
-  b.style.display = on ? '' : 'none';
+  // Set, not cleared: docs.css hides #save-btn until a page shows it.
+  b.style.display = on ? 'inline-block' : 'none';
   b.disabled = !D.count;
   b.textContent = label(D.saveKey) + (D.count ? ' (' + D.count
     + (D.count === 1 ? ' change)' : ' changes)') : '');

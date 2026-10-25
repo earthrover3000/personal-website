@@ -65,7 +65,7 @@ export type BlockPosition = {
 };
 /** Position of `ms` within its block; null when the context has no usable
  *  length (no blocks and no projection). The ONE implementation behind the
- *  atlas readouts and the Origin statusline's 📅 segment. */
+ *  atlas readouts and the life_blocks engine. */
 export declare function blockPosition(ms: number, ctx: BlockContext): BlockPosition | null;
 
 /** One block of the atlas Blocks view's CURRENT section. */

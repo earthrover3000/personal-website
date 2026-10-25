@@ -47,9 +47,21 @@ section { margin-bottom: 3rem; }
    typographic example on the site):
    - h2 sections: 1.2rem, plain text color, slim border-bottom
    - h3 subsections: accent color, font-weight 600
-   - h4–h6: smaller, plain text, no monospace (Segoe UI inherited from body) */
-h2.section-title { font-size: 1.2rem; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; margin: 2rem 0 0.6rem; }
-h3.page-h3 { color: var(--accent); font-size: 1rem; font-weight: 600; margin: 1.2rem 0 0.3rem; }
+   - h4–h6: smaller, plain text, no monospace (Segoe UI inherited from body)
+   THE FIRST TWO LEVELS' SIZES ARE NAMED (user decision 2026-10-25: "SSOT
+   from the Planning Room"), so a page laid out in the same levels takes
+   them rather than its own — the Termination Planner's method and phase
+   folds (build_termination_planner.py). Their TYPE — size, colour,
+   weight — is one rule each, shared by any heading at that level
+   (`.level-1-heading`, `.level-2-heading`); the box (border, margins) is
+   each page's own. */
+:root { --level-1-size: 1.2rem; --level-2-size: 1rem; }
+h2.section-title, .level-1-heading { font-size: var(--level-1-size);
+  color: var(--text); }
+h3.page-h3, .level-2-heading { font-size: var(--level-2-size);
+  color: var(--accent); font-weight: 600; }
+h2.section-title { border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; margin: 2rem 0 0.6rem; }
+h3.page-h3 { margin: 1.2rem 0 0.3rem; }
 h4.page-h4 { font-size: 0.95rem; color: var(--text); font-weight: 600; margin: 1rem 0 0.4rem; }
 h5.page-h5 { font-size: 0.92rem; color: var(--text); font-weight: 600; margin: 1rem 0 0.4rem; }
 h6.page-h6 { font-size: 0.88rem; color: var(--text); font-weight: 600; margin: 0.8rem 0 0.3rem; }
@@ -121,7 +133,9 @@ section li { list-style: none; display: flex; align-items: baseline; flex-wrap: 
 /* Layout: number on the LEFT, content, then the stage tag on the RIGHT — the same
    "content-left / status-right" alignment the flat cards use. `li-text` grows to
    push the tag to the right edge. */
-section li > .num { order: 0; flex-shrink: 0; margin-right: 0.4rem; color: var(--muted); font-size: 0.85em; font-variant-numeric: tabular-nums; }
+/* An entry's number — and the Termination Planner's (`.entry-num`, user
+   decision 2026-10-25), which is the same label beside its own uuid. */
+section li > .num, .entry-num { order: 0; flex-shrink: 0; margin-right: 0.4rem; color: var(--muted); font-size: 0.85em; font-variant-numeric: tabular-nums; }
 section li::before { content: "\2022"; order: 0; flex-shrink: 0; margin-right: 0.4rem; color: var(--muted); }
 section li:has(> .num)::before { content: none; }
 section li > .drag-handle { order: 1; }
@@ -129,11 +143,57 @@ section li > .li-text { order: 2; flex: 1; min-width: 0; }
 section li > .li-controls { order: 3; }
 section li > .tag { order: 4; margin-left: 0.5rem; }
 .drag-handle, .tag, .li-controls { flex-shrink: 0; }
+/* A PLAN ENTRY IS TWO LINES (user decisions 2026-10-25): the first holds
+   its labels — number, drag grip, uuid (entry-ids.js, the short form), stage
+   chip, agent chip and, in edit mode, ＋ ✕ at the right; the text starts on
+   the second, under the uuid, with the whole width to itself (the chip
+   used to take the right edge of the text's line). THE UUID COMES BEFORE
+   THE CHIPS (user decision, same day): every uuid is the same width, so
+   the chips after it start at one place on every row. Explicit grid places, so
+   a hidden agent chip or a stage-less site-map row leaves its column empty
+   and moves nothing else.
+   THE TERMINATION PLANNER'S CARDS ARE THE SAME ROW (user decision
+   2026-10-25: "card text indentation should SSOT with the Planning
+   Room"): `li.entry-grid`, with `.entry-num` for its number.
+   ONE NUMBER COLUMN PER PAGE (user decision, same day): its width is the
+   page's widest number, `--entry-num-col`, set by entry-ids.js
+   `fitNumbers`; without it a row sizes its own. */
+section li[data-entry], li.entry-grid { display: grid; align-items: baseline;
+  grid-template-columns: var(--entry-num-col, max-content)
+                         repeat(4, max-content) 1fr max-content; }
+section li[data-entry] > .num,
+li.entry-grid > .entry-num { grid-area: 1 / 1; }
+section li[data-entry] > .drag-handle,
+li.entry-grid > .drag-handle { grid-area: 1 / 2; }
+section li[data-entry] > .uid, li.entry-grid > .uid { grid-area: 1 / 3;
+  margin-left: 0; }   /* in line with the text below it */
+section li[data-entry] > .tag { grid-area: 1 / 4; margin-left: 0.5rem; }
+section li[data-entry] > .tag.agent { grid-area: 1 / 5; margin-left: 0.3rem; }
+section li[data-entry] > .li-controls { grid-area: 1 / 7; }
+section li[data-entry] > .li-text,
+li.entry-grid > .li-text { grid-area: 2 / 3 / 3 / -1;
+  margin-top: 0.15rem; }
+section li[data-entry] > .li-detail { grid-area: 3 / 3 / 4 / -1; }
+.uid { margin-left: 0.5rem; font-family: ui-monospace, SFMono-Regular, Menlo,
+  Consolas, monospace; font-size: 0.78em; color: var(--muted); }
+.uid.missing { color: #c0392b; font-family: inherit; }
 /* The Chinese twin — stacked on its own line under the English, tight + muted. */
 .zh { display: block; color: var(--muted); font-size: 0.85em; line-height: 1.3; margin-top: 1px; }
-/* Optional short title on an entry — bold, on its own line above the summary. */
+/* AN ENTRY'S FIELDS, ONE STYLE EACH (user decision 2026-10-25: "unify
+   field names and styles and SSOT them"). The Planning Room's names, and
+   the Termination Planner's since that day:
+   - title   — a bold name line, on its own line above the summary;
+   - summary — the entry's main line, body text (`.li-text`, no rule);
+   - detail  — the long text: muted, smaller, its line breaks kept. A plan
+     row's opens from its line (`details.li-detail`); a planner card's is
+     always shown (`.field-detail`). */
 .li-title { display: block; font-weight: 600; }
 .li-title > .zh { font-weight: 400; }
+.li-detail, .field-detail { white-space: pre-wrap; color: var(--muted);
+  font-size: 0.88rem; margin: 0.15rem 0 0.3rem; }
+/* A plan row out of the grid is a flex row: its detail drops onto a
+   full-width line of its own below the entry line. */
+section li > .li-detail { order: 5; flex-basis: 100%; }
 li.hidden { display: none; }
 
 /* Hover highlight on an entry row. Painted with a SPREAD SHADOW in the same
@@ -443,14 +503,42 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
    mode, unseen, so switching to editing moves nothing — the plan pages'
    .add-item-row rule, for any `.add-item`. */
 .container:not(.editing) .add-item { visibility: hidden; }
-/* A VALUE SHOWN DECRYPTED (user decision 2026-10-24): a grey ground marks
-   text that is stored encrypted and was opened in this tab, so encrypted
-   values stand apart from plain ones wherever the two mix — the Intentions
-   and Tasks pages now, any page that shows opened values later. Plain
-   colour only: it marks, it does not hide. */
-.sealed-value { background: color-mix(in srgb, var(--muted) 20%,
-  transparent); border-radius: 3px; padding: 0 0.15em;
-  -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+/* AN ENCRYPTED VALUE IS MARKED 「LIKE THIS」 (user decisions 2026-10-25:
+   a mark on every value that is stored encrypted, so encrypted and plain
+   stand apart — first a grey ground, then corner brackets, chosen on a test
+   page). One rule for every page that loads docs.css: the Termination
+   Planner (where it is a feature of the app, lists.js), the Intentions page,
+   and the plan pages, which mark any decrypted value the same way.
+   NOTHING MOVES (user decision: "make sure UI text doesn't move"): the
+   value keeps a fixed slot each side — empty or written, editing or not —
+   and the brackets are drawn INSIDE it, as two corner lines rather than a
+   font's 「」, so their size and place never depend on the font. Brackets
+   that hung in no space were tried first and ran into a neighbouring value
+   (09:30「Gather). An empty field draws none. Accent colour, lighter than
+   the text: it marks, it does not hide. */
+.sealed-value { position: relative; padding: 0 0.42em; }
+.sealed-value:not(:empty)::before, .sealed-value:not(:empty)::after {
+  content: ""; position: absolute; width: 0.24em; height: 0.42em;
+  border: 0 solid var(--accent); opacity: 0.75; pointer-events: none; }
+.sealed-value:not(:empty)::before { left: 0.06em; top: 0.18em;
+  border-left-width: 1.5px; border-top-width: 1.5px; }
+.sealed-value:not(:empty)::after { right: 0.06em; bottom: 0.18em;
+  border-right-width: 1.5px; border-bottom-width: 1.5px; }
+/* A block value (a note, a description) is as wide as its text, so the
+   closing corner lands after the text, not at the far edge. */
+div.sealed-value { width: fit-content; max-width: 100%;
+  box-sizing: border-box; }
+/* LOCKED, A VALUE IS A BAR 「▒▒▒」 (user decision 2026-10-25: the
+   structure shows, the content is swapped for a placeholder): a hatched
+   bar of ONE width whatever the text, so it hints at nothing — a longer
+   one for a block value (a note). Inside the same brackets as the text it
+   stands for, so unlocking only swaps the bar for the words. */
+.sealed-bar { display: inline-block; width: 3.5em; height: 0.75em;
+  vertical-align: -0.05em; border-radius: 2px;
+  background: repeating-linear-gradient(135deg,
+    color-mix(in srgb, var(--muted) 45%, transparent) 0 2px,
+    transparent 2px 5px); }
+div.sealed-value > .sealed-bar { width: 9em; }
 /* The floating panel (edit-mode.js `openPopover`): over the page, never in
    it, so opening it pushes nothing. */
 .edit-popover { position: absolute; z-index: 50; min-width: 16rem;
@@ -508,15 +596,18 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
    field keeps the font, size and place of the text it stands for; only a
    faint dashed outline says it can be typed in, solid accent while it is.
    An empty one shows its name, greyed. A many-line field is a block that
-   grows with its text. */
+   grows with its text — no margin or height of its own, so arming the
+   text it stands for moves nothing. */
 .inline-edit { outline: 1px dashed color-mix(in srgb, var(--muted) 55%,
   transparent); outline-offset: 2px; border-radius: 2px; cursor: text; }
-span.inline-edit { display: inline-block; min-width: 3ch; }
+/* Inline as the text it stands for, so arming it moves nothing (an
+   inline-block sat 2px higher in a stage heading); only an EMPTY field
+   becomes a block with room to click its placeholder. */
+span.inline-edit:empty { display: inline-block; min-width: 3ch; }
 .inline-edit:focus { outline: 1px solid var(--accent); }
 .inline-edit:empty::before { content: attr(data-placeholder);
   color: var(--muted); opacity: 0.7; }
-.inline-edit-multi { display: block; white-space: pre-wrap;
-  min-height: 1.4em; margin-top: 0.3rem; }
+.inline-edit-multi { display: block; white-space: pre-wrap; }
 #save-btn {
   padding: 0.5rem 1rem;
   border-radius: 6px;

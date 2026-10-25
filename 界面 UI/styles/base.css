@@ -214,12 +214,21 @@ body {
    Here, not in docs.css, because the planner's part pages load only this
    sheet. The buttons share one size; each keeps its own colours (Save to
    file stays the filled one). */
-.controls-row { display: flex; flex-wrap: wrap; gap: 0.5rem;
-  align-items: center; margin: 0.3rem 0 0.9rem; }
+/* ITS HEIGHT IS RESERVED (user decision 2026-10-25: "reserve space for
+   the controls line in advance so UI doesn't move"): the lock's buttons
+   are drawn by script, so the row used to open at 0px and grow to a
+   button's height a moment later, pushing the page down 36px. It is one
+   button tall from the start — the buttons' own height, from the same
+   numbers (font size × line height + padding + border). */
+.controls-row { --control-h: calc(0.9rem * 1.5 + 0.6rem + 2px);
+  display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+  min-height: var(--control-h); margin: 0.3rem 0 0.9rem; }
 .controls-row [hidden] { display: none !important; }
 .controls-row > button, .controls-row .lock-controls > button,
 .controls-row #edit-btn, .controls-row #save-btn {
-  font: inherit; font-size: 0.9rem; padding: 0.3rem 0.9rem;
+  font: inherit; font-size: 0.9rem; line-height: 1.5;
+  padding: 0.3rem 0.9rem; box-sizing: border-box;
+  min-height: var(--control-h);
   border-radius: 4px; cursor: pointer; margin: 0; }
 .controls-row > button.button, .controls-row .lock-controls > button,
 .controls-row #edit-btn {
