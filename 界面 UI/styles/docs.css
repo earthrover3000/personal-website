@@ -178,18 +178,23 @@ section li[data-entry] > .li-detail { grid-area: 3 / 3 / 4 / -1; }
   Consolas, monospace; font-size: 0.78em; color: var(--muted); }
 .uid.missing { color: #c0392b; font-family: inherit; }
 /* The Chinese twin — stacked on its own line under the English, tight + muted. */
-.zh { display: block; color: var(--muted); font-size: 0.85em; line-height: 1.3; margin-top: 1px; }
+.zh { display: block; margin-top: 1px; }
 /* AN ENTRY'S FIELDS, ONE STYLE EACH (user decision 2026-10-25: "unify
    field names and styles and SSOT them"). The Planning Room's names, and
    the Termination Planner's since that day:
    - title   — a bold name line, on its own line above the summary;
    - summary — the entry's main line, body text (`.li-text`, no rule);
-   - detail  — the long text: muted, smaller, its line breaks kept. A plan
-     row's opens from its line (`details.li-detail`); a planner card's is
-     always shown (`.field-detail`). */
+   - detail  — the long text, its line breaks kept. A plan row's opens
+     from its line (`details.li-detail`, 0.88rem); a planner card's is
+     always shown under its line, and so reads as a card's SECOND LINE
+     does — the Chinese twin's type, one rule for both (user, same day:
+     "the same font as 列出并记录…"). */
+.zh, .field-detail { color: var(--muted); font-size: 0.85em;
+  line-height: 1.3; }
 .li-title { display: block; font-weight: 600; }
 .li-title > .zh { font-weight: 400; }
-.li-detail, .field-detail { white-space: pre-wrap; color: var(--muted);
+.field-detail { white-space: pre-wrap; margin: 1px 0 0; }
+.li-detail { white-space: pre-wrap; color: var(--muted);
   font-size: 0.88rem; margin: 0.15rem 0 0.3rem; }
 /* A plan row out of the grid is a flex row: its detail drops onto a
    full-width line of its own below the entry line. */
