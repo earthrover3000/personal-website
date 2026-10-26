@@ -917,7 +917,15 @@
   // probably not in — a bare formula where the sender saw a full card.
   var LS_MODE = "molecule-lookup:mode";        // "custom" | "collections" | "reference"
   var LS_TAB = "molecule-lookup:tab:";         // + the set, so each remembers its own
-  var storedMode = readUrlQuery() ? "custom" : (lsGet(LS_MODE) || "custom");
+  //
+  // Unless the link also names the collection the molecule came from:
+  // ?q=<name>&collection=<id> is the one ?q= that ARRIVES in Collections,
+  // because there the cache certainly has it — the link is a row of that
+  // collection, and the arrow keys should carry on through its neighbours.
+  // readUrlCollection() vouches for both halves before this trusts it.
+  var urlColl = readUrlCollection();
+  var storedMode = urlColl ? "collections"
+    : readUrlQuery() ? "custom" : (lsGet(LS_MODE) || "custom");
   if (storedMode !== "collections" && storedMode !== "reference") storedMode = "custom";
   var collectionsMode = (storedMode === "collections");
   function isOnline() { return !collectionsMode; }
@@ -1074,6 +1082,42 @@
   function readUrlQuery() {
     try { return (new URLSearchParams(window.location.search)).get("q") || ""; }
     catch (e) { return ""; }
+  }
+
+  // ?collection=<id> beside a ?q=: open that collection with the molecule's
+  // row under the cursor (2026-10-26, for a page whose every molecule links
+  // into a collection of its own here — unnamed, as this comment ships to
+  // every tier and the collection does not). Returns { index, q }
+  // only when BOTH check out — a collection with that `id` exists in this
+  // tier's copy, and one of its rows is the ?q= (by name, case-insensitively,
+  // the same value the row's data-q carries). Anything less returns null and
+  // the link behaves as a plain ?q=: an id this tier does not ship (the
+  // collection was cut from the public copy) or a molecule the collection
+  // does not list would otherwise land in Collections, offline, on a cache
+  // that has never heard of it — the bare formula the ?q= rule exists to
+  // prevent.
+  //
+  // `id` is optional on a collection; only one that is linked to needs one.
+  function readUrlCollection() {
+    var id = "", q = readUrlQuery();
+    try {
+      id = (new URLSearchParams(window.location.search)).get("collection");
+    } catch (e) { id = ""; }
+    if (!id || !q || typeof COLLECTIONS === "undefined") return null;
+    // Trusted only against COLLECTIONS, never echoed into the page.
+    var want = q.toLowerCase();
+    for (var i = 0; i < COLLECTIONS.length; i++) {
+      var c = COLLECTIONS[i];
+      if (c.id !== id || c.reference) continue;
+      for (var g = 0; g < c.groups.length; g++) {
+        for (var r = 0; r < c.groups[g].items.length; r++) {
+          if (String(c.groups[g].items[r][0]).toLowerCase() === want) {
+            return { index: i, q: q };
+          }
+        }
+      }
+    }
+    return null;
   }
 
   // The readable name that goes WITH a structural ?q=, so a followed link
@@ -4740,7 +4784,14 @@
   // their own, since they are different lists that happen to share a strip.
   // Clamped against the live set: a stored index outlives the collection it
   // pointed at whenever one is removed from collections.js.
+  // A ?collection= link names its tab outright, and is remembered like a
+  // click on that tab would be: the link put you there, so that is where you
+  // were.
   var collIndex = (function () {
+    if (urlColl && panelSet === "collections") {
+      lsSet(LS_TAB + panelSet, String(urlColl.index));
+      return urlColl.index;
+    }
     var n = +(lsGet(LS_TAB + panelSet) || 0);
     return (isNaN(n) || n < 0 || n >= activeSets().length) ? 0 : n;
   })();
@@ -4953,6 +5004,27 @@
     // about; the medicine is still one click away, on its own link.
     loadCollRow(collRowEl);
   }
+
+  // A ?collection= link lands with its row under the cursor, so the first
+  // arrow press moves to a NEIGHBOUR rather than to the top of the list.
+  // Here, after `var collRowEl` — the declaration resets it, and the panel was
+  // opened above with skipReload, so the molecule itself still comes from the
+  // ?q= restore path: this only marks the row it already is. Matched on data-q
+  // the way readUrlCollection matched the item, so the two cannot disagree.
+  // A function, so its loop variables stay out of this long shared scope.
+  function markUrlCollRow() {
+    var want = urlColl.q.toLowerCase();
+    var rows = document.querySelectorAll("#collections-body .mol-coll-row");
+    for (var i = 0; i < rows.length; i++) {
+      var q = (rows[i].getAttribute("data-q") || "").toLowerCase();
+      if (q === want && !collRowEl) collRowEl = rows[i];
+    }
+    for (var j = 0; j < rows.length; j++) {
+      rows[j].classList.toggle("is-cursor", rows[j] === collRowEl);
+    }
+    if (collRowEl) collRowEl.scrollIntoView({ block: "nearest" });
+  }
+  if (urlColl) markUrlCollRow();
 
   document.addEventListener("keydown", function (ev) {
     if (ev.key === "Escape" && collOpen()) { setPanelMode("custom"); return; }

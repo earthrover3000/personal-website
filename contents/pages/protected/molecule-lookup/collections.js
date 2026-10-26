@@ -634,5 +634,147 @@ var COLLECTIONS = [
     ]
    }
   ]
+ },
+ {
+  "ceiling": "protected",
+  "id": "food-intolerances",
+  "tab": "Food intolerances",
+  "title": "The molecules behind my food intolerances",
+  "note": "Every individual chemical named on the Food intolerances page, under the class it sits in there. Each row says where it sits and which foods carry it.",
+  "single": true,
+  "groups": [
+   {
+    "title": "Stimulants & entactogens — dopaminergic, noradrenergic or serotonergic substances",
+    "items": [
+     [
+      "caffeine",
+      "Methylxanthines: Coffee, Tea, Cacao, Acai"
+     ],
+     [
+      "theobromine",
+      "Methylxanthines: Coffee, Tea, Cacao, Acai"
+     ],
+     [
+      "L-tyrosine",
+      "Tyrosine: All mammals’ milk, cheese, yoghurt and cream; Tyrosine › L-Tyrosine (supplement)"
+     ],
+     [
+      "Nicotine",
+      "Nicotine: Tobacco, Vapes"
+     ],
+     [
+      "harmane",
+      "β-Carbolines: Tobacco, Cacao, especially raw"
+     ],
+     [
+      "norharmane",
+      "β-Carbolines: Tobacco, Cacao, especially raw"
+     ],
+     [
+      "D-glucose",
+      "High-glycaemic carbohydrates: Sugary foods and drinks"
+     ],
+     [
+      "sucrose",
+      "High-glycaemic carbohydrates: Sugary foods and drinks"
+     ]
+    ]
+   },
+   {
+    "title": "Opioids — via μ-opioid receptors",
+    "items": [
+     [
+      "beta-casomorphin-7",
+      "β-Casomorphins: Cow’s milk, cheese, yoghurt and cream, Dairy products from other mammals"
+     ]
+    ]
+   },
+   {
+    "title": "Depressants",
+    "items": [
+     [
+      "L-glutamic acid",
+      "Glutamate: MSG, Miso"
+     ],
+     [
+      "monosodium glutamate",
+      "Glutamate › MSG"
+     ],
+     [
+      "Melatonin",
+      "Melatonin: Cherry"
+     ],
+     [
+      "5-hydroxytryptophan",
+      "Melatonin › 5-HTP (supplement)"
+     ],
+     [
+      "Ethanol",
+      "Ethanol: Alcoholic drinks, Alcoholic dishes and desserts"
+     ]
+    ]
+   },
+   {
+    "title": "Cannabinoids — via CB1 receptors",
+    "items": [
+     [
+      "dronabinol",
+      "Phytocannabinoids: Cannabis, Edibles, Cannabis vapes"
+     ]
+    ]
+   },
+   {
+    "title": "Algogens, chemical — via TRPV1 receptors",
+    "items": [
+     [
+      "Capsaicin",
+      "Capsaicin: Chilli, Paprika"
+     ],
+     [
+      "Piperine",
+      "Piperine: Pepper"
+     ],
+     [
+      "allicin",
+      "Thiosulfinates: Raw onion, Raw garlic"
+     ],
+     [
+      "Propanethial S-oxide",
+      "Propanethial S-oxide: Raw onion"
+     ]
+    ]
+   },
+   {
+    "title": "Algogens, chemical — via TRPA1 and other channels",
+    "items": [
+     [
+      "hydroxy-alpha-sanshool",
+      "Hydroxy-α-sanshool: Szechuan pepper"
+     ],
+     [
+      "Allyl isothiocyanate",
+      "Allyl isothiocyanate: Mustard, Wasabi"
+     ]
+    ]
+   },
+   {
+    "title": "Algogens, physical — via mechanical injury",
+    "items": [
+     [
+      "calcium oxalate",
+      "Microscopic spiky crystals: Spinach"
+     ]
+    ]
+   },
+   {
+    "title": "Pruritogens — via histamine receptors",
+    "items": [
+     [
+      "Histamine",
+      "Histamine: Smoked salmon"
+     ]
+    ]
+   }
+  ]
  }
 ];
