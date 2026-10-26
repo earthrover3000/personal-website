@@ -20,9 +20,25 @@
 
     .container { counter-reset: fi-section; }
 
+    /* A section's description, under its title: grey italic like the
+       entries' own descriptions, and kept visible when page-nav.js folds
+       the section, so a closed section still says what it offers. */
+    .container > p.section-desc {
+      color: var(--muted);
+      font-style: italic;
+      font-size: 0.9rem;
+      margin: -0.3rem 0 0.8rem;
+    }
+    .container > p.section-desc.pn-collapsed {
+      visibility: visible !important;
+      height: auto !important;
+      overflow: visible !important;
+      margin: -0.3rem 0 0.8rem !important;
+    }
+
     /* Prose paragraphs (the foreword) get a blank line between them; the
        Fold all line under the key keeps its own spacing. */
-    .container > p:not(.fold-all) {
+    .container > p:not(.fold-all):not(.section-desc) {
       margin: 0 0 0.9em;
     }
 
@@ -121,6 +137,23 @@
     }
     .container .t-group { color: var(--t-group); }
     .container .t-food { color: var(--text); }
+    /* A "see" pointer: a quiet link back to the entry it names. */
+    .container a.see { color: inherit; text-decoration: none; }
+    .container a.see:hover,
+    .container a.see:focus-visible {
+      text-decoration: underline dotted;
+      text-underline-offset: 0.15em;
+    }
+    /* The entry a pointer jumped to, flashed so the eye finds it. */
+    @keyframes fi-flash {
+      from { background: light-dark(rgb(255 220 120 / 0.55),
+                                    rgb(255 210 90 / 0.25)); }
+      to { background: transparent; }
+    }
+    .container li.flash > span:first-child {
+      animation: fi-flash 1.6s ease-out;
+      border-radius: 4px;
+    }
     /* A placeholder, not a class: the substance is not known. */
     .container .t-unknown { color: var(--muted); }
     /* A bracketed note after an ingredient or a food: "esp. root". */
@@ -235,10 +268,17 @@ such as overstimulation or sedation. To capture the full range of
 these adverse effects, the list includes substances I ingest as well
 as those I inhale passively when people nearby smoke or vape them,
 such as tobacco and cannabis.</p>
-<p>Below they’re listed in two sections: by <strong>pharmacological/chemical
-class</strong>, to show how each substance affects me, and by <strong>food type</strong>,
-for practical use when cooking or eating out. The active ingredients
-are my best hypotheses and may be reclassified as I learn more.</p>
+<p>Below they’re listed in two sections. The first, by
+<strong>pharmacological/chemical class</strong>, explains how each substance
+affects me and helps identify intolerances not listed. The second, by
+<strong>food type</strong>, is a quick reference for cooking, shopping and eating
+out. Each food links back to why it’s listed, and so whether related
+foods are likely to be fine. Please pay special attention to the
+counterexamples (shaded in grey): they can look related, but they’re
+exceptions I can consume.</p>
+<p>The active ingredients are my best hypotheses, and this page is a
+work in progress, so some items may be missing. If in doubt, please
+ask me.</p>
 <h2>Key</h2>
 <dl class="key">
 <dt><span class="glyph st-no"></span><span class="t-food">Tea</span></dt><dd>I can’t consume</dd>
@@ -253,67 +293,68 @@ are my best hypotheses and may be reclassified as I learn more.</p>
 </dl>
 <p class="fold-all"><button type="button" class="fold-toggle">Fold all</button> · <label class="supp-toggle"><input type="checkbox" checked> Include supplements</label></p>
 <h2>Intolerances by pharmacological/chemical class</h2>
+<p class="section-desc">How each substance affects me, and what else might</p>
 <ul class="topics">
-<li class="st-no" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances"><span><span class="t-pharm">Stimulants &amp; entactogens</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">dopaminergic, noradrenergic or serotonergic substances</span><ul class="topics">
-<li class="st-no" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Methylxanthines (incl. caffeine, theobromine) / via adenosine receptors"><span><span class="t-class">Methylxanthines</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=caffeine&amp;collection=food-intolerances" target="_blank" rel="noopener">caffeine</a>, <a class="t-chem" href="../molecule-lookup/?q=theobromine&amp;collection=food-intolerances" target="_blank" rel="noopener">theobromine</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via adenosine receptors</span><ul class="topics">
+<li class="st-no" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances"><span><span class="t-pharm">Stimulants &amp; entactogens</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">dopaminergic, noradrenergic or serotonergic substances</span><ul class="topics">
+<li class="st-no" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Methylxanthines (incl. caffeine, theobromine) / via adenosine receptors"><span><span class="t-class">Methylxanthines</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=caffeine&amp;collection=food-intolerances" target="_blank" rel="noopener">caffeine</a>, <a class="t-chem" href="../molecule-lookup/?q=theobromine&amp;collection=food-intolerances" target="_blank" rel="noopener">theobromine</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via adenosine receptors</span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Coffee</span> <span class="note">(<em>Coffea arabica</em>)</span></span></li>
 <li class="st-no"><span><span class="t-food">Tea</span> <span class="note">(<em>Camellia sinensis</em>)</span></span></li>
 <li class="st-no"><span><span class="t-food">Cacao</span> <span class="note">(<em>Theobroma cacao</em>)</span></span></li>
 <li class="st-no"><span><span class="t-food">Acai</span> <span class="note">(<em>Euterpe oleracea</em>)</span></span></li>
 </ul>
 </li>
-<li class="st-no" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Tyrosine (in dairy) / via catecholamine synthesis"><span><a class="t-chem" href="../molecule-lookup/?q=L-tyrosine&amp;collection=food-intolerances" target="_blank" rel="noopener">Tyrosine</a> <span class="note">(in <span class="t-group">dairy</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via catecholamine synthesis</span><ul class="topics">
+<li class="st-no" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-tyrosine-in-dairy-via-catecholamine-synthesis" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Tyrosine (in dairy) / via catecholamine synthesis"><span><a class="t-chem" href="../molecule-lookup/?q=L-tyrosine&amp;collection=food-intolerances" target="_blank" rel="noopener">Tyrosine</a> <span class="note">(in <span class="t-group">dairy</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via catecholamine synthesis</span><ul class="topics">
 <li class="st-no"><span><span class="t-group">All mammals’ milk, cheese, yoghurt and cream</span></span></li>
 <li class="st-ok contrast"><span><span class="t-group">Plant-based dairy alternatives</span></span></li>
 <li class="st-no supp"><span><a class="t-chem" href="../molecule-lookup/?q=L-tyrosine&amp;collection=food-intolerances" target="_blank" rel="noopener">L-Tyrosine</a> <span class="tag">supplement</span></span></li>
 </ul>
 </li>
-<li class="st-no" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Nicotine / via nicotinic receptors"><span><a class="t-chem" href="../molecule-lookup/?q=Nicotine&amp;collection=food-intolerances" target="_blank" rel="noopener">Nicotine</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via nicotinic receptors</span><ul class="topics">
+<li class="st-no" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-nicotine-via-nicotinic-receptors" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Nicotine / via nicotinic receptors"><span><a class="t-chem" href="../molecule-lookup/?q=Nicotine&amp;collection=food-intolerances" target="_blank" rel="noopener">Nicotine</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via nicotinic receptors</span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Tobacco</span> <span class="note">(<em>Nicotiana tabacum</em>)</span></span></li>
 <li class="st-no"><span><span class="t-food">Vapes</span></span></li>
 </ul>
 </li>
-<li class="st-no" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › β-Carbolines (incl. harman, norharman) / via MAO inhibition"><span><span class="t-class">β-Carbolines</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=harmane&amp;collection=food-intolerances" target="_blank" rel="noopener">harman</a>, <a class="t-chem" href="../molecule-lookup/?q=norharmane&amp;collection=food-intolerances" target="_blank" rel="noopener">norharman</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via MAO inhibition</span><ul class="topics">
+<li class="st-no" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-carbolines-incl-harman-norharman-via-mao-inhibition" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › β-Carbolines (incl. harman, norharman) / via MAO inhibition"><span><span class="t-class">β-Carbolines</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=harmane&amp;collection=food-intolerances" target="_blank" rel="noopener">harman</a>, <a class="t-chem" href="../molecule-lookup/?q=norharmane&amp;collection=food-intolerances" target="_blank" rel="noopener">norharman</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via MAO inhibition</span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Tobacco</span> <span class="note">(<em>Nicotiana tabacum</em>)</span></span></li>
 <li class="st-no"><span><span class="t-food">Cacao</span> <span class="note">(<em>Theobroma cacao</em>)</span> <span class="note">(esp. raw)</span></span></li>
 </ul>
 </li>
-<li class="st-some" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › High-glycaemic carbohydrates (incl. glucose, sucrose)"><span><span class="t-class">High-glycaemic carbohydrates</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=D-glucose&amp;collection=food-intolerances" target="_blank" rel="noopener">glucose</a>, <a class="t-chem" href="../molecule-lookup/?q=sucrose&amp;collection=food-intolerances" target="_blank" rel="noopener">sucrose</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-some" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-high-glycaemic-carbohydrates-incl-glucose-sucrose" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › High-glycaemic carbohydrates (incl. glucose, sucrose)"><span><span class="t-class">High-glycaemic carbohydrates</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=D-glucose&amp;collection=food-intolerances" target="_blank" rel="noopener">glucose</a>, <a class="t-chem" href="../molecule-lookup/?q=sucrose&amp;collection=food-intolerances" target="_blank" rel="noopener">sucrose</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-some"><span><span class="t-group">Sugary foods and drinks</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no" data-key="Opioids / via μ-opioid receptors"><span><span class="t-pharm">Opioids</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via μ-opioid receptors</span><ul class="topics">
-<li class="st-no" data-key="Opioids / via μ-opioid receptors › β-Casomorphins (incl. BCM-7) (from A1-type β-casein in cow’s dairy)"><span><span class="t-class">β-Casomorphins</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=beta-casomorphin-7&amp;collection=food-intolerances" target="_blank" rel="noopener">BCM-7</a>)</span> <span class="note">(from <span class="t-class">A1-type β-casein</span> in <span class="t-group">cow’s dairy</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-opioids-via-opioid-receptors" data-key="Opioids / via μ-opioid receptors"><span><span class="t-pharm">Opioids</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via μ-opioid receptors</span><ul class="topics">
+<li class="st-no" id="e-opioids-via-opioid-receptors-casomorphins-incl-bcm-7-from-a1-type-casein-in-cow-s-dairy" data-key="Opioids / via μ-opioid receptors › β-Casomorphins (incl. BCM-7) (from A1-type β-casein in cow’s dairy)"><span><span class="t-class">β-Casomorphins</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=beta-casomorphin-7&amp;collection=food-intolerances" target="_blank" rel="noopener">BCM-7</a>)</span> <span class="note">(from <span class="t-class">A1-type β-casein</span> in <span class="t-group">cow’s dairy</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-group">Cow’s milk, cheese, yoghurt and cream</span></span></li>
 <li class="st-ok contrast"><span><span class="t-food">Cow’s butter</span> <span class="note">(low casein content)</span></span></li>
 <li class="st-ok contrast"><span><span class="t-food">Clarified cow’s butter/Ghee</span></span></li>
 <li class="st-no"><span><span class="t-group">Dairy products from other mammals</span> <span class="note">(see Stimulants)</span></span></li>
 </ul>
 </li>
-<li class="st-ok contrast" data-key="Opioids / via μ-opioid receptors › Whey protein"><span><span class="t-class">Whey protein</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-ok contrast" id="e-opioids-via-opioid-receptors-whey-protein" data-key="Opioids / via μ-opioid receptors › Whey protein"><span><span class="t-class">Whey protein</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-ok contrast"><span><span class="t-food">Whey isolate</span></span></li>
 </ul>
 </li>
-<li class="st-ok contrast" data-key="Opioids / via μ-opioid receptors › Milk fat"><span><span class="t-class">Milk fat</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-ok contrast" id="e-opioids-via-opioid-receptors-milk-fat" data-key="Opioids / via μ-opioid receptors › Milk fat"><span><span class="t-class">Milk fat</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-ok contrast"><span><span class="t-food">Butter</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no" data-key="Depressants"><span><span class="t-pharm">Depressants</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no" data-key="Depressants › Glutamate"><span><a class="t-chem" href="../molecule-lookup/?q=L-glutamic%20acid&amp;collection=food-intolerances" target="_blank" rel="noopener">Glutamate</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-depressants" data-key="Depressants"><span><span class="t-pharm">Depressants</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-depressants-glutamate" data-key="Depressants › Glutamate"><span><a class="t-chem" href="../molecule-lookup/?q=L-glutamic%20acid&amp;collection=food-intolerances" target="_blank" rel="noopener">Glutamate</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><a class="t-chem" href="../molecule-lookup/?q=monosodium%20glutamate&amp;collection=food-intolerances" target="_blank" rel="noopener">MSG</a></span></li>
 <li class="st-no"><span><span class="t-food">Miso</span></span></li>
 </ul>
 </li>
-<li class="st-no" data-key="Depressants › Melatonin"><span><a class="t-chem" href="../molecule-lookup/?q=Melatonin&amp;collection=food-intolerances" target="_blank" rel="noopener">Melatonin</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-depressants-melatonin" data-key="Depressants › Melatonin"><span><a class="t-chem" href="../molecule-lookup/?q=Melatonin&amp;collection=food-intolerances" target="_blank" rel="noopener">Melatonin</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Cherry</span> <span class="note">(<em>Prunus avium</em>)</span></span></li>
 <li class="st-no supp"><span><a class="t-chem" href="../molecule-lookup/?q=5-hydroxytryptophan&amp;collection=food-intolerances" target="_blank" rel="noopener">5-HTP</a> <span class="tag">supplement</span></span></li>
 </ul>
 </li>
-<li class="st-no" data-key="Depressants › Ethanol"><span><a class="t-chem" href="../molecule-lookup/?q=Ethanol&amp;collection=food-intolerances" target="_blank" rel="noopener">Ethanol</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-depressants-ethanol" data-key="Depressants › Ethanol"><span><a class="t-chem" href="../molecule-lookup/?q=Ethanol&amp;collection=food-intolerances" target="_blank" rel="noopener">Ethanol</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-group">Alcoholic drinks</span></span></li>
 <li class="st-no"><span><span class="t-group">Alcoholic dishes and desserts</span></span></li>
 <li class="st-ok contrast"><span><span class="t-food">Alcohol in dish that’s cooked off</span></span></li>
@@ -321,8 +362,8 @@ are my best hypotheses and may be reclassified as I learn more.</p>
 </li>
 </ul>
 </li>
-<li class="st-no" data-key="Cannabinoids / via CB1 receptors"><span><span class="t-pharm">Cannabinoids</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via CB1 receptors</span><ul class="topics">
-<li class="st-no" data-key="Cannabinoids / via CB1 receptors › Phytocannabinoids (incl. Δ9-THC)"><span><span class="t-class">Phytocannabinoids</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=dronabinol&amp;collection=food-intolerances" target="_blank" rel="noopener">Δ9-THC</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-cannabinoids-via-cb1-receptors" data-key="Cannabinoids / via CB1 receptors"><span><span class="t-pharm">Cannabinoids</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via CB1 receptors</span><ul class="topics">
+<li class="st-no" id="e-cannabinoids-via-cb1-receptors-phytocannabinoids-incl-9-thc" data-key="Cannabinoids / via CB1 receptors › Phytocannabinoids (incl. Δ9-THC)"><span><span class="t-class">Phytocannabinoids</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=dronabinol&amp;collection=food-intolerances" target="_blank" rel="noopener">Δ9-THC</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Cannabis</span> <span class="note">(<em>Cannabis sativa</em>)</span></span></li>
 <li class="st-no"><span><span class="t-food">Edibles</span></span></li>
 <li class="st-no"><span><span class="t-food">Cannabis vapes</span></span></li>
@@ -330,17 +371,17 @@ are my best hypotheses and may be reclassified as I learn more.</p>
 </li>
 </ul>
 </li>
-<li class="st-no" data-key="Allergens"><span><span class="t-pharm">Allergens</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no" data-key="Allergens › Tropomyosins (in crustaceans)"><span><span class="t-class">Tropomyosins</span> <span class="nth">I</span> <span class="note">(in <span class="t-group">crustaceans</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-allergens" data-key="Allergens"><span><span class="t-pharm">Allergens</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-allergens-tropomyosins-in-crustaceans" data-key="Allergens › Tropomyosins (in crustaceans)"><span><span class="t-class">Tropomyosins</span> <span class="nth">I</span> <span class="note">(in <span class="t-group">crustaceans</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Prawn</span> <span class="note">(Penaeidae)</span></span></li>
 <li class="st-no"><span><span class="t-food">Crab</span> <span class="note">(Brachyura)</span></span></li>
 </ul>
 </li>
-<li class="st-ok contrast" data-key="Allergens › Tropomyosins (in bivalves)"><span><span class="t-class">Tropomyosins</span> <span class="nth">II</span> <span class="note">(in <span class="t-group">bivalves</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-ok contrast" id="e-allergens-tropomyosins-in-bivalves" data-key="Allergens › Tropomyosins (in bivalves)"><span><span class="t-class">Tropomyosins</span> <span class="nth">II</span> <span class="note">(in <span class="t-group">bivalves</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-ok contrast"><span><span class="t-food">Scallops</span> <span class="note">(Pectinidae)</span></span></li>
 </ul>
 </li>
-<li class="st-no" data-key="Allergens › Unknown substances"><span><span class="t-unknown">Unknown substances</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-allergens-unknown-substances" data-key="Allergens › Unknown substances"><span><span class="t-unknown">Unknown substances</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Razor clams</span> <span class="note">(<em>Sinonovacula constricta</em>)</span></span></li>
 <li class="st-no"><span><span class="t-food">Chinese long aubergines</span> <span class="note">(<em>Solanum melongena</em>)</span> <span class="note">(esp. skin-on)</span></span></li>
 <li class="st-ok contrast"><span><span class="t-food">European aubergines</span> <span class="note">(<em>Solanum melongena</em>)</span></span></li>
@@ -349,56 +390,56 @@ are my best hypotheses and may be reclassified as I learn more.</p>
 </li>
 </ul>
 </li>
-<li class="st-no" data-key="Algogens, chemical / via TRPV1 receptors"><span><span class="t-pharm">Algogens <span class="note">(pain-causing agents)</span>, chemical</span> <span class="nth">I</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via TRPV1 receptors</span><ul class="topics">
-<li class="st-no" data-key="Algogens, chemical / via TRPV1 receptors › Capsaicin"><span><a class="t-chem" href="../molecule-lookup/?q=Capsaicin&amp;collection=food-intolerances" target="_blank" rel="noopener">Capsaicin</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-algogens-chemical-via-trpv1-receptors" data-key="Algogens, chemical / via TRPV1 receptors"><span><span class="t-pharm">Algogens <span class="note">(pain-causing agents)</span>, chemical</span> <span class="nth">I</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via TRPV1 receptors</span><ul class="topics">
+<li class="st-no" id="e-algogens-chemical-via-trpv1-receptors-capsaicin" data-key="Algogens, chemical / via TRPV1 receptors › Capsaicin"><span><a class="t-chem" href="../molecule-lookup/?q=Capsaicin&amp;collection=food-intolerances" target="_blank" rel="noopener">Capsaicin</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Chilli</span> <span class="note">(<em>Capsicum annuum</em>)</span></span></li>
 <li class="st-some"><span><span class="t-food">Paprika</span></span></li>
 </ul>
 </li>
-<li class="st-no" data-key="Algogens, chemical / via TRPV1 receptors › Piperine"><span><a class="t-chem" href="../molecule-lookup/?q=Piperine&amp;collection=food-intolerances" target="_blank" rel="noopener">Piperine</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-algogens-chemical-via-trpv1-receptors-piperine" data-key="Algogens, chemical / via TRPV1 receptors › Piperine"><span><a class="t-chem" href="../molecule-lookup/?q=Piperine&amp;collection=food-intolerances" target="_blank" rel="noopener">Piperine</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-some"><span><span class="t-food">Pepper</span> <span class="note">(<em>Piper nigrum</em>)</span></span></li>
 </ul>
 </li>
-<li class="st-no" data-key="Algogens, chemical / via TRPV1 receptors › Thiosulfinates (incl. allicin)"><span><span class="t-class">Thiosulfinates</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=allicin&amp;collection=food-intolerances" target="_blank" rel="noopener">allicin</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-algogens-chemical-via-trpv1-receptors-thiosulfinates-incl-allicin" data-key="Algogens, chemical / via TRPV1 receptors › Thiosulfinates (incl. allicin)"><span><span class="t-class">Thiosulfinates</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=allicin&amp;collection=food-intolerances" target="_blank" rel="noopener">allicin</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Raw onion</span> <span class="note">(<em>Allium cepa</em>)</span></span></li>
 <li class="st-ok contrast"><span><span class="t-food">Fully cooked onion</span> <span class="note">(<em>Allium cepa</em>)</span></span></li>
 <li class="st-no"><span><span class="t-food">Raw garlic</span> <span class="note">(<em>Allium sativum</em>)</span></span></li>
 <li class="st-ok contrast"><span><span class="t-food">Fully cooked garlic</span> <span class="note">(<em>Allium sativum</em>)</span></span></li>
 </ul>
 </li>
-<li class="st-no" data-key="Algogens, chemical / via TRPV1 receptors › Propanethial S-oxide"><span><a class="t-chem" href="../molecule-lookup/?q=Propanethial%20S-oxide&amp;collection=food-intolerances" target="_blank" rel="noopener">Propanethial S-oxide</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-algogens-chemical-via-trpv1-receptors-propanethial-s-oxide" data-key="Algogens, chemical / via TRPV1 receptors › Propanethial S-oxide"><span><a class="t-chem" href="../molecule-lookup/?q=Propanethial%20S-oxide&amp;collection=food-intolerances" target="_blank" rel="noopener">Propanethial S-oxide</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Raw onion</span> <span class="note">(<em>Allium cepa</em>)</span></span></li>
 <li class="st-ok contrast"><span><span class="t-food">Fully cooked onion</span> <span class="note">(<em>Allium cepa</em>)</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-ok contrast" data-key="Algogens, chemical / via TRPA1 and other channels"><span><span class="t-pharm">Algogens, chemical</span> <span class="nth">II</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via TRPA1 and other channels</span><ul class="topics">
-<li class="st-ok contrast" data-key="Algogens, chemical / via TRPA1 and other channels › Hydroxy-α-sanshool"><span><a class="t-chem" href="../molecule-lookup/?q=hydroxy-alpha-sanshool&amp;collection=food-intolerances" target="_blank" rel="noopener">Hydroxy-α-sanshool</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-ok contrast" id="e-algogens-chemical-via-trpa1-and-other-channels" data-key="Algogens, chemical / via TRPA1 and other channels"><span><span class="t-pharm">Algogens, chemical</span> <span class="nth">II</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via TRPA1 and other channels</span><ul class="topics">
+<li class="st-ok contrast" id="e-algogens-chemical-via-trpa1-and-other-channels-hydroxy-sanshool" data-key="Algogens, chemical / via TRPA1 and other channels › Hydroxy-α-sanshool"><span><a class="t-chem" href="../molecule-lookup/?q=hydroxy-alpha-sanshool&amp;collection=food-intolerances" target="_blank" rel="noopener">Hydroxy-α-sanshool</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-ok contrast"><span><span class="t-food">Szechuan pepper</span> <span class="note">(<em>Zanthoxylum bungeanum</em>)</span></span></li>
 </ul>
 </li>
-<li class="st-ok contrast" data-key="Algogens, chemical / via TRPA1 and other channels › Allyl isothiocyanate"><span><a class="t-chem" href="../molecule-lookup/?q=Allyl%20isothiocyanate&amp;collection=food-intolerances" target="_blank" rel="noopener">Allyl isothiocyanate</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-ok contrast" id="e-algogens-chemical-via-trpa1-and-other-channels-allyl-isothiocyanate" data-key="Algogens, chemical / via TRPA1 and other channels › Allyl isothiocyanate"><span><a class="t-chem" href="../molecule-lookup/?q=Allyl%20isothiocyanate&amp;collection=food-intolerances" target="_blank" rel="noopener">Allyl isothiocyanate</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-ok contrast"><span><span class="t-food">Mustard</span> <span class="note">(<em>Brassica juncea</em>)</span></span></li>
 <li class="st-ok contrast"><span><span class="t-food">Wasabi</span> <span class="note">(<em>Eutrema japonicum</em>)</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no" data-key="Algogens, physical / via tiny scratches and punctures in the mouth and throat"><span><span class="t-pharm">Algogens, physical</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via tiny scratches and punctures in the mouth and throat</span><ul class="topics">
-<li class="st-no" data-key="Algogens, physical / via tiny scratches and punctures in the mouth and throat › Microscopic spiky crystals (incl. calcium oxalate)"><span><span class="t-class">Microscopic spiky crystals</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=calcium%20oxalate&amp;collection=food-intolerances" target="_blank" rel="noopener">calcium oxalate</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-algogens-physical-via-tiny-scratches-and-punctures-in-the-mouth-and-throat" data-key="Algogens, physical / via tiny scratches and punctures in the mouth and throat"><span><span class="t-pharm">Algogens, physical</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via tiny scratches and punctures in the mouth and throat</span><ul class="topics">
+<li class="st-no" id="e-algogens-physical-via-tiny-scratches-and-punctures-in-the-mouth-and-throat-microscopic-spiky-crystals-incl-calcium-oxalate" data-key="Algogens, physical / via tiny scratches and punctures in the mouth and throat › Microscopic spiky crystals (incl. calcium oxalate)"><span><span class="t-class">Microscopic spiky crystals</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=calcium%20oxalate&amp;collection=food-intolerances" target="_blank" rel="noopener">calcium oxalate</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Spinach</span> <span class="note">(<em>Spinacia oleracea</em>)</span></span></li>
 </ul>
 </li>
-<li class="st-no" data-key="Algogens, physical / via tiny scratches and punctures in the mouth and throat › Small bones (in fish)"><span><span class="t-class">Small bones</span> <span class="note">(in <span class="t-group">fish</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-algogens-physical-via-tiny-scratches-and-punctures-in-the-mouth-and-throat-small-bones-in-fish" data-key="Algogens, physical / via tiny scratches and punctures in the mouth and throat › Small bones (in fish)"><span><span class="t-class">Small bones</span> <span class="note">(in <span class="t-group">fish</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Sardines</span> <span class="note">(<em>Sardina pilchardus</em>)</span></span></li>
 <li class="st-no"><span><span class="t-food">Anchovies</span> <span class="note">(<em>Engraulis encrasicolus</em>)</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no" data-key="Algogens / via mouth ulcers"><span><span class="t-pharm">Algogens</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via mouth ulcers</span><ul class="topics">
-<li class="st-no" data-key="Algogens / via mouth ulcers › Unknown substances"><span><span class="t-unknown">Unknown substances</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-algogens-via-mouth-ulcers" data-key="Algogens / via mouth ulcers"><span><span class="t-pharm">Algogens</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via mouth ulcers</span><ul class="topics">
+<li class="st-no" id="e-algogens-via-mouth-ulcers-unknown-substances" data-key="Algogens / via mouth ulcers › Unknown substances"><span><span class="t-unknown">Unknown substances</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Sesame oil</span></span></li>
 <li class="st-no"><span><span class="t-food">Chocolate</span></span></li>
 <li class="st-no"><span><span class="t-food">Walnut</span> <span class="note">(<em>Juglans regia</em>)</span></span></li>
@@ -406,8 +447,8 @@ are my best hypotheses and may be reclassified as I learn more.</p>
 </li>
 </ul>
 </li>
-<li class="st-no" data-key="Pruritogens / via histamine receptors"><span><span class="t-pharm">Pruritogens <span class="note">(itch-causing agents)</span></span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via histamine receptors</span><ul class="topics">
-<li class="st-no" data-key="Pruritogens / via histamine receptors › Histamine"><span><a class="t-chem" href="../molecule-lookup/?q=Histamine&amp;collection=food-intolerances" target="_blank" rel="noopener">Histamine</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" id="e-pruritogens-via-histamine-receptors" data-key="Pruritogens / via histamine receptors"><span><span class="t-pharm">Pruritogens <span class="note">(itch-causing agents)</span></span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via histamine receptors</span><ul class="topics">
+<li class="st-no" id="e-pruritogens-via-histamine-receptors-histamine" data-key="Pruritogens / via histamine receptors › Histamine"><span><a class="t-chem" href="../molecule-lookup/?q=Histamine&amp;collection=food-intolerances" target="_blank" rel="noopener">Histamine</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Smoked salmon</span> <span class="note">(<em>Salmo salar</em>)</span></span></li>
 </ul>
 </li>
@@ -415,110 +456,111 @@ are my best hypotheses and may be reclassified as I learn more.</p>
 </li>
 </ul>
 <h2>Intolerances by food type</h2>
+<p class="section-desc">A quick reference; each food links to why it’s listed</p>
 <h3>Commonly declared ingredients</h3>
 <ul class="topics">
 <li class="plain"><span><span class="t-group">Crustaceans</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Prawn</span> <span class="note">(see Allergens › Tropomyosins I)</span></span></li>
-<li class="st-no"><span><span class="t-food">Crab</span> <span class="note">(see Allergens › Tropomyosins I)</span></span></li>
+<li class="st-no"><span><span class="t-food">Prawn</span> <span class="note">(see <a class="see" href="#e-allergens-tropomyosins-in-crustaceans">Allergens › Tropomyosins I</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Crab</span> <span class="note">(see <a class="see" href="#e-allergens-tropomyosins-in-crustaceans">Allergens › Tropomyosins I</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Fish</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Sardines</span> <span class="note">(see Algogens, physical › Small bones)</span></span></li>
-<li class="st-no"><span><span class="t-food">Anchovies</span> <span class="note">(see Algogens, physical › Small bones)</span></span></li>
-<li class="st-no"><span><span class="t-food">Smoked salmon</span> <span class="note">(see Pruritogens › Histamine)</span></span></li>
+<li class="st-no"><span><span class="t-food">Sardines</span> <span class="note">(see <a class="see" href="#e-algogens-physical-via-tiny-scratches-and-punctures-in-the-mouth-and-throat-small-bones-in-fish">Algogens, physical › Small bones</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Anchovies</span> <span class="note">(see <a class="see" href="#e-algogens-physical-via-tiny-scratches-and-punctures-in-the-mouth-and-throat-small-bones-in-fish">Algogens, physical › Small bones</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Smoked salmon</span> <span class="note">(see <a class="see" href="#e-pruritogens-via-histamine-receptors-histamine">Pruritogens › Histamine</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Soybeans</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Miso</span> <span class="note">(see Depressants › Glutamate)</span></span></li>
+<li class="st-no"><span><span class="t-food">Miso</span> <span class="note">(see <a class="see" href="#e-depressants-glutamate">Depressants › Glutamate</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Dairy</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-group">All mammals’ milk, cheese, yoghurt and cream</span> <span class="note">(see Stimulants &amp; entactogens › Tyrosine)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-group">Plant-based dairy alternatives</span> <span class="note">(see Stimulants &amp; entactogens › Tyrosine)</span></span></li>
-<li class="st-no"><span><span class="t-group">Cow’s milk, cheese, yoghurt and cream</span> <span class="note">(see Opioids › β-Casomorphins)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Cow’s butter</span> <span class="note">(see Opioids › β-Casomorphins)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Clarified cow’s butter/Ghee</span> <span class="note">(see Opioids › β-Casomorphins)</span></span></li>
-<li class="st-no"><span><span class="t-group">Dairy products from other mammals</span> <span class="note">(see Opioids › β-Casomorphins)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Whey isolate</span> <span class="note">(see Opioids › Whey protein)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Butter</span> <span class="note">(see Opioids › Milk fat)</span></span></li>
+<li class="st-no"><span><span class="t-group">All mammals’ milk, cheese, yoghurt and cream</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-tyrosine-in-dairy-via-catecholamine-synthesis">Stimulants &amp; entactogens › Tyrosine</a>)</span></span></li>
+<li class="st-ok contrast"><span><span class="t-group">Plant-based dairy alternatives</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-tyrosine-in-dairy-via-catecholamine-synthesis">Stimulants &amp; entactogens › Tyrosine</a>)</span></span></li>
+<li class="st-no"><span><span class="t-group">Cow’s milk, cheese, yoghurt and cream</span> <span class="note">(see <a class="see" href="#e-opioids-via-opioid-receptors-casomorphins-incl-bcm-7-from-a1-type-casein-in-cow-s-dairy">Opioids › β-Casomorphins</a>)</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Cow’s butter</span> <span class="note">(see <a class="see" href="#e-opioids-via-opioid-receptors-casomorphins-incl-bcm-7-from-a1-type-casein-in-cow-s-dairy">Opioids › β-Casomorphins</a>)</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Clarified cow’s butter/Ghee</span> <span class="note">(see <a class="see" href="#e-opioids-via-opioid-receptors-casomorphins-incl-bcm-7-from-a1-type-casein-in-cow-s-dairy">Opioids › β-Casomorphins</a>)</span></span></li>
+<li class="st-no"><span><span class="t-group">Dairy products from other mammals</span> <span class="note">(see <a class="see" href="#e-opioids-via-opioid-receptors-casomorphins-incl-bcm-7-from-a1-type-casein-in-cow-s-dairy">Opioids › β-Casomorphins</a>)</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Whey isolate</span> <span class="note">(see <a class="see" href="#e-opioids-via-opioid-receptors-whey-protein">Opioids › Whey protein</a>)</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Butter</span> <span class="note">(see <a class="see" href="#e-opioids-via-opioid-receptors-milk-fat">Opioids › Milk fat</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Nuts</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Walnut</span> <span class="note">(see Algogens)</span></span></li>
+<li class="st-no"><span><span class="t-food">Walnut</span> <span class="note">(see <a class="see" href="#e-algogens-via-mouth-ulcers">Algogens</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Sesame seeds</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Sesame oil</span> <span class="note">(see Algogens)</span></span></li>
+<li class="st-no"><span><span class="t-food">Sesame oil</span> <span class="note">(see <a class="see" href="#e-algogens-via-mouth-ulcers">Algogens</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Molluscs</span></span>
 <ul class="topics">
-<li class="st-ok contrast"><span><span class="t-food">Scallops</span> <span class="note">(see Allergens › Tropomyosins II)</span></span></li>
-<li class="st-no"><span><span class="t-food">Razor clams</span> <span class="note">(see Allergens)</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Scallops</span> <span class="note">(see <a class="see" href="#e-allergens-tropomyosins-in-bivalves">Allergens › Tropomyosins II</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Razor clams</span> <span class="note">(see <a class="see" href="#e-allergens">Allergens</a>)</span></span></li>
 </ul></li>
 </ul>
 <h3>Other food types</h3>
 <ul class="topics">
 <li class="plain"><span><span class="t-group">Caffeinated drinks</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Coffee</span> <span class="note">(see Stimulants &amp; entactogens › Methylxanthines)</span></span></li>
-<li class="st-no"><span><span class="t-food">Tea</span> <span class="note">(see Stimulants &amp; entactogens › Methylxanthines)</span></span></li>
+<li class="st-no"><span><span class="t-food">Coffee</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">Stimulants &amp; entactogens › Methylxanthines</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Tea</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">Stimulants &amp; entactogens › Methylxanthines</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Chocolate and cacao</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Cacao</span> <span class="note">(see Stimulants &amp; entactogens › Methylxanthines; Stimulants &amp; entactogens › β-Carbolines)</span></span></li>
-<li class="st-no"><span><span class="t-food">Chocolate</span> <span class="note">(see Algogens)</span></span></li>
+<li class="st-no"><span><span class="t-food">Cacao</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">Stimulants &amp; entactogens › Methylxanthines</a>; <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-carbolines-incl-harman-norharman-via-mao-inhibition">Stimulants &amp; entactogens › β-Carbolines</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Chocolate</span> <span class="note">(see <a class="see" href="#e-algogens-via-mouth-ulcers">Algogens</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Fruit</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Acai</span> <span class="note">(see Stimulants &amp; entactogens › Methylxanthines)</span></span></li>
-<li class="st-no"><span><span class="t-food">Cherry</span> <span class="note">(see Depressants › Melatonin)</span></span></li>
+<li class="st-no"><span><span class="t-food">Acai</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">Stimulants &amp; entactogens › Methylxanthines</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Cherry</span> <span class="note">(see <a class="see" href="#e-depressants-melatonin">Depressants › Melatonin</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Sugar</span></span>
 <ul class="topics">
-<li class="st-some"><span><span class="t-group">Sugary foods and drinks</span> <span class="note">(see Stimulants &amp; entactogens › High-glycaemic carbohydrates)</span></span></li>
+<li class="st-some"><span><span class="t-group">Sugary foods and drinks</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-high-glycaemic-carbohydrates-incl-glucose-sucrose">Stimulants &amp; entactogens › High-glycaemic carbohydrates</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Alcohol</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-group">Alcoholic drinks</span> <span class="note">(see Depressants › Ethanol)</span></span></li>
-<li class="st-no"><span><span class="t-group">Alcoholic dishes and desserts</span> <span class="note">(see Depressants › Ethanol)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Alcohol in dish that’s cooked off</span> <span class="note">(see Depressants › Ethanol)</span></span></li>
+<li class="st-no"><span><span class="t-group">Alcoholic drinks</span> <span class="note">(see <a class="see" href="#e-depressants-ethanol">Depressants › Ethanol</a>)</span></span></li>
+<li class="st-no"><span><span class="t-group">Alcoholic dishes and desserts</span> <span class="note">(see <a class="see" href="#e-depressants-ethanol">Depressants › Ethanol</a>)</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Alcohol in dish that’s cooked off</span> <span class="note">(see <a class="see" href="#e-depressants-ethanol">Depressants › Ethanol</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Spices and chillies</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Chilli</span> <span class="note">(see Algogens, chemical I › Capsaicin)</span></span></li>
-<li class="st-some"><span><span class="t-food">Paprika</span> <span class="note">(see Algogens, chemical I › Capsaicin)</span></span></li>
-<li class="st-some"><span><span class="t-food">Pepper</span> <span class="note">(see Algogens, chemical I › Piperine)</span></span></li>
+<li class="st-no"><span><span class="t-food">Chilli</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-receptors-capsaicin">Algogens, chemical I › Capsaicin</a>)</span></span></li>
+<li class="st-some"><span><span class="t-food">Paprika</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-receptors-capsaicin">Algogens, chemical I › Capsaicin</a>)</span></span></li>
+<li class="st-some"><span><span class="t-food">Pepper</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-receptors-piperine">Algogens, chemical I › Piperine</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Onion and garlic</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Raw onion</span> <span class="note">(see Algogens, chemical I › Thiosulfinates; Algogens, chemical I › Propanethial S-oxide)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Fully cooked onion</span> <span class="note">(see Algogens, chemical I › Thiosulfinates; Algogens, chemical I › Propanethial S-oxide)</span></span></li>
-<li class="st-no"><span><span class="t-food">Raw garlic</span> <span class="note">(see Algogens, chemical I › Thiosulfinates)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Fully cooked garlic</span> <span class="note">(see Algogens, chemical I › Thiosulfinates)</span></span></li>
+<li class="st-no"><span><span class="t-food">Raw onion</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-receptors-thiosulfinates-incl-allicin">Algogens, chemical I › Thiosulfinates</a>; <a class="see" href="#e-algogens-chemical-via-trpv1-receptors-propanethial-s-oxide">Algogens, chemical I › Propanethial S-oxide</a>)</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Fully cooked onion</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-receptors-thiosulfinates-incl-allicin">Algogens, chemical I › Thiosulfinates</a>; <a class="see" href="#e-algogens-chemical-via-trpv1-receptors-propanethial-s-oxide">Algogens, chemical I › Propanethial S-oxide</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Raw garlic</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-receptors-thiosulfinates-incl-allicin">Algogens, chemical I › Thiosulfinates</a>)</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Fully cooked garlic</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-receptors-thiosulfinates-incl-allicin">Algogens, chemical I › Thiosulfinates</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Vegetables</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Chinese long aubergines</span> <span class="note">(see Allergens)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">European aubergines</span> <span class="note">(see Allergens)</span></span></li>
-<li class="st-no"><span><span class="t-food">Spinach</span> <span class="note">(see Allergens; Algogens, physical › Microscopic spiky crystals)</span></span></li>
+<li class="st-no"><span><span class="t-food">Chinese long aubergines</span> <span class="note">(see <a class="see" href="#e-allergens">Allergens</a>)</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">European aubergines</span> <span class="note">(see <a class="see" href="#e-allergens">Allergens</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Spinach</span> <span class="note">(see <a class="see" href="#e-allergens">Allergens</a>; <a class="see" href="#e-algogens-physical-via-tiny-scratches-and-punctures-in-the-mouth-and-throat-microscopic-spiky-crystals-incl-calcium-oxalate">Algogens, physical › Microscopic spiky crystals</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Food additives</span></span>
 <ul class="topics">
-<li class="st-no"><span><a class="t-chem" href="../molecule-lookup/?q=monosodium%20glutamate&amp;collection=food-intolerances" target="_blank" rel="noopener">MSG</a> <span class="note">(see Depressants › Glutamate)</span></span></li>
+<li class="st-no"><span><a class="t-chem" href="../molecule-lookup/?q=monosodium%20glutamate&amp;collection=food-intolerances" target="_blank" rel="noopener">MSG</a> <span class="note">(see <a class="see" href="#e-depressants-glutamate">Depressants › Glutamate</a>)</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Tobacco and cannabis</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Tobacco</span> <span class="note">(see Stimulants &amp; entactogens › Nicotine; Stimulants &amp; entactogens › β-Carbolines)</span></span></li>
-<li class="st-no"><span><span class="t-food">Vapes</span> <span class="note">(see Stimulants &amp; entactogens › Nicotine)</span></span></li>
-<li class="st-no"><span><span class="t-food">Cannabis</span> <span class="note">(see Cannabinoids › Phytocannabinoids)</span></span></li>
-<li class="st-no"><span><span class="t-food">Edibles</span> <span class="note">(see Cannabinoids › Phytocannabinoids)</span></span></li>
-<li class="st-no"><span><span class="t-food">Cannabis vapes</span> <span class="note">(see Cannabinoids › Phytocannabinoids)</span></span></li>
+<li class="st-no"><span><span class="t-food">Tobacco</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-nicotine-via-nicotinic-receptors">Stimulants &amp; entactogens › Nicotine</a>; <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-carbolines-incl-harman-norharman-via-mao-inhibition">Stimulants &amp; entactogens › β-Carbolines</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Vapes</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-nicotine-via-nicotinic-receptors">Stimulants &amp; entactogens › Nicotine</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Cannabis</span> <span class="note">(see <a class="see" href="#e-cannabinoids-via-cb1-receptors-phytocannabinoids-incl-9-thc">Cannabinoids › Phytocannabinoids</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Edibles</span> <span class="note">(see <a class="see" href="#e-cannabinoids-via-cb1-receptors-phytocannabinoids-incl-9-thc">Cannabinoids › Phytocannabinoids</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Cannabis vapes</span> <span class="note">(see <a class="see" href="#e-cannabinoids-via-cb1-receptors-phytocannabinoids-incl-9-thc">Cannabinoids › Phytocannabinoids</a>)</span></span></li>
 </ul></li>
 <li class="plain supp"><span><span class="t-group">Supplements</span></span>
 <ul class="topics">
-<li class="st-no supp"><span><a class="t-chem" href="../molecule-lookup/?q=L-tyrosine&amp;collection=food-intolerances" target="_blank" rel="noopener">L-Tyrosine</a> <span class="tag">supplement</span> <span class="note">(see Stimulants &amp; entactogens › Tyrosine)</span></span></li>
-<li class="st-no supp"><span><a class="t-chem" href="../molecule-lookup/?q=5-hydroxytryptophan&amp;collection=food-intolerances" target="_blank" rel="noopener">5-HTP</a> <span class="tag">supplement</span> <span class="note">(see Depressants › Melatonin)</span></span></li>
+<li class="st-no supp"><span><a class="t-chem" href="../molecule-lookup/?q=L-tyrosine&amp;collection=food-intolerances" target="_blank" rel="noopener">L-Tyrosine</a> <span class="tag">supplement</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-tyrosine-in-dairy-via-catecholamine-synthesis">Stimulants &amp; entactogens › Tyrosine</a>)</span></span></li>
+<li class="st-no supp"><span><a class="t-chem" href="../molecule-lookup/?q=5-hydroxytryptophan&amp;collection=food-intolerances" target="_blank" rel="noopener">5-HTP</a> <span class="tag">supplement</span> <span class="note">(see <a class="see" href="#e-depressants-melatonin">Depressants › Melatonin</a>)</span></span></li>
 </ul></li>
 </ul>
 
@@ -526,14 +568,39 @@ are my best hypotheses and may be reclassified as I learn more.</p>
 <script>
   // The content arrives already marked up (render.py): each entry's
   // can-eat circle and each word's type colour, and the key. All that is
-  // left is to fold entries, and to open every section: the foreword,
-  // the key, the classification and the food types. page-nav.js
-  // collapses every section on DOMContentLoaded; its listener is
-  // registered after this one, so wait a tick, then open them.
+  // left is to fold entries, and to open the foreword and the key. The
+  // two lists start closed; their descriptions say what each offers.
+  // page-nav.js collapses every section on DOMContentLoaded; its listener
+  // is registered after this one, so wait a tick, then open them.
   // Folding an entry: its chevron, or a click on its name. Everything
   // starts open; a text selection is not a click. Folds are remembered
   // in this browser (localStorage), by each entry's data-key — its name
   // path — so a renamed entry simply comes back open.
+  // A "see" pointer in the food types jumps to its entry in the
+  // classification: open that section if it is closed, unfold the way
+  // to the entry (its own fold too, so its foods show), then scroll to it
+  // and flash it. The fold buttons are clicked, so folds are saved as if
+  // the reader had opened them.
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('.container a.see');
+    if (!a) return;
+    var el = document.getElementById(a.getAttribute('href').slice(1));
+    if (!el) return;
+    e.preventDefault();
+    var h = el.closest('.container > ul');
+    while (h && h.tagName !== 'H2') h = h.previousElementSibling;
+    if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
+    for (var li = el; li; li = li.parentElement.closest('li')) {
+      if (li.classList.contains('folded')) {
+        li.querySelector(':scope > span .fold').click();
+      }
+    }
+    el.scrollIntoView({ block: 'center' });
+    el.classList.remove('flash');
+    void el.offsetWidth;                 // restart the animation
+    el.classList.add('flash');
+  });
+
   // "Include supplements": on unless this browser said otherwise.
   (function () {
     var STORE = 'food-intolerances:supplements';
@@ -606,7 +673,7 @@ are my best hypotheses and may be reclassified as I learn more.</p>
     setTimeout(function () {
       document.querySelectorAll('.container > h2').forEach(function (h) {
         var t = h.textContent.trim();
-        if (/^(Foreword|Key|Intolerances by)/.test(t) &&
+        if (/^(Foreword|Key)$/.test(t) &&
             h.getAttribute('aria-expanded') !== 'true') h.click();
       });
     }, 0);
