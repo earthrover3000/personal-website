@@ -22,7 +22,7 @@
 
     /* Prose paragraphs (the foreword) get a blank line between them; the
        legend's own lines under the classification keep theirs tight. */
-    .container > p:not(.legend):not(.fold-all):not(.supp-toggle) {
+    .container > p:not(.legend):not(.fold-all) {
       margin: 0 0 0.9em;
     }
 
@@ -175,19 +175,24 @@
     .container li.folded > ul { display: none; }
     .container li[data-key] > span:first-child { cursor: pointer; }
     .container .fold-all { margin: 0.2rem 0 0; font-size: 0.85rem; }
-    .container .fold-all button {
-      border: 0;
+    /* Fold all / Unfold all: one button, drawn as one. */
+    .container .fold-toggle {
+      border: 1px solid var(--border);
+      border-radius: 4px;
       background: none;
-      padding: 0;
-      color: var(--muted);
+      padding: 0.05em 0.6em;
+      color: var(--text);
       cursor: pointer;
       font: inherit;
     }
-    .container .fold-all button:hover { color: var(--text); }
+    .container .fold-toggle:hover {
+      background: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.07));
+    }
 
-    /* SUPPLEMENTS: hidden until the reader ticks "Include supplements"
-       (the script adds .with-supp, and remembers the choice). */
-    .container:not(.with-supp) li.supp { display: none; }
+    /* SUPPLEMENTS: shown unless the reader unticks "Include supplements"
+       on the Fold all line (the script adds .no-supp, and remembers the
+       choice). Shown by default, so they are there even without script. */
+    .container.no-supp li.supp { display: none; }
     .container .tag {
       font-size: 0.75em;
       font-weight: 400;
@@ -197,8 +202,7 @@
       padding: 0 0.35em;
       vertical-align: 0.08em;
     }
-    .container .supp-toggle { margin: 0.2rem 0 0; font-size: 0.85rem; }
-    .container .supp-toggle label { color: var(--muted); cursor: pointer; }
+    .container .supp-toggle { color: var(--muted); cursor: pointer; }
 
     .container .legend .t-pharm,
     .container .legend .t-class,
@@ -227,8 +231,7 @@ for practical use when cooking or eating out. The active ingredients
 are my best hypotheses and may be reclassified as I learn more.</p>
 <h2>Intolerances by pharmacological/chemical class</h2>
 <p class="legend"><span class="glyph st-ok"></span>I can consume · <span class="glyph st-some"></span>only a small amount · <span class="glyph st-no"></span>I can’t consume<br><span class="t-pharm">Pharmacological class</span> · <span class="t-class">Chemical/physical class</span> · <span class="t-chem">Individual chemical</span> · <span class="t-group">Food group</span> · <span class="t-food">Food item</span> · <span class="t-unknown">Unknown substance</span><br><span class="shade">Shaded</span>: a counterexample — related, but I don’t react to it</p>
-<p class="fold-all"><button type="button" data-fold="all">Fold all</button> · <button type="button" data-fold="none">Unfold all</button></p>
-<p class="supp-toggle"><label><input type="checkbox"> Include supplements</label></p>
+<p class="fold-all"><button type="button" class="fold-toggle">Fold all</button> · <label class="supp-toggle"><input type="checkbox" checked> Include supplements</label></p>
 <ul class="topics">
 <li class="st-no" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances"><span><span class="t-pharm">Stimulants &amp; entactogens</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">dopaminergic, noradrenergic or serotonergic substances</span><ul class="topics">
 <li class="st-no" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Methylxanthines (incl. caffeine, theobromine) / via adenosine receptors"><span><span class="t-class">Methylxanthines</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=caffeine&amp;collection=food-intolerances" target="_blank" rel="noopener">caffeine</a>, <a class="t-chem" href="../molecule-lookup/?q=theobromine&amp;collection=food-intolerances" target="_blank" rel="noopener">theobromine</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via adenosine receptors</span><ul class="topics">
@@ -510,7 +513,7 @@ are my best hypotheses and may be reclassified as I learn more.</p>
   // starts open; a text selection is not a click. Folds are remembered
   // in this browser (localStorage), by each entry's data-key — its name
   // path — so a renamed entry simply comes back open.
-  // "Include supplements": off unless this browser said otherwise.
+  // "Include supplements": on unless this browser said otherwise.
   (function () {
     var STORE = 'food-intolerances:supplements';
     var box = document.querySelector('.container .supp-toggle input');
@@ -518,9 +521,9 @@ are my best hypotheses and may be reclassified as I learn more.</p>
     if (!box) return;
     function apply(on) {
       box.checked = on;
-      root.classList.toggle('with-supp', on);
+      root.classList.toggle('no-supp', !on);
     }
-    try { apply(localStorage.getItem(STORE) === '1'); } catch (e) {}
+    try { apply(localStorage.getItem(STORE) !== '0'); } catch (e) {}
     box.addEventListener('change', function () {
       apply(box.checked);
       try { localStorage.setItem(STORE, box.checked ? '1' : '0'); }
@@ -536,7 +539,19 @@ are my best hypotheses and may be reclassified as I learn more.</p>
       btn.setAttribute('aria-expanded', String(!folded));
       btn.setAttribute('aria-label', folded ? 'Unfold' : 'Fold');
     }
+    // One button for both: "Fold all" while anything is open, "Unfold
+    // all" once everything is folded.
+    var toggle = document.querySelector('.container .fold-toggle');
+    function anyOpen() {
+      return Array.prototype.some.call(foldables, function (li) {
+        return !li.classList.contains('folded');
+      });
+    }
+    function label() {
+      if (toggle) toggle.textContent = anyOpen() ? 'Fold all' : 'Unfold all';
+    }
     function save() {
+      label();
       var keys = [];
       foldables.forEach(function (li) {
         if (li.classList.contains('folded')) keys.push(li.dataset.key);
@@ -550,10 +565,10 @@ are my best hypotheses and may be reclassified as I learn more.</p>
     foldables.forEach(function (li) {
       if (saved.indexOf(li.dataset.key) >= 0) set(li, true);
     });
+    label();
     document.addEventListener('click', function (e) {
-      var all = e.target.closest('.container .fold-all button');
-      if (all) {
-        var fold = all.dataset.fold === 'all';
+      if (e.target.closest('.container .fold-toggle')) {
+        var fold = anyOpen();
         foldables.forEach(function (li) { set(li, fold); });
         save();
         return;
