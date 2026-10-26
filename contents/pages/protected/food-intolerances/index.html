@@ -21,8 +21,8 @@
     .container { counter-reset: fi-section; }
 
     /* Prose paragraphs (the foreword) get a blank line between them; the
-       legend's own lines under the classification keep theirs tight. */
-    .container > p:not(.legend):not(.fold-all) {
+       Fold all line under the key keeps its own spacing. */
+    .container > p:not(.fold-all) {
       margin: 0 0 0.9em;
     }
 
@@ -142,13 +142,13 @@
        to show where the line falls. A neutral band behind the label, not
        a colour: colour is the word's type. */
     .container li.contrast > span:first-child,
-    .container .legend .shade {
+    .container .shade {
       background: light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.09));
       border-radius: 4px;
       padding: 0.05em 0.4em;
       margin-left: -0.4em;
     }
-    .container .legend .shade { margin-left: 0; }
+    .container .key .shade { margin-left: 0; }
 
     /* FOLDING. The first two levels carry a chevron after the name;
        a folded entry hides the list under it. Drawn, not typed. */
@@ -204,12 +204,22 @@
     }
     .container .supp-toggle { color: var(--muted); cursor: pointer; }
 
-    .container .legend .t-pharm,
-    .container .legend .t-class,
-    .container .legend .t-chem,
-    .container .legend .t-group,
-    .container .legend .t-food,
-    .container .legend .t-unknown { font-weight: 600; }
+    /* THE KEY: a real example per row, drawn as in the list, and its
+       meaning beside it. Bold only where the list is bold (the top
+       level), so the key shows weight the way the page uses it. */
+    .container .key {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      column-gap: 1.2em;
+      row-gap: 0.35em;
+      align-items: baseline;
+      margin: 0.2rem 0 0.7rem;
+      font-size: 0.92rem;
+    }
+    .container .key dt,
+    .container .key dd { margin: 0; font-weight: 400; }
+    .container .key .key-top { font-weight: 600; }
+    .container .key .desc { display: inline; }
   </style>
 </head>
 <body>
@@ -229,9 +239,20 @@ such as tobacco and cannabis.</p>
 class</strong>, to show how each substance affects me, and by <strong>food type</strong>,
 for practical use when cooking or eating out. The active ingredients
 are my best hypotheses and may be reclassified as I learn more.</p>
-<h2>Intolerances by pharmacological/chemical class</h2>
-<p class="legend"><span class="glyph st-ok"></span>I can consume · <span class="glyph st-some"></span>only a small amount · <span class="glyph st-no"></span>I can’t consume<br><span class="t-pharm">Pharmacological class</span> · <span class="t-class">Chemical/physical class</span> · <span class="t-chem">Individual chemical</span> · <span class="t-group">Food group</span> · <span class="t-food">Food item</span> · <span class="t-unknown">Unknown substance</span><br><span class="shade">Shaded</span>: a counterexample — related, but I don’t react to it</p>
+<h2>Key</h2>
+<dl class="key">
+<dt><span class="glyph st-no"></span><span class="t-food">Tea</span></dt><dd>I can’t consume</dd>
+<dt><span class="glyph st-some"></span><span class="t-food">Pepper</span></dt><dd>Only a small amount</dd>
+<dt><span class="glyph st-ok"></span><span class="shade"><span class="t-food">Butter</span></span></dt><dd>A related counterexample: I can consume</dd>
+<dt><span class="t-pharm key-top">Opioids</span></dt><dd>Pharmacological class</dd>
+<dt><span class="t-class">Small bones</span></dt><dd>Chemical/physical class</dd>
+<dt><a class="t-chem" href="../molecule-lookup/?q=monosodium%20glutamate&amp;collection=food-intolerances" target="_blank" rel="noopener">MSG</a></dt><dd>Individual chemical (links to Molecule Lookup)</dd>
+<dt><span class="t-group">Alcoholic drinks</span></dt><dd>Food group</dd>
+<dt><span class="t-food">Tea</span></dt><dd>Food item</dd>
+<dt><span class="desc">via mouth ulcers</span></dt><dd>How it acts in the body</dd>
+</dl>
 <p class="fold-all"><button type="button" class="fold-toggle">Fold all</button> · <label class="supp-toggle"><input type="checkbox" checked> Include supplements</label></p>
+<h2>Intolerances by pharmacological/chemical class</h2>
 <ul class="topics">
 <li class="st-no" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances"><span><span class="t-pharm">Stimulants &amp; entactogens</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">dopaminergic, noradrenergic or serotonergic substances</span><ul class="topics">
 <li class="st-no" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Methylxanthines (incl. caffeine, theobromine) / via adenosine receptors"><span><span class="t-class">Methylxanthines</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=caffeine&amp;collection=food-intolerances" target="_blank" rel="noopener">caffeine</a>, <a class="t-chem" href="../molecule-lookup/?q=theobromine&amp;collection=food-intolerances" target="_blank" rel="noopener">theobromine</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via adenosine receptors</span><ul class="topics">
@@ -505,8 +526,8 @@ are my best hypotheses and may be reclassified as I learn more.</p>
 <script>
   // The content arrives already marked up (render.py): each entry's
   // can-eat circle and each word's type colour, and the key. All that is
-  // left is to fold entries, and to open the three sections: the
-  // foreword, the classification and the food types. page-nav.js
+  // left is to fold entries, and to open every section: the foreword,
+  // the key, the classification and the food types. page-nav.js
   // collapses every section on DOMContentLoaded; its listener is
   // registered after this one, so wait a tick, then open them.
   // Folding an entry: its chevron, or a click on its name. Everything
@@ -585,7 +606,7 @@ are my best hypotheses and may be reclassified as I learn more.</p>
     setTimeout(function () {
       document.querySelectorAll('.container > h2').forEach(function (h) {
         var t = h.textContent.trim();
-        if (/^(Foreword|Intolerances by)/.test(t) &&
+        if (/^(Foreword|Key|Intolerances by)/.test(t) &&
             h.getAttribute('aria-expanded') !== 'true') h.click();
       });
     }, 0);
