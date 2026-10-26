@@ -11,187 +11,12 @@
   <link rel="stylesheet" href="../../../../界面 UI/styles/base.css">
   <script src="../../../../界面 UI/page-widgets/page-nav.js" defer></script>
   <style>
-    /* The content is the data vault's personal-info/food-intolerances.md,
-       splatted in via <h1>Food intolerances<!--CATS-START--><span class="page-cats"><a class="page-cat" href="../category-matrix/" title="Personal" aria-label="Personal">👤</a><a class="page-cat" href="../category-matrix/" title="Practical" aria-label="Practical">🪪</a><a class="page-cat" href="../category-matrix/" title="Chemistry" aria-label="Chemistry">⚗️</a><a class="page-cat" href="../category-matrix/" title="Pharmacology" aria-label="Pharmacology">💊</a></span><!--CATS-END--></h1>
-<ul class="topics">
-<li>Algogens = causing pain</li>
-<li>Pruritogens = causing itchiness</li>
-</ul>
-<h2>Foreword</h2>
-<p>I don’t have philosophical food restrictions. However, I have a large number of neurodivergence-related food intolerances. Please find below my food intolerances classified in pharmacological/chemical class (for better understanding) and food type class (for logistics of cooking &amp; eating out). All chemical active ingredients are hypothesised, subject to reclassification and modification in the future.</p>
-<h2>Pharmacological/chemical class</h2>
-<ul class="topics">
-<li>
-<p>Stimulants (incl. entactogens)</p>
-<ul class="topics">
-<li>Methylxanthines (incl. caffeine)
-<ul class="topics">
-<li>Coffee</li>
-<li>Tea</li>
-<li>Cacao</li>
-<li>Acai</li>
-</ul>
-</li>
-<li>Tyrosine from dairy
-<ul class="topics">
-<li>All mammals’ milk, cheese, yoghurt and cream</li>
-<li>(Plant-based dairy alternatives)</li>
-</ul>
-</li>
-<li>Other MAOIs
-<ul class="topics">
-<li>Tobacco</li>
-<li>Cacao, especially raw</li>
-</ul>
-</li>
-<li>Simple sugars</li>
-</ul>
-</li>
-<li>
-<p>Opioids</p>
-<ul class="topics">
-<li>Bovine casomorphins from digestion of A1 β-casein
-<ul class="topics">
-<li>Cow’s milk, cheese, yoghurt and cream</li>
-<li>(Cow’s butter) (low casein content)</li>
-<li>(Clarified cow’s butter/Ghee)</li>
-<li>Dairy products from other mammals *See stimulants</li>
-</ul>
-</li>
-<li>(Whey protein)
-<ul class="topics">
-<li>(Whey isolate)</li>
-</ul>
-</li>
-<li>(Milk fats)
-<ul class="topics">
-<li>(Butter)</li>
-</ul>
-</li>
-</ul>
-</li>
-<li>
-<p>Depressants</p>
-<ul class="topics">
-<li>Glutamate
-<ul class="topics">
-<li>MSG</li>
-<li>Miso</li>
-</ul>
-</li>
-<li>Melatonin
-<ul class="topics">
-<li>Cherry</li>
-<li>5-HTP</li>
-</ul>
-</li>
-<li>Ethanol
-<ul class="topics">
-<li>Alcoholic drinks</li>
-<li>Alcoholic dishes</li>
-<li>Alcoholic desserts</li>
-<li>(Alcohol in dish that’s cooked off)</li>
-</ul>
-</li>
-</ul>
-</li>
-<li>
-<p>Allergens</p>
-<ul class="topics">
-<li>Tropomyosins in Crustaceans
-<ul class="topics">
-<li>Prawn</li>
-<li>Crab</li>
-</ul>
-</li>
-<li>Razor clams (<em>Sinonovacula constricta</em>)</li>
-<li>(Bivalves)
-<ul class="topics">
-<li>(Scallops)</li>
-</ul>
-</li>
-<li>Aubergines (esp. Chinese long skin-on aubergines)</li>
-<li>Spinach (esp. root)</li>
-</ul>
-</li>
-<li>
-<p>Algogens (chemical via TRPV1)</p>
-<ul class="topics">
-<li>Capsaicin
-<ul class="topics">
-<li>Chilli</li>
-<li>(Paprika) (small amount is okay)</li>
-</ul>
-</li>
-<li>Piperine
-<ul class="topics">
-<li>(Pepper) (small amount is okay)</li>
-</ul>
-</li>
-</ul>
-</li>
-<li>
-<p>(Algogens (chemical via TRPA1 or other channels))</p>
-<ul class="topics">
-<li>(Hydroxy-α-sanshool)
-<ul class="topics">
-<li>(Szechuan pepper) (small amount is okay)</li>
-</ul>
-</li>
-<li>(Allyl isothiocyanate)
-<ul class="topics">
-<li>(Mustard) (small amount is okay)</li>
-<li>(Wasabi) (small amount is okay)</li>
-</ul>
-</li>
-</ul>
-</li>
-<li>
-<p>Algogens (mechanical)</p>
-<ul class="topics">
-<li>Calcium oxalate crystals
-<ul class="topics">
-<li>Spinach</li>
-</ul>
-</li>
-<li>Fish bone in Fish
-<ul class="topics">
-<li>Sardines</li>
-<li>Anchovies</li>
-</ul>
-</li>
-</ul>
-</li>
-<li>
-<p>Algogens (causing mouth ulcer)</p>
-<ul class="topics">
-<li>Sesame oil</li>
-<li>Chocolate</li>
-<li>Walnut</li>
-</ul>
-</li>
-<li>
-<p>Algogens (sulphur compounds)</p>
-<ul class="topics">
-<li>Thiosulfinates &amp; propanethial S-oxide
-<ul class="topics">
-<li>Raw onion</li>
-</ul>
-</li>
-</ul>
-</li>
-<li>
-<p>Pruritogen (histamine)</p>
-<ul class="topics">
-<li>Smoked salmon</li>
-</ul>
-</li>
-</ul>
-<p>Algogens: TRPV1 agonists</p>
-<h2>Food type class</h2>
- (build.py _PAGE_BUILD_OVERRIDES). Its
-       lists nest three deep: class → active ingredient → food. Scoped to
-       .container > * so nothing leaks into shared components. */
+    /* The content is the data vault's personal-info/food-intolerances.yaml,
+       rendered by render.py into the CONTENT placeholder (build.py
+       _PAGE_BUILD_OVERRIDES; never spell the placeholder in a comment —
+       it is replaced wherever it stands). Its lists nest three deep:
+       class → active ingredient → food. Scoped to .container > * so
+       nothing leaks into shared components. */
 
     .container { counter-reset: fi-section; }
 
@@ -211,292 +36,246 @@
       padding-left: 1.4rem;
       margin: 0.15rem 0 0.4rem;
     }
-    .container > ul { padding-left: 0; }
+    .container > ul { padding-left: 1.4rem; }
     .container > ul li {
       position: relative;
       margin-bottom: 0.15rem;
       font-size: 0.92rem;
-    }
-    .container > ul ul li::before {
-      content: "\2022";
-      color: var(--muted);
-      position: absolute;
-      left: -1rem;
+      color: var(--text);
     }
 
-    /* Level 1: the pharmacological/chemical class. */
+    /* Level 1: the pharmacological class. */
     .container > ul > li {
       font-weight: 600;
       margin-top: 0.7rem;
     }
-    /* Level 2: the active ingredient. Text colour, not the accent: the
-       key says every entry is black (can't) or green (can). */
+    /* Level 2: the active ingredient. */
     .container > ul > li > ul > li {
       font-weight: 500;
-      color: var(--text);
       margin-top: 0.3rem;
     }
     /* Level 3: the foods themselves. */
     .container > ul > li > ul > li > ul > li {
       font-weight: 400;
-      color: var(--text);
       margin-top: 0;
     }
 
-    /* OK TO CONSUME. The source marks these by bracketing them —
-       "(Paprika)" — and the script below swaps that marker pair for this
-       colour. Two classes outrank the level rules above. */
-    .container { --ok: light-dark(#1d8a3a, #5cc97a); }
-    .container li.ok { color: var(--ok); }
-    .container .legend .ok { color: var(--ok); font-weight: 600; }
-    .container .legend .no { color: var(--text); font-weight: 600; }
+    /* CAN I EAT IT: a shape, never a colour (colour is the word's type,
+       below). render.py sets one class per entry from its `eat:`.
+       Plain text colour, so the page stays calm.
+       Drawn, not typed: the text font has ● and ○ but not ◐, whose
+       fallback font drew it a size larger. */
+    .container > ul li::before,
+    .container .glyph {
+      content: "";
+      box-sizing: border-box;
+      width: 0.62em;
+      height: 0.62em;
+      border: 0.09em solid var(--text);
+      border-radius: 50%;
+    }
+    .container > ul li::before {
+      position: absolute;
+      left: -1.1rem;
+      top: calc(0.5lh - 0.31em);
+    }
+    .container .glyph {
+      display: inline-block;
+      vertical-align: 0.02em;
+      margin-right: 0.3em;
+    }
+    .container .st-ok::before,
+    .container .glyph.st-ok { background: var(--text); }        /* ● */
+    .container .st-some::before,
+    .container .glyph.st-some {                                 /* ◐ */
+      background: linear-gradient(90deg, var(--text) 50%, transparent 50%);
+    }
+
+    /* WHAT KIND OF WORD. Substance types (chemical or physical) are the
+       class and the chemical; -gens and mechanisms are pharmacological.
+       A food item keeps the text colour: it is most of the list. */
+    .container {
+      --t-pharm: light-dark(#6b3fb8, #b99cf2);
+      --t-class: light-dark(#1f5fae, #7fb2f2);
+      --t-chem: light-dark(#0b7a73, #5fcdc4);
+      --t-group: light-dark(#8f5216, #dca168);
+    }
+    .container .t-pharm { color: var(--t-pharm); }
+    .container .t-class { color: var(--t-class); }
+    .container .t-chem { color: var(--t-chem); }
+    .container .t-group { color: var(--t-group); }
+    .container .t-food { color: var(--text); }
+    /* A bracketed note after an ingredient or a food: "esp. root". */
+    .container .note { color: var(--muted); font-weight: 400; }
+    /* A heading's mechanism, on its own grey line under the name. Italic
+       so it reads as the heading's caption, not as the first entry. Not
+       indented: aligned with the name is what ties it to the name. */
+    .container .desc {
+      display: block;
+      color: var(--muted);
+      font-weight: 400;
+      font-style: italic;
+      font-size: 0.85rem;
+    }
+
+    .container .legend .t-pharm,
+    .container .legend .t-class,
+    .container .legend .t-chem,
+    .container .legend .t-group,
+    .container .legend .t-food { font-weight: 600; }
   </style>
 </head>
 <body>
 <div class="container">
   <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../home/">Personal Website</a> <span class="sep">›</span> <a href="../">Protected Index</a> <span class="sep">›</span> <span aria-current="page">Food Intolerances</span></nav>
-<h1>Food intolerances</h1>
-<ul class="topics">
-<li>Algogens = causing pain</li>
-<li>Pruritogens = causing itchiness</li>
-</ul>
+<h1>Food intolerances<!--CATS-START--><span class="page-cats"><a class="page-cat" href="../category-matrix/" title="Personal" aria-label="Personal">👤</a><a class="page-cat" href="../category-matrix/" title="Practical" aria-label="Practical">🪪</a><a class="page-cat" href="../category-matrix/" title="Chemistry" aria-label="Chemistry">⚗️</a><a class="page-cat" href="../category-matrix/" title="Pharmacology" aria-label="Pharmacology">💊</a></span><!--CATS-END--></h1>
 <h2>Foreword</h2>
 <p>I don’t have philosophical food restrictions. However, I have a large number of neurodivergence-related food intolerances. Please find below my food intolerances classified in pharmacological/chemical class (for better understanding) and food type class (for logistics of cooking &amp; eating out). All chemical active ingredients are hypothesised, subject to reclassification and modification in the future.</p>
 <h2>Pharmacological/chemical class</h2>
+<p class="legend"><span class="glyph st-ok"></span>I can consume · <span class="glyph st-some"></span>only a small amount · <span class="glyph st-no"></span>I can’t consume<br><span class="t-pharm">Pharmacological class</span> · <span class="t-class">Chemical/physical class</span> · <span class="t-chem">Individual chemical</span> · <span class="t-group">Food group</span> · <span class="t-food">Food item</span></p>
 <ul class="topics">
-<li>
-<p>Stimulants (incl. entactogens)</p>
-<ul class="topics">
-<li>Methylxanthines (incl. caffeine)
-<ul class="topics">
-<li>Coffee</li>
-<li>Tea</li>
-<li>Cacao</li>
-<li>Acai</li>
+<li class="st-no"><span><span class="t-pharm">Stimulants &amp; entactogens</span><span class="desc">dopaminergic, noradrenergic or serotonergic substances</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-class">Methylxanthines</span> <span class="note">(incl. <span class="t-chem">caffeine</span>)</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-food">Coffee</span></span></li>
+<li class="st-no"><span><span class="t-food">Tea</span></span></li>
+<li class="st-no"><span><span class="t-food">Cacao</span></span></li>
+<li class="st-no"><span><span class="t-food">Acai</span></span></li>
 </ul>
 </li>
-<li>Tyrosine from dairy
-<ul class="topics">
-<li>All mammals’ milk, cheese, yoghurt and cream</li>
-<li>(Plant-based dairy alternatives)</li>
+<li class="st-no"><span><span class="t-chem">Tyrosine</span> from <span class="t-group">dairy</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-group">All mammals’ milk, cheese, yoghurt and cream</span></span></li>
+<li class="st-ok"><span><span class="t-group">Plant-based dairy alternatives</span></span></li>
 </ul>
 </li>
-<li>Other MAOIs
-<ul class="topics">
-<li>Tobacco</li>
-<li>Cacao, especially raw</li>
+<li class="st-no"><span>Other <span class="t-pharm">MAOIs</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-food">Tobacco</span></span></li>
+<li class="st-no"><span><span class="t-food">Cacao, especially raw</span></span></li>
 </ul>
 </li>
-<li>Simple sugars</li>
+<li class="st-no"><span><span class="t-class">Simple sugars</span></span></li>
 </ul>
 </li>
-<li>
-<p>Opioids</p>
-<ul class="topics">
-<li>Bovine casomorphins from digestion of A1 β-casein
-<ul class="topics">
-<li>Cow’s milk, cheese, yoghurt and cream</li>
-<li>(Cow’s butter) (low casein content)</li>
-<li>(Clarified cow’s butter/Ghee)</li>
-<li>Dairy products from other mammals *See stimulants</li>
+<li class="st-no"><span><span class="t-pharm">Opioids</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-class">Bovine casomorphins</span> from digestion of <span class="t-chem">A1 β-casein</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-group">Cow’s milk, cheese, yoghurt and cream</span></span></li>
+<li class="st-ok"><span><span class="t-food">Cow’s butter</span> <span class="note">(low casein content)</span></span></li>
+<li class="st-ok"><span><span class="t-food">Clarified cow’s butter/Ghee</span></span></li>
+<li class="st-no"><span><span class="t-group">Dairy products from other mammals</span> <span class="note">(see Stimulants)</span></span></li>
 </ul>
 </li>
-<li>(Whey protein)
-<ul class="topics">
-<li>(Whey isolate)</li>
+<li class="st-ok"><span><span class="t-class">Whey protein</span></span><ul class="topics">
+<li class="st-ok"><span><span class="t-food">Whey isolate</span></span></li>
 </ul>
 </li>
-<li>(Milk fats)
-<ul class="topics">
-<li>(Butter)</li>
+<li class="st-ok"><span><span class="t-class">Milk fats</span></span><ul class="topics">
+<li class="st-ok"><span><span class="t-food">Butter</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li>
-<p>Depressants</p>
-<ul class="topics">
-<li>Glutamate
-<ul class="topics">
-<li>MSG</li>
-<li>Miso</li>
+<li class="st-no"><span><span class="t-pharm">Depressants</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-chem">Glutamate</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-chem">MSG</span></span></li>
+<li class="st-no"><span><span class="t-food">Miso</span></span></li>
 </ul>
 </li>
-<li>Melatonin
-<ul class="topics">
-<li>Cherry</li>
-<li>5-HTP</li>
+<li class="st-no"><span><span class="t-chem">Melatonin</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-food">Cherry</span></span></li>
+<li class="st-no"><span><span class="t-chem">5-HTP</span></span></li>
 </ul>
 </li>
-<li>Ethanol
-<ul class="topics">
-<li>Alcoholic drinks</li>
-<li>Alcoholic dishes</li>
-<li>Alcoholic desserts</li>
-<li>(Alcohol in dish that’s cooked off)</li>
+<li class="st-no"><span><span class="t-chem">Ethanol</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-group">Alcoholic drinks</span></span></li>
+<li class="st-no"><span><span class="t-group">Alcoholic dishes and desserts</span></span></li>
+<li class="st-ok"><span><span class="t-food">Alcohol in dish that’s cooked off</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li>
-<p>Allergens</p>
-<ul class="topics">
-<li>Tropomyosins in Crustaceans
-<ul class="topics">
-<li>Prawn</li>
-<li>Crab</li>
+<li class="st-no"><span><span class="t-pharm">Allergens</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-class">Tropomyosins</span> in <span class="t-group">Crustaceans</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-food">Prawn</span></span></li>
+<li class="st-no"><span><span class="t-food">Crab</span></span></li>
 </ul>
 </li>
-<li>Razor clams (<em>Sinonovacula constricta</em>)</li>
-<li>(Bivalves)
-<ul class="topics">
-<li>(Scallops)</li>
+<li class="st-no"><span><span class="t-food">Razor clams</span> <span class="note">(<em>Sinonovacula constricta</em>)</span></span></li>
+<li class="st-ok"><span><span class="t-group">Bivalves</span></span><ul class="topics">
+<li class="st-ok"><span><span class="t-food">Scallops</span></span></li>
 </ul>
 </li>
-<li>Aubergines (esp. Chinese long skin-on aubergines)</li>
-<li>Spinach (esp. root)</li>
+<li class="st-no"><span><span class="t-food">Aubergines</span> <span class="note">(esp. Chinese long skin-on aubergines)</span></span></li>
+<li class="st-no"><span><span class="t-food">Spinach</span> <span class="note">(esp. root)</span></span></li>
 </ul>
 </li>
-<li>
-<p>Algogens (chemical via TRPV1)</p>
-<ul class="topics">
-<li>Capsaicin
-<ul class="topics">
-<li>Chilli</li>
-<li>(Paprika) (small amount is okay)</li>
+<li class="st-no"><span><span class="t-pharm">Algogens <span class="note">(pain-causing agents)</span>, chemical</span><span class="desc">TRPV1 receptor agonists</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-chem">Capsaicin</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-food">Chilli</span></span></li>
+<li class="st-some"><span><span class="t-food">Paprika</span></span></li>
 </ul>
 </li>
-<li>Piperine
-<ul class="topics">
-<li>(Pepper) (small amount is okay)</li>
+<li class="st-no"><span><span class="t-chem">Piperine</span></span><ul class="topics">
+<li class="st-some"><span><span class="t-food">Pepper</span></span></li>
+</ul>
+</li>
+<li class="st-no"><span><span class="t-class">Thiosulfinates</span> &amp; <span class="t-chem">propanethial S-oxide</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-food">Raw onion</span></span></li>
+<li class="st-ok"><span><span class="t-food">Fully cooked onion</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li>
-<p>(Algogens (chemical via TRPA1 or other channels))</p>
-<ul class="topics">
-<li>(Hydroxy-α-sanshool)
-<ul class="topics">
-<li>(Szechuan pepper) (small amount is okay)</li>
+<li class="st-ok"><span><span class="t-pharm">Algogens, chemical</span><span class="desc">TRPA1 and other channel agonists</span></span><ul class="topics">
+<li class="st-ok"><span><span class="t-chem">Hydroxy-α-sanshool</span></span><ul class="topics">
+<li class="st-ok"><span><span class="t-food">Szechuan pepper</span></span></li>
 </ul>
 </li>
-<li>(Allyl isothiocyanate)
-<ul class="topics">
-<li>(Mustard) (small amount is okay)</li>
-<li>(Wasabi) (small amount is okay)</li>
+<li class="st-ok"><span><span class="t-chem">Allyl isothiocyanate</span></span><ul class="topics">
+<li class="st-ok"><span><span class="t-food">Mustard</span></span></li>
+<li class="st-ok"><span><span class="t-food">Wasabi</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li>
-<p>Algogens (mechanical)</p>
-<ul class="topics">
-<li>Calcium oxalate crystals
-<ul class="topics">
-<li>Spinach</li>
+<li class="st-no"><span><span class="t-pharm">Algogens, physical</span><span class="desc">mechanical injury</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-class">Calcium oxalate crystals</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-food">Spinach</span></span></li>
 </ul>
 </li>
-<li>Fish bone in Fish
-<ul class="topics">
-<li>Sardines</li>
-<li>Anchovies</li>
+<li class="st-no"><span><span class="t-class">Fish bone</span> in <span class="t-group">Fish</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-food">Sardines</span></span></li>
+<li class="st-no"><span><span class="t-food">Anchovies</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li>
-<p>Algogens (causing mouth ulcer)</p>
-<ul class="topics">
-<li>Sesame oil</li>
-<li>Chocolate</li>
-<li>Walnut</li>
+<li class="st-no"><span><span class="t-pharm">Algogens</span><span class="desc">causing mouth ulcers</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-food">Sesame oil</span></span></li>
+<li class="st-no"><span><span class="t-food">Chocolate</span></span></li>
+<li class="st-no"><span><span class="t-food">Walnut</span></span></li>
 </ul>
 </li>
-<li>
-<p>Algogens (sulphur compounds)</p>
-<ul class="topics">
-<li>Thiosulfinates &amp; propanethial S-oxide
-<ul class="topics">
-<li>Raw onion</li>
+<li class="st-no"><span><span class="t-pharm">Pruritogens <span class="note">(itch-causing agents)</span></span><span class="desc"><span class="t-chem">histamine</span></span></span><ul class="topics">
+<li class="st-no"><span><span class="t-food">Smoked salmon</span></span></li>
 </ul>
 </li>
 </ul>
-</li>
-<li>
-<p>Pruritogen (histamine)</p>
-<ul class="topics">
-<li>Smoked salmon</li>
-</ul>
-</li>
-</ul>
-<p>Algogens: TRPV1 agonists</p>
 <h2>Food type class</h2>
 
 </div>
 <script>
-  // In the source list, an entry whose label opens with a bracket is one
-  // I CAN consume: "(Paprika)", "(Pepper) (small amount is okay)". That
-  // FIRST pair is only the marker: hide it and colour the entry green.
-  // Any later brackets are notes and stay — "Pepper (small amount is
-  // okay)". Only the label's first text node is read, so nested lists
-  // and <em> are left alone.
-  (function () {
-    var lis = document.querySelectorAll('.container li');
-    lis.forEach(function (li) {
-      // A "loose" Markdown item (blank line beside it) wraps its label
-      // in a <p>; look inside that.
-      var t = li.firstChild;
-      if (t && t.nodeType === 3 && !t.nodeValue.trim()) t = t.nextSibling;
-      if (t && t.nodeName === 'P') t = t.firstChild;
-      if (!t || t.nodeType !== 3) return;
-      var s = t.nodeValue.replace(/^\s+/, '');
-      if (s.charAt(0) !== '(') return;
-      var depth = 0, end = -1;
-      for (var i = 0; i < s.length; i++) {
-        if (s[i] === '(') depth++;
-        else if (s[i] === ')' && --depth === 0) { end = i; break; }
-      }
-      if (end < 0) return;
-      t.nodeValue = s.slice(1, end) + s.slice(end + 1);
-      li.classList.add('ok');
-    });
-    // The key opens the classification section, the one that uses it:
-    // the green line, then the list the source puts between the title
-    // and the first section (the "Algogens = causing pain" glossary) as
-    // * notes, one per line. Inserted before page-nav.js runs, so it
-    // collapses with the rest of the section.
-    var key = document.createElement('p');
-    key.className = 'legend';
-    key.innerHTML = 'Entries in <span class="no">black</span> are things ' +
-      'I can’t consume.<br>Entries in <span class="ok">green</span> ' +
-      'are things I can consume.';
-    var h1 = document.querySelector('.container > h1');
-    var notes = h1 && h1.nextElementSibling;
-    if (notes && notes.tagName === 'UL') {
-      notes.querySelectorAll(':scope > li').forEach(function (li) {
-        key.appendChild(document.createElement('br'));
-        key.appendChild(document.createTextNode('* ' +
-                                                li.textContent.trim()));
+  // The content arrives already marked up (render.py): each entry's
+  // can-eat circle and each word's type colour, and the key. All that is
+  // left is to open the classification — the section people come to the
+  // page for. page-nav.js collapses every section on DOMContentLoaded; its
+  // listener is registered after this one, so wait a tick, then open it.
+  document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
+      document.querySelectorAll('.container > h2').forEach(function (h) {
+        if (/^Pharmacological/.test(h.textContent.trim()) &&
+            h.getAttribute('aria-expanded') !== 'true') h.click();
       });
-      notes.remove();
-    }
-    var classH2 = Array.prototype.find.call(
-      document.querySelectorAll('.container > h2'),
-      function (h) { return /^Pharmacological/.test(h.textContent.trim()); });
-    if (classH2) classH2.after(key);
-    // page-nav.js collapses every section on DOMContentLoaded; its
-    // listener is registered after this one, so wait a tick, then open
-    // the classification — the section people come to the page for.
-    document.addEventListener('DOMContentLoaded', function () {
-      setTimeout(function () {
-        document.querySelectorAll('.container > h2').forEach(function (h) {
-          if (/^Pharmacological/.test(h.textContent.trim()) &&
-              h.getAttribute('aria-expanded') !== 'true') h.click();
-        });
-      }, 0);
-    });
-  })();
+    }, 0);
+  });
 </script>
 <script src="../../../../界面 UI/page-widgets/version-check.js" defer></script>
 </body>
