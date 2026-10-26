@@ -84,6 +84,7 @@
       vertical-align: 0.02em;
       margin-right: 0.3em;
     }
+    .container li.plain::before { display: none; }  /* no can-eat mark */
     .container .st-ok::before,
     .container .glyph.st-ok { background: var(--text); }        /* ● */
     .container .st-some::before,
@@ -105,6 +106,8 @@
     .container .t-chem { color: var(--t-chem); }
     .container .t-group { color: var(--t-group); }
     .container .t-food { color: var(--text); }
+    /* A placeholder, not a class: the substance is not known. */
+    .container .t-unknown { color: var(--muted); }
     /* A bracketed note after an ingredient or a food: "esp. root". */
     .container .note { color: var(--muted); font-weight: 400; }
     /* A heading's mechanism, on its own grey line under the name. Italic
@@ -118,11 +121,74 @@
       font-size: 0.85rem;
     }
 
+    /* A COUNTEREXAMPLE: looks related, but I don't react to it — listed
+       to show where the line falls. A neutral band behind the label, not
+       a colour: colour is the word's type. */
+    .container li.contrast > span:first-child,
+    .container .legend .shade {
+      background: light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.09));
+      border-radius: 4px;
+      padding: 0.05em 0.4em;
+      margin-left: -0.4em;
+    }
+    .container .legend .shade { margin-left: 0; }
+
+    /* FOLDING. The first two levels carry a chevron after the name;
+       a folded entry hides the list under it. Drawn, not typed. */
+    .container .fold {
+      border: 0;
+      background: none;
+      padding: 0 0.35em;
+      margin-left: 0.15em;
+      cursor: pointer;
+      color: var(--muted);
+      vertical-align: 0.1em;
+    }
+    .container .fold::before {
+      content: "";
+      display: inline-block;
+      width: 0.38em;
+      height: 0.38em;
+      border-right: 0.12em solid currentColor;
+      border-bottom: 0.12em solid currentColor;
+      transform: rotate(45deg);
+      transition: transform 0.15s;
+    }
+    .container li.folded > span .fold::before { transform: rotate(-45deg); }
+    .container li.folded > ul { display: none; }
+    .container li[data-key] > span:first-child { cursor: pointer; }
+    .container .fold-all { margin: 0.2rem 0 0; font-size: 0.85rem; }
+    .container .fold-all button {
+      border: 0;
+      background: none;
+      padding: 0;
+      color: var(--muted);
+      cursor: pointer;
+      font: inherit;
+    }
+    .container .fold-all button:hover { color: var(--text); }
+
+    /* SUPPLEMENTS: hidden until the reader ticks "Include supplements"
+       (the script adds .with-supp, and remembers the choice). */
+    .container:not(.with-supp) li.supp { display: none; }
+    .container .tag {
+      font-size: 0.75em;
+      font-weight: 400;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 0.35em;
+      vertical-align: 0.08em;
+    }
+    .container .supp-toggle { margin: 0.2rem 0 0; font-size: 0.85rem; }
+    .container .supp-toggle label { color: var(--muted); cursor: pointer; }
+
     .container .legend .t-pharm,
     .container .legend .t-class,
     .container .legend .t-chem,
     .container .legend .t-group,
-    .container .legend .t-food { font-weight: 600; }
+    .container .legend .t-food,
+    .container .legend .t-unknown { font-weight: 600; }
   </style>
 </head>
 <body>
@@ -132,146 +198,243 @@
 <h2>Foreword</h2>
 <p>I don’t have philosophical food restrictions. However, I have a large number of neurodivergence-related food intolerances. Please find below my food intolerances classified in pharmacological/chemical class (for better understanding) and food type class (for logistics of cooking &amp; eating out). All chemical active ingredients are hypothesised, subject to reclassification and modification in the future.</p>
 <h2>Pharmacological/chemical class</h2>
-<p class="legend"><span class="glyph st-ok"></span>I can consume · <span class="glyph st-some"></span>only a small amount · <span class="glyph st-no"></span>I can’t consume<br><span class="t-pharm">Pharmacological class</span> · <span class="t-class">Chemical/physical class</span> · <span class="t-chem">Individual chemical</span> · <span class="t-group">Food group</span> · <span class="t-food">Food item</span></p>
+<p class="legend"><span class="glyph st-ok"></span>I can consume · <span class="glyph st-some"></span>only a small amount · <span class="glyph st-no"></span>I can’t consume<br><span class="t-pharm">Pharmacological class</span> · <span class="t-class">Chemical/physical class</span> · <span class="t-chem">Individual chemical</span> · <span class="t-group">Food group</span> · <span class="t-food">Food item</span> · <span class="t-unknown">Unknown substance</span><br><span class="shade">Shaded</span>: a counterexample — related, but I don’t react to it</p>
+<p class="fold-all"><button type="button" data-fold="all">Fold all</button> · <button type="button" data-fold="none">Unfold all</button></p>
+<p class="supp-toggle"><label><input type="checkbox"> Include supplements</label></p>
 <ul class="topics">
-<li class="st-no"><span><span class="t-pharm">Stimulants &amp; entactogens</span><span class="desc">dopaminergic, noradrenergic or serotonergic substances</span></span><ul class="topics">
-<li class="st-no"><span><span class="t-class">Methylxanthines</span> <span class="note">(incl. <span class="t-chem">caffeine</span>)</span></span><ul class="topics">
+<li class="st-no" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances"><span><span class="t-pharm">Stimulants &amp; entactogens</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="desc">dopaminergic, noradrenergic or serotonergic substances</span></span><ul class="topics">
+<li class="st-no" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Methylxanthines (incl. caffeine, theobromine) / via adenosine receptors"><span><span class="t-class">Methylxanthines</span> <span class="note">(incl. <span class="t-chem">caffeine</span>, <span class="t-chem">theobromine</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="desc">via adenosine receptors</span></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Coffee</span></span></li>
 <li class="st-no"><span><span class="t-food">Tea</span></span></li>
 <li class="st-no"><span><span class="t-food">Cacao</span></span></li>
 <li class="st-no"><span><span class="t-food">Acai</span></span></li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-chem">Tyrosine</span> from <span class="t-group">dairy</span></span><ul class="topics">
+<li class="st-no" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Tyrosine (in dairy) / via catecholamine synthesis"><span><span class="t-chem">Tyrosine</span> <span class="note">(in <span class="t-group">dairy</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="desc">via catecholamine synthesis</span></span><ul class="topics">
 <li class="st-no"><span><span class="t-group">All mammals’ milk, cheese, yoghurt and cream</span></span></li>
-<li class="st-ok"><span><span class="t-group">Plant-based dairy alternatives</span></span></li>
+<li class="st-ok contrast"><span><span class="t-group">Plant-based dairy alternatives</span></span></li>
+<li class="st-no supp"><span><span class="t-chem">L-Tyrosine</span> <span class="tag">supplement</span></span></li>
 </ul>
 </li>
-<li class="st-no"><span>Other <span class="t-pharm">MAOIs</span></span><ul class="topics">
+<li class="st-no" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Nicotine / via nicotinic receptors"><span><span class="t-chem">Nicotine</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="desc">via nicotinic receptors</span></span><ul class="topics">
+<li class="st-no"><span><span class="t-food">Tobacco</span></span></li>
+<li class="st-no"><span><span class="t-food">Vapes</span></span></li>
+</ul>
+</li>
+<li class="st-no" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › β-Carbolines (incl. harman, norharman) / via MAO inhibition"><span><span class="t-class">β-Carbolines</span> <span class="note">(incl. <span class="t-chem">harman</span>, <span class="t-chem">norharman</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="desc">via MAO inhibition</span></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Tobacco</span></span></li>
 <li class="st-no"><span><span class="t-food">Cacao, especially raw</span></span></li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-class">Simple sugars</span></span></li>
+<li class="st-some" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › High-glycaemic carbohydrates (incl. glucose, sucrose)"><span><span class="t-class">High-glycaemic carbohydrates</span> <span class="note">(incl. <span class="t-chem">glucose</span>, <span class="t-chem">sucrose</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-some"><span><span class="t-group">Sugary foods and drinks</span></span></li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-pharm">Opioids</span></span><ul class="topics">
-<li class="st-no"><span><span class="t-class">Bovine casomorphins</span> from digestion of <span class="t-chem">A1 β-casein</span></span><ul class="topics">
+</ul>
+</li>
+<li class="st-no" data-key="Opioids / via μ-opioid receptors"><span><span class="t-pharm">Opioids</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="desc">via μ-opioid receptors</span></span><ul class="topics">
+<li class="st-no" data-key="Opioids / via μ-opioid receptors › β-Casomorphins (from A1 β-casein in cow’s dairy)"><span><span class="t-class">β-Casomorphins</span> <span class="note">(from <span class="t-chem">A1 β-casein</span> in <span class="t-group">cow’s dairy</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-group">Cow’s milk, cheese, yoghurt and cream</span></span></li>
-<li class="st-ok"><span><span class="t-food">Cow’s butter</span> <span class="note">(low casein content)</span></span></li>
-<li class="st-ok"><span><span class="t-food">Clarified cow’s butter/Ghee</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Cow’s butter</span> <span class="note">(low casein content)</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Clarified cow’s butter/Ghee</span></span></li>
 <li class="st-no"><span><span class="t-group">Dairy products from other mammals</span> <span class="note">(see Stimulants)</span></span></li>
 </ul>
 </li>
-<li class="st-ok"><span><span class="t-class">Whey protein</span></span><ul class="topics">
-<li class="st-ok"><span><span class="t-food">Whey isolate</span></span></li>
+<li class="st-ok contrast" data-key="Opioids / via μ-opioid receptors › Whey protein"><span><span class="t-class">Whey protein</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-ok contrast"><span><span class="t-food">Whey isolate</span></span></li>
 </ul>
 </li>
-<li class="st-ok"><span><span class="t-class">Milk fats</span></span><ul class="topics">
-<li class="st-ok"><span><span class="t-food">Butter</span></span></li>
+<li class="st-ok contrast" data-key="Opioids / via μ-opioid receptors › Milk fat"><span><span class="t-class">Milk fat</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-ok contrast"><span><span class="t-food">Butter</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-pharm">Depressants</span></span><ul class="topics">
-<li class="st-no"><span><span class="t-chem">Glutamate</span></span><ul class="topics">
+<li class="st-no" data-key="Depressants"><span><span class="t-pharm">Depressants</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" data-key="Depressants › Glutamate"><span><span class="t-chem">Glutamate</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-chem">MSG</span></span></li>
 <li class="st-no"><span><span class="t-food">Miso</span></span></li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-chem">Melatonin</span></span><ul class="topics">
+<li class="st-no" data-key="Depressants › Melatonin"><span><span class="t-chem">Melatonin</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Cherry</span></span></li>
-<li class="st-no"><span><span class="t-chem">5-HTP</span></span></li>
+<li class="st-no supp"><span><span class="t-chem">5-HTP</span> <span class="tag">supplement</span></span></li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-chem">Ethanol</span></span><ul class="topics">
+<li class="st-no" data-key="Depressants › Ethanol"><span><span class="t-chem">Ethanol</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-group">Alcoholic drinks</span></span></li>
 <li class="st-no"><span><span class="t-group">Alcoholic dishes and desserts</span></span></li>
-<li class="st-ok"><span><span class="t-food">Alcohol in dish that’s cooked off</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Alcohol in dish that’s cooked off</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-pharm">Allergens</span></span><ul class="topics">
-<li class="st-no"><span><span class="t-class">Tropomyosins</span> in <span class="t-group">Crustaceans</span></span><ul class="topics">
+<li class="st-no" data-key="Cannabinoids / via CB1 receptors"><span><span class="t-pharm">Cannabinoids</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="desc">via CB1 receptors</span></span><ul class="topics">
+<li class="st-no" data-key="Cannabinoids / via CB1 receptors › Phytocannabinoids (incl. Δ9-THC)"><span><span class="t-class">Phytocannabinoids</span> <span class="note">(incl. <span class="t-chem">Δ9-THC</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no"><span><span class="t-food">Cannabis</span></span></li>
+<li class="st-no"><span><span class="t-food">Edibles</span></span></li>
+<li class="st-no"><span><span class="t-food">Cannabis vapes</span></span></li>
+</ul>
+</li>
+<li class="st-no" data-key="Cannabinoids / via CB1 receptors › Synthetic cannabinoids"><span><span class="t-class">Synthetic cannabinoids</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no"><span><span class="t-food">Cannabis vapes</span></span></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="st-no" data-key="Allergens"><span><span class="t-pharm">Allergens</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no" data-key="Allergens › Tropomyosins (in crustaceans)"><span><span class="t-class">Tropomyosins</span> <span class="note">(in <span class="t-group">crustaceans</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Prawn</span></span></li>
 <li class="st-no"><span><span class="t-food">Crab</span></span></li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-food">Razor clams</span> <span class="note">(<em>Sinonovacula constricta</em>)</span></span></li>
-<li class="st-ok"><span><span class="t-group">Bivalves</span></span><ul class="topics">
-<li class="st-ok"><span><span class="t-food">Scallops</span></span></li>
+<li class="st-ok contrast" data-key="Allergens › Tropomyosins (in bivalves)"><span><span class="t-class">Tropomyosins</span> <span class="note">(in <span class="t-group">bivalves</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-ok contrast"><span><span class="t-food">Scallops</span></span></li>
 </ul>
 </li>
+<li class="st-no" data-key="Allergens › Unknown substances"><span><span class="t-unknown">Unknown substances</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
+<li class="st-no"><span><span class="t-food">Razor clams</span> <span class="note">(<em>Sinonovacula constricta</em>)</span></span></li>
 <li class="st-no"><span><span class="t-food">Aubergines</span> <span class="note">(esp. Chinese long skin-on aubergines)</span></span></li>
 <li class="st-no"><span><span class="t-food">Spinach</span> <span class="note">(esp. root)</span></span></li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-pharm">Algogens <span class="note">(pain-causing agents)</span>, chemical</span><span class="desc">TRPV1 receptor agonists</span></span><ul class="topics">
-<li class="st-no"><span><span class="t-chem">Capsaicin</span></span><ul class="topics">
+</ul>
+</li>
+<li class="st-no" data-key="Algogens, chemical / via TRPV1 receptors"><span><span class="t-pharm">Algogens <span class="note">(pain-causing agents)</span>, chemical</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="desc">via TRPV1 receptors</span></span><ul class="topics">
+<li class="st-no" data-key="Algogens, chemical / via TRPV1 receptors › Capsaicin"><span><span class="t-chem">Capsaicin</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Chilli</span></span></li>
 <li class="st-some"><span><span class="t-food">Paprika</span></span></li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-chem">Piperine</span></span><ul class="topics">
+<li class="st-no" data-key="Algogens, chemical / via TRPV1 receptors › Piperine"><span><span class="t-chem">Piperine</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-some"><span><span class="t-food">Pepper</span></span></li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-class">Thiosulfinates</span> &amp; <span class="t-chem">propanethial S-oxide</span></span><ul class="topics">
+<li class="st-no" data-key="Algogens, chemical / via TRPV1 receptors › Thiosulfinates &amp; propanethial S-oxide"><span><span class="t-class">Thiosulfinates</span> &amp; <span class="t-chem">propanethial S-oxide</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Raw onion</span></span></li>
-<li class="st-ok"><span><span class="t-food">Fully cooked onion</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Fully cooked onion</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-ok"><span><span class="t-pharm">Algogens, chemical</span><span class="desc">TRPA1 and other channel agonists</span></span><ul class="topics">
-<li class="st-ok"><span><span class="t-chem">Hydroxy-α-sanshool</span></span><ul class="topics">
+<li class="st-ok" data-key="Algogens, chemical / via TRPA1 and other channels"><span><span class="t-pharm">Algogens, chemical</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="desc">via TRPA1 and other channels</span></span><ul class="topics">
+<li class="st-ok" data-key="Algogens, chemical / via TRPA1 and other channels › Hydroxy-α-sanshool"><span><span class="t-chem">Hydroxy-α-sanshool</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-ok"><span><span class="t-food">Szechuan pepper</span></span></li>
 </ul>
 </li>
-<li class="st-ok"><span><span class="t-chem">Allyl isothiocyanate</span></span><ul class="topics">
+<li class="st-ok" data-key="Algogens, chemical / via TRPA1 and other channels › Allyl isothiocyanate"><span><span class="t-chem">Allyl isothiocyanate</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-ok"><span><span class="t-food">Mustard</span></span></li>
 <li class="st-ok"><span><span class="t-food">Wasabi</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-pharm">Algogens, physical</span><span class="desc">mechanical injury</span></span><ul class="topics">
-<li class="st-no"><span><span class="t-class">Calcium oxalate crystals</span></span><ul class="topics">
+<li class="st-no" data-key="Algogens, physical / via mechanical injury"><span><span class="t-pharm">Algogens, physical</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="desc">via mechanical injury</span></span><ul class="topics">
+<li class="st-no" data-key="Algogens, physical / via mechanical injury › Calcium oxalate crystals"><span><span class="t-class">Calcium oxalate crystals</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Spinach</span></span></li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-class">Fish bone</span> in <span class="t-group">Fish</span></span><ul class="topics">
+<li class="st-no" data-key="Algogens, physical / via mechanical injury › Small bones (in fish)"><span><span class="t-class">Small bones</span> <span class="note">(in <span class="t-group">fish</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Sardines</span></span></li>
 <li class="st-no"><span><span class="t-food">Anchovies</span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-pharm">Algogens</span><span class="desc">causing mouth ulcers</span></span><ul class="topics">
+<li class="st-no" data-key="Algogens / via mouth ulcers"><span><span class="t-pharm">Algogens</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="desc">via mouth ulcers</span></span><ul class="topics">
+<li class="st-no" data-key="Algogens / via mouth ulcers › Unknown substances"><span><span class="t-unknown">Unknown substances</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Sesame oil</span></span></li>
 <li class="st-no"><span><span class="t-food">Chocolate</span></span></li>
 <li class="st-no"><span><span class="t-food">Walnut</span></span></li>
 </ul>
 </li>
-<li class="st-no"><span><span class="t-pharm">Pruritogens <span class="note">(itch-causing agents)</span></span><span class="desc"><span class="t-chem">histamine</span></span></span><ul class="topics">
+</ul>
+</li>
+<li class="st-no" data-key="Pruritogens / via histamine receptors"><span><span class="t-pharm">Pruritogens <span class="note">(itch-causing agents)</span></span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="desc">via histamine receptors</span></span><ul class="topics">
+<li class="st-no" data-key="Pruritogens / via histamine receptors › Histamine"><span><span class="t-chem">Histamine</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
 <li class="st-no"><span><span class="t-food">Smoked salmon</span></span></li>
 </ul>
 </li>
 </ul>
+</li>
+</ul>
 <h2>Food type class</h2>
+<ul class="topics">
+<li class="plain"><span><span class="t-group">Dairy</span> <span class="note">(see Tyrosine, β-Casomorphins)</span></span></li>
+<li class="plain"><span><span class="t-group">Cow’s dairy</span> <span class="note">(see β-Casomorphins)</span></span></li>
+</ul>
 
 </div>
 <script>
   // The content arrives already marked up (render.py): each entry's
   // can-eat circle and each word's type colour, and the key. All that is
-  // left is to open the classification — the section people come to the
-  // page for. page-nav.js collapses every section on DOMContentLoaded; its
-  // listener is registered after this one, so wait a tick, then open it.
+  // left is to fold entries, and to open the classification and the food
+  // types — the sections people come to the page for. page-nav.js
+  // collapses every section on DOMContentLoaded; its listener is
+  // registered after this one, so wait a tick, then open them.
+  // Folding an entry: its chevron, or a click on its name. Everything
+  // starts open; a text selection is not a click. Folds are remembered
+  // in this browser (localStorage), by each entry's data-key — its name
+  // path — so a renamed entry simply comes back open.
+  // "Include supplements": off unless this browser said otherwise.
+  (function () {
+    var STORE = 'food-intolerances:supplements';
+    var box = document.querySelector('.container .supp-toggle input');
+    var root = document.querySelector('.container');
+    if (!box) return;
+    function apply(on) {
+      box.checked = on;
+      root.classList.toggle('with-supp', on);
+    }
+    try { apply(localStorage.getItem(STORE) === '1'); } catch (e) {}
+    box.addEventListener('change', function () {
+      apply(box.checked);
+      try { localStorage.setItem(STORE, box.checked ? '1' : '0'); }
+      catch (e) { /* private mode: lasts this visit */ }
+    });
+  })();
+  (function () {
+    var STORE = 'food-intolerances:folded';
+    var foldables = document.querySelectorAll('.container li[data-key]');
+    function set(li, folded) {
+      li.classList.toggle('folded', folded);
+      var btn = li.querySelector(':scope > span .fold');
+      btn.setAttribute('aria-expanded', String(!folded));
+      btn.setAttribute('aria-label', folded ? 'Unfold' : 'Fold');
+    }
+    function save() {
+      var keys = [];
+      foldables.forEach(function (li) {
+        if (li.classList.contains('folded')) keys.push(li.dataset.key);
+      });
+      try { localStorage.setItem(STORE, JSON.stringify(keys)); }
+      catch (e) { /* private mode: folds just last this visit */ }
+    }
+    var saved = [];
+    try { saved = JSON.parse(localStorage.getItem(STORE)) || []; }
+    catch (e) { saved = []; }
+    foldables.forEach(function (li) {
+      if (saved.indexOf(li.dataset.key) >= 0) set(li, true);
+    });
+    document.addEventListener('click', function (e) {
+      var all = e.target.closest('.container .fold-all button');
+      if (all) {
+        var fold = all.dataset.fold === 'all';
+        foldables.forEach(function (li) { set(li, fold); });
+        save();
+        return;
+      }
+      var head = e.target.closest('.container li[data-key] > span');
+      if (!head || String(window.getSelection())) return;
+      var li = head.parentElement;
+      set(li, !li.classList.contains('folded'));
+      save();
+    });
+  })();
   document.addEventListener('DOMContentLoaded', function () {
     setTimeout(function () {
       document.querySelectorAll('.container > h2').forEach(function (h) {
-        if (/^Pharmacological/.test(h.textContent.trim()) &&
+        if (/^(Pharmacological|Food type)/.test(h.textContent.trim()) &&
             h.getAttribute('aria-expanded') !== 'true') h.click();
       });
     }, 0);
