@@ -127,7 +127,15 @@ h6.page-h6::before { content: var(--sl, counter(s1)) "." counter(s2) "." counter
 .page-status.meta { background: var(--tag-blue); color: var(--tag-blue-text); }
 
 /* ---- List items ---- */
-ul { padding-left: 1.4rem; }
+/* ONE LIST INDENT (user decision 2026-10-25: "SSOT this style"): how far
+   a list's rows sit in from the heading they belong to. Every plain list
+   takes it, and so does `.fold-rows` — a list that zeroes its own
+   padding (the Termination Planner's cards) but sits under a fold's
+   heading: a step under its phase, an item under its method. */
+:root { --list-indent: 1.4rem; }
+ul { padding-left: var(--list-indent); }
+/* `details >` says where it lives, and outranks the page's own zeroing. */
+details > ul.fold-rows { padding-left: var(--list-indent); }
 li { margin: 0.3rem 0; color: var(--text); }
 section li { list-style: none; display: flex; align-items: baseline; flex-wrap: wrap; }
 /* Layout: number on the LEFT, content, then the stage tag on the RIGHT — the same
@@ -533,17 +541,28 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
    closing corner lands after the text, not at the far edge. */
 div.sealed-value { width: fit-content; max-width: 100%;
   box-sizing: border-box; }
-/* LOCKED, A VALUE IS A BAR 「▒▒▒」 (user decision 2026-10-25: the
-   structure shows, the content is swapped for a placeholder): a hatched
-   bar of ONE width whatever the text, so it hints at nothing — a longer
+/* LOCKED, A VALUE IS A BAR 「FIELD」 (user decision 2026-10-25: the
+   structure shows, the content is swapped for a placeholder): a soft grey
+   block of ONE width whatever the text, so it hints at nothing — a longer
    one for a block value (a note). Inside the same brackets as the text it
-   stands for, so unlocking only swaps the bar for the words. */
-.sealed-bar { display: inline-block; width: 3.5em; height: 0.75em;
-  vertical-align: -0.05em; border-radius: 2px;
-  background: repeating-linear-gradient(135deg,
-    color-mix(in srgb, var(--muted) 45%, transparent) 0 2px,
-    transparent 2px 5px); }
-div.sealed-value > .sealed-bar { width: 9em; }
+   stands for, so unlocking only swaps the bar for the words.
+   IT NAMES ITS FIELD (user decisions 2026-10-25): TITLE, STEP… centred in
+   small spaced capitals of the system sans, a printed label that never
+   reads as the value it hides (not monospace: that is the row ids'). A
+   SOLID fill, not the hatching it began with: stripes behind the letters
+   made the label hard to read. Text is --text at 75% on --muted at 16% —
+   well past 4.5:1 in both themes. Sizes are in the bar's own 0.62em, so
+   5.65em / 14.5em here are 3.5em / 9em of the text around it. */
+.sealed-bar { display: inline-block; min-width: 5.65em; max-width: 100%;
+  box-sizing: border-box; padding: 0 0.6em; border-radius: 3px;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 0.62em; line-height: 1.6; font-style: normal;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;
+  text-align: center; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; vertical-align: 0.1em;
+  color: color-mix(in srgb, var(--text) 75%, transparent);
+  background: color-mix(in srgb, var(--muted) 16%, transparent); }
+div.sealed-value > .sealed-bar { min-width: 14.5em; }
 /* The floating panel (edit-mode.js `openPopover`): over the page, never in
    it, so opening it pushes nothing. */
 .edit-popover { position: absolute; z-index: 50; min-width: 16rem;

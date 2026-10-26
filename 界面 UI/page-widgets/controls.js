@@ -31,6 +31,9 @@ export const CONTROLS = {
   lock:       { glyph: '🔒', text: 'Lock' },
   unlock:     { glyph: '🔓', text: 'Unlock' },
   passphrase: { glyph: '🔑', text: 'Change passphrase' },
+  // One button, two words (`wireFoldAll`; user decision 2026-10-25).
+  expandAll:  { glyph: '🔽', text: 'Expand all' },
+  collapseAll: { glyph: '🔼', text: 'Collapse all' },
 };
 
 /** The label of control `key` — "✏️ Edit"; `more` follows its words
@@ -39,6 +42,31 @@ export function label(key, more = '') {
   const c = CONTROLS[key];
   if (!c) throw new Error(`controls.js: no control "${key}"`);
   return c.glyph + ' ' + c.text + (more ? ' ' + more : '');
+}
+
+/** A page's one EXPAND ALL / COLLAPSE ALL button (user decision
+ *  2026-10-25), over `folds()` — the page's <details>, nested ones
+ *  included: "Expand all" while any is closed, else "Collapse all", the
+ *  rule the plan pages' TOC (plan-chrome.js `tocToggleAll`), page-nav.js
+ *  and the stats tables each keep in a copy of their own. Hidden while the
+ *  page has no folds. Each fold's own toggle event fires as it changes, so
+ *  a page that remembers its folds remembers these too. Returns `sync`:
+ *  call it after the page redraws its folds. */
+export function wireFoldAll(button, folds) {
+  const sync = () => {
+    const all = folds();
+    button.hidden = !all.length;
+    button.textContent = label(all.some((d) => !d.open)
+      ? 'expandAll' : 'collapseAll');
+  };
+  button.addEventListener('click', () => {
+    const open = folds().some((d) => !d.open);
+    for (const d of folds()) d.open = open;
+    sync();
+  });
+  // A fold opened or closed by hand changes which word is right.
+  document.addEventListener('toggle', sync, true);
+  return sync;
 }
 
 /** Write the label into every `[data-control]` under `root`. */

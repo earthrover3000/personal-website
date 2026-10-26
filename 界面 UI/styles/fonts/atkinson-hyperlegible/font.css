@@ -1,0 +1,19 @@
+/* Atkinson Hyperlegible — the Braille Institute's typeface for legibility
+   at a distance and low vision: letters that cannot be mistaken for one
+   another (I l 1, O 0). THE CIRCADIAN MANIFOLD'S in-band face (user
+   decisions 2026-10-25): the day strip's daylight countdown (manifold-units
+   IN_BAND_FACE.circadian); the life manifold's — the Annulus's ring ages —
+   is the host's own. Tried as the whole Noticeboard's face on 2026-10-20 and
+   dropped there; this file only DECLARES the face and sets nothing in it.
+   SIL Open Font License 1.1 (OFL.txt); latin subset, woff2, 400 and 700
+   upright, from @fontsource/atkinson-hyperlegible 5.2.8. */
+@font-face {
+  font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 400;
+  font-display: swap;
+  src: url("atkinson-hyperlegible-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 700;
+  font-display: swap;
+  src: url("atkinson-hyperlegible-latin-700-normal.woff2") format("woff2");
+}

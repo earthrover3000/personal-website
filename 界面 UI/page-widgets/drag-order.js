@@ -112,7 +112,10 @@ function gripOf(container, target) {
 }
 
 // The container under the pointer: the one it is inside, else the nearest
-// above or below it among those it is level with.
+// above or below it among those it is level with. NESTED LISTS (2026-10-25,
+// the Termination Planner's sub-references): of two the pointer is inside,
+// the inner one — the outer one holds it, so it would always win, and a row
+// dropped into a sub-list would land back in the list around it.
 function containerAt(targets, x, y) {
   let best = null;
   let dist = Infinity;
@@ -121,7 +124,7 @@ function containerAt(targets, x, y) {
     const level = x >= r.left - 40 && x <= r.right + 40;
     if (!level) continue;
     const d = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0;
-    if (d < dist) {
+    if (d < dist || (d === 0 && dist === 0 && best && best.contains(c))) {
       dist = d;
       best = c;
     }
@@ -137,7 +140,8 @@ function listen(container) {
     ev.preventDefault();
     ev.stopPropagation();       // an outer list must not take it as well
     const { item } = hit;
-    const targets = targetsOf(container);
+    // Never a list inside the lifted row itself (its own sub-list).
+    const targets = targetsOf(container).filter((c) => !item.contains(c));
     // Compared by the items themselves, so items without an id (the plan
     // pages' rows) count their moves too.
     const before = new Map(targets.map((c) => [c, itemsOf(c)]));

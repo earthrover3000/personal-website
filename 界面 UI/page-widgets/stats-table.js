@@ -13,10 +13,22 @@
 // target for the chart, which then draws that project's history alone (see
 // "One project at a time" below).
 
+// A live stats page (source_stats.page) swaps its baked copy for a fresh
+// render with document.write, which keeps this window — and a module runs
+// once per window. Wait until the swap has settled, so the widgets below
+// bind to the document that stays on screen, not the one thrown away.
+// Pages without the swap set no promise and start at once — synchronously,
+// which the roadmap needs: it loads this as a classic script that must run
+// where it stands (source_stats.page `widget_module`), so no top-level await.
+function whenSettled(start) {
+  if (window.statsPageSettled) window.statsPageSettled.then(start);
+  else start();
+}
+
 // Click-to-sort table headers. Default order is what the server renders, so
 // crawlers + JS-disabled browsers see the canonical sort. JS only affects
 // the order; the data is already in the DOM.
-(function () {
+whenSettled(function () {
   const table = document.querySelector('.stats-table');
   if (!table) return;
   const tbody = table.querySelector('tbody');
@@ -242,14 +254,14 @@
     ths.forEach((th, i) => { th.style.width = widths[i] + 'px'; });
     table.style.tableLayout = 'fixed';
   }
-})();
+});
 
 // Live time refresh — both the "From today" labels and the
 // line-history chart's right-edge use the moment the page LOADED, not
 // the moment the build ran. A page sitting in a browser tab a week
 // after the last build still shows accurate "X days ago" values and a
 // chart whose time-axis ends at today.
-(function () {
+whenSettled(function () {
   const now = new Date();
   function fmtAgo(dateStr) {
     if (!dateStr || dateStr === '—') return '—';
@@ -1087,7 +1099,10 @@
           [showLines, showWords].forEach(cb => cb && cb.addEventListener('change', refreshLedger));
           refreshTable = refreshLedger;
         }
-      }).catch(() => {
+      }).catch(err => {
+        // Log it: a throw anywhere in the axis/table setup lands here too,
+        // and silence once hid a dead axis behind the fallback dates.
+        console.error('stats-table: event-marks engine step failed', err);
         // Engine unavailable → keep the server date fallbacks; refresh the
         // right-edge label to the live "now" (its old build-time behaviour).
         // The Table view needs the engine too, so its radio goes inert.
@@ -1868,4 +1883,4 @@
       });
     }
   });
-})();
+});
