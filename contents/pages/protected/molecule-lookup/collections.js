@@ -648,11 +648,11 @@ var COLLECTIONS = [
     "items": [
      [
       "caffeine",
-      "Methylxanthines: Coffee, Tea, Cacao, Acai"
+      "Methylxanthines: Coffee, Decaf coffee, Tea, Cacao, Acai"
      ],
      [
       "theobromine",
-      "Methylxanthines: Coffee, Tea, Cacao, Acai"
+      "Methylxanthines: Coffee, Decaf coffee, Tea, Cacao, Acai"
      ],
      [
       "L-tyrosine",
@@ -664,11 +664,11 @@ var COLLECTIONS = [
      ],
      [
       "harmane",
-      "β-Carbolines: Tobacco, Cacao, especially raw"
+      "β-Carbolines: Tobacco, Cacao"
      ],
      [
       "norharmane",
-      "β-Carbolines: Tobacco, Cacao, especially raw"
+      "β-Carbolines: Tobacco, Cacao"
      ],
      [
       "D-glucose",
@@ -711,6 +711,10 @@ var COLLECTIONS = [
      [
       "Ethanol",
       "Ethanol: Alcoholic drinks, Alcoholic dishes and desserts"
+     ],
+     [
+      "cannabidiol",
+      "CBD: CBD products"
      ]
     ]
    },
@@ -749,16 +753,16 @@ var COLLECTIONS = [
     "items": [
      [
       "hydroxy-alpha-sanshool",
-      "Hydroxy-α-sanshool: Szechuan pepper"
+      "Hydroxy-α-sanshool"
      ],
      [
       "Allyl isothiocyanate",
-      "Allyl isothiocyanate: Mustard, Wasabi"
+      "Allyl isothiocyanate"
      ]
     ]
    },
    {
-    "title": "Algogens, physical — via mechanical injury",
+    "title": "Algogens, physical — via tiny scratches and punctures in the mouth and throat",
     "items": [
      [
       "calcium oxalate",

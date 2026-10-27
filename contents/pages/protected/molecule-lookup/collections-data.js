@@ -486,6 +486,20 @@ var COLLECTION_DATA = {
   "comp": [],
   "wd": "ok"
  },
+ "cannabidiol": {
+  "smiles": "CCCCCC1=CC(=C(C(=C1)O)[C@@H]2C=C(CC[C@H]2C(=C)C)C)O",
+  "name": "Cannabidiol",
+  "iupac": "2-[(1R,6R)-3-methyl-6-prop-1-en-2-ylcyclohex-2-en-1-yl]-5-pentylbenzene-1,3-diol",
+  "key": "QHMBSVQNZZTUGM-ZWKOTPCHSA-N",
+  "zh": "大麻二酚",
+  "links": {
+   "enwiki": "https://en.wikipedia.org/wiki/Cannabidiol",
+   "zhwiki": "https://zh.wikipedia.org/wiki/%E5%A4%A7%E9%BA%BB%E4%BA%8C%E9%85%9A",
+   "wikidata": "https://www.wikidata.org/wiki/Q422917"
+  },
+  "comp": [],
+  "wd": "ok"
+ },
  "capsaicin": {
   "smiles": "CC(C)/C=C/CCCCC(=O)NCC1=CC(=C(C=C1)O)OC",
   "name": "Capsaicin",
