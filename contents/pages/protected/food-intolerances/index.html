@@ -82,9 +82,11 @@
       margin-top: 0;
     }
 
-    /* CAN I EAT IT: a shape, never a colour (colour is the word's type,
-       below). render.py sets one class per entry from its `eat:`.
-       Plain text colour, so the page stays calm.
+    /* CAN I EAT IT: a shape first (colour is the word's type, below), so
+       it reads without colour too. render.py sets one class per entry from
+       its `eat:`. Text colour, except ● in green: the one "fine" mark
+       stands out from ○ and ◐ (user, 2026-10-27), and green is used for
+       nothing else on the page.
        Drawn, not typed: the text font has ● and ○ but not ◐, whose
        fallback font drew it a size larger. */
     .container > ul li::before,
@@ -107,8 +109,12 @@
       margin-right: 0.3em;
     }
     .container li.plain::before { display: none; }  /* no can-eat mark */
+    .container { --ok: light-dark(#1d8a3a, #5cc97a); }
     .container .st-ok::before,
-    .container .glyph.st-ok { background: var(--text); }        /* ● */
+    .container .glyph.st-ok {                                   /* ● */
+      background: var(--ok);
+      border-color: var(--ok);
+    }
     .container .st-some::before,
     .container .glyph.st-some {                                 /* ◐ */
       background: linear-gradient(90deg, var(--text) 50%, transparent 50%);
