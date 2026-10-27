@@ -82,6 +82,32 @@ var COLLECTION_DATA = {
   "comp": [],
   "wd": "ok"
  },
+ "6-gingerol": {
+  "smiles": "CCCCC[C@@H](CC(=O)CCC1=CC(=C(C=C1)O)OC)O",
+  "name": "(6)-Gingerol",
+  "iupac": "(5S)-5-hydroxy-1-(4-hydroxy-3-methoxyphenyl)decan-3-one",
+  "key": "NLDDIKRKFXEWBK-AWEZNQCLSA-N",
+  "zh": "6-薑醇",
+  "links": {
+   "enwiki": "https://en.wikipedia.org/wiki/Gingerol",
+   "wikidata": "https://www.wikidata.org/wiki/Q421081"
+  },
+  "comp": [],
+  "wd": "ok"
+ },
+ "6-shogaol": {
+  "smiles": "CCCCC/C=C/C(=O)CCC1=CC(=C(C=C1)O)OC",
+  "name": "Shogaol",
+  "iupac": "(E)-1-(4-hydroxy-3-methoxyphenyl)dec-4-en-3-one",
+  "key": "OQWKEEOHDMUXEO-BQYQJAHWSA-N",
+  "zh": "[6]-姜烯酚",
+  "links": {
+   "zhwiki": "https://zh.wikipedia.org/wiki/%EF%BC%BB6%EF%BC%BD-%E5%A7%9C%E7%83%AF%E9%85%9A",
+   "wikidata": "https://www.wikidata.org/wiki/Q2746448"
+  },
+  "comp": [],
+  "wd": "ok"
+ },
  "8-chlorotheophylline": {
   "smiles": "CN1C2=C(C(=O)N(C1=O)C)NC(=N2)Cl",
   "name": "8-Chlorotheophylline",
@@ -453,23 +479,6 @@ var COLLECTION_DATA = {
   "comp": [
    "KCXVZYZYPLLWCC-UHFFFAOYSA-N",
    "FKNQFGJONOIPTF-UHFFFAOYSA-N",
-   "BHPQYMZQTOCNFJ-UHFFFAOYSA-N"
-  ],
-  "wd": "ok"
- },
- "calcium oxalate": {
-  "smiles": "C(=O)(C(=O)[O-])[O-].[Ca+2]",
-  "name": "Ethanedioic acid, calcium salt (1:1)",
-  "iupac": "calcium oxalate",
-  "key": "QXDMQSPYEZFLGF-UHFFFAOYSA-L",
-  "zh": "草酸钙",
-  "links": {
-   "enwiki": "https://en.wikipedia.org/wiki/Calcium_oxalate",
-   "zhwiki": "https://zh.wikipedia.org/wiki/%E8%8D%89%E9%85%B8%E9%92%99",
-   "wikidata": "https://www.wikidata.org/wiki/Q412399"
-  },
-  "comp": [
-   "MUBZPKHOEPUJKR-UHFFFAOYSA-N",
    "BHPQYMZQTOCNFJ-UHFFFAOYSA-N"
   ],
   "wd": "ok"

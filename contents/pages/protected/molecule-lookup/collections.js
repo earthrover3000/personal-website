@@ -648,11 +648,11 @@ var COLLECTIONS = [
     "items": [
      [
       "caffeine",
-      "Methylxanthines: Coffee, Decaf coffee, Tea, Cacao, Acai"
+      "Methylxanthines: Coffee, Decaf coffee, Tea, Matcha, Cola, Energy drinks, Cacao, Acai"
      ],
      [
       "theobromine",
-      "Methylxanthines: Coffee, Decaf coffee, Tea, Cacao, Acai"
+      "Methylxanthines: Coffee, Decaf coffee, Tea, Matcha, Cola, Energy drinks, Cacao, Acai"
      ],
      [
       "L-tyrosine",
@@ -672,11 +672,11 @@ var COLLECTIONS = [
      ],
      [
       "D-glucose",
-      "High-glycaemic carbohydrates: Sugary foods and drinks"
+      "High-glycaemic carbohydrates: Table sugar, Sugary foods and drinks"
      ],
      [
       "sucrose",
-      "High-glycaemic carbohydrates: Sugary foods and drinks"
+      "High-glycaemic carbohydrates: Table sugar, Sugary foods and drinks"
      ]
     ]
    },
@@ -685,7 +685,7 @@ var COLLECTIONS = [
     "items": [
      [
       "beta-casomorphin-7",
-      "β-Casomorphins: Cow’s milk, cheese, yoghurt and cream, Dairy products from other mammals"
+      "β-Casomorphins: Cow’s milk, cheese, yoghurt and cream"
      ]
     ]
    },
@@ -694,7 +694,7 @@ var COLLECTIONS = [
     "items": [
      [
       "L-glutamic acid",
-      "Glutamate: MSG, Miso"
+      "Glutamate: MSG, Miso, Fish sauce"
      ],
      [
       "monosodium glutamate",
@@ -714,7 +714,7 @@ var COLLECTIONS = [
      ],
      [
       "cannabidiol",
-      "CBD: CBD products"
+      "CBD: CBD drinks and vapes"
      ]
     ]
    },
@@ -728,15 +728,23 @@ var COLLECTIONS = [
     ]
    },
    {
-    "title": "Algogens, chemical — via TRPV1 receptors",
+    "title": "Algogens, chemical — via TRPV1 and TRPA1 channels",
     "items": [
      [
       "Capsaicin",
-      "Capsaicin: Chilli, Paprika"
+      "Capsaicin: Chilli, Curry pastes, Sweet paprika, Hot paprika"
      ],
      [
       "Piperine",
-      "Piperine: Pepper"
+      "Piperine: Black pepper, White pepper"
+     ],
+     [
+      "6-gingerol",
+      "Gingerols: Ginger"
+     ],
+     [
+      "6-shogaol",
+      "Shogaols: Ginger"
      ],
      [
       "allicin",
@@ -745,37 +753,23 @@ var COLLECTIONS = [
      [
       "Propanethial S-oxide",
       "Propanethial S-oxide: Raw onion"
-     ]
-    ]
-   },
-   {
-    "title": "Algogens, chemical — via TRPA1 and other channels",
-    "items": [
+     ],
      [
       "hydroxy-alpha-sanshool",
-      "Hydroxy-α-sanshool"
+      "Hydroxy-α-sanshool: Szechuan pepper"
      ],
      [
       "Allyl isothiocyanate",
-      "Allyl isothiocyanate"
+      "Allyl isothiocyanate: Mustard, Real wasabi, Wasabi paste"
      ]
     ]
    },
    {
-    "title": "Algogens, physical — via tiny scratches and punctures in the mouth and throat",
-    "items": [
-     [
-      "calcium oxalate",
-      "Microscopic spiky crystals: Spinach"
-     ]
-    ]
-   },
-   {
-    "title": "Pruritogens — via histamine receptors",
+    "title": "Pruritogens — via histamine and protease-activated receptors",
     "items": [
      [
       "Histamine",
-      "Histamine: Smoked salmon"
+      "Histamine: Smoked salmon, Spinach"
      ]
     ]
    }
