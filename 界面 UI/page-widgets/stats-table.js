@@ -142,6 +142,13 @@ whenSettled(function () {
     applyFolds();
   });
 
+  function cellText(td) {
+    if (!td.querySelector('.cell-sub')) return td.textContent.trim();
+    const copy = td.cloneNode(true);
+    copy.querySelectorAll('.cell-sub').forEach(el => el.remove());
+    return copy.textContent.trim();
+  }
+
   function getKey(row, col) {
     const td = row.children[COL_IDX[col]];
     if (!td) return '';
@@ -151,7 +158,9 @@ whenSettled(function () {
       // '—' (em-dash) means "not applicable" — treat as 0 so projects
       // without that metric sort below those with it under desc, and at the
       // top under asc (which still reads as "lowest first").
-      const txt = td.textContent.trim();
+      // A .cell-sub second line (Workshop Stats' footprint under Lines)
+      // is not the cell's value: read the text around it.
+      const txt = cellText(td);
       if (txt === '—' || txt === '') return 0;
       return parseFloat(txt.replace(/,/g, '')) || 0;
     }
@@ -167,7 +176,7 @@ whenSettled(function () {
       if (text === '—' || text === '') return '￿';
       return text;
     }
-    return td.textContent.trim().toLowerCase();
+    return cellText(td).toLowerCase();
   }
 
   function sortRows(col, dir) {
@@ -317,7 +326,10 @@ whenSettled(function () {
   // axis, no table, and buttons that drove the chart above it. Nothing below
   // may reach for a control through `document`: go through ctl / ctlGroup.
   const charts = document.querySelectorAll('.line-history-svg[data-chart-points]');
-  charts.forEach(svg => {
+  charts.forEach((svg, chartIdx) => {
+    // What other code may ask of this chart (the alternates switch below):
+    // filled in as the pieces it needs are made.
+    svg.chartApi = {};
     // This chart's control bar: source_stats.chart.render_section emits it
     // directly ahead of the SVG. A page that placed a lone bar elsewhere by
     // hand still has only one to mean.
@@ -1635,8 +1647,27 @@ whenSettled(function () {
           refreshCrosshair();
           refreshTable();
         }
+        // THE CHOICE SURVIVES A RELOAD (user request 2026-10-28): kept per
+        // page and per chart in this tab's sessionStorage, so F5 — or the
+        // live render replacing the baked page — redraws the same lines.
+        // Charts that take turns in one place (data-chart-alts, below) keep
+        // ONE choice between them, so a switch or a reload keeps the lines.
+        const choiceKey = svg.closest('[data-chart-alts]')
+          ? `chart-choice:${location.pathname}:alts`
+          : `chart-choice:${location.pathname}:${chartIdx}`;
+        const saveChoice = () => {
+          try { sessionStorage.setItem(choiceKey, JSON.stringify(chosen)); }
+          catch (e) { /* storage off: the choice just doesn't persist */ }
+        };
+        const savedChoice = () => {
+          try {
+            const v = JSON.parse(sessionStorage.getItem(choiceKey));
+            return Array.isArray(v) ? v : null;
+          } catch (e) { return null; }
+        };
         function setChosen(keys) {
           chosen = keys.filter(k => k === '' || (expanded[k] && listed(k)));
+          saveChoice();
           // Nothing ticked IS an empty chart (user decision 2026-10-24; until
           // then the totals came back, so unticking the last line looked like
           // a reset). The page still opens on the totals.
@@ -1794,6 +1825,10 @@ whenSettled(function () {
         // A resolution change rebuilds `points` on the totals; re-apply the
         // choice so the view, not the selection, is what changed.
         reapply = () => setChosen(chosen);
+        const saved = savedChoice();
+        if (saved) setChosen(saved);
+        svg.chartApi.getChoice = () => chosen.slice();
+        svg.chartApi.setChoice = keys => setChosen(keys);
       }
 
       // Counts ⇄ Share: the same choice, redrawn in the other measure — the
@@ -1853,6 +1888,13 @@ whenSettled(function () {
         prevBtn.addEventListener('click', () => stepYear(-1));
         nextBtn.addEventListener('click', () => stepYear(1));
         applyYear();
+        // The year on screen, by name, for the alternates switch: two
+        // charts may not start in the same year, so the index won't do.
+        svg.chartApi.getYear = () => yr && yr.name;
+        svg.chartApi.setYear = name => {
+          const i = years.findIndex(y => y.name === name);
+          if (i >= 0 && i !== yearIdx) { yearIdx = i; applyYear(); }
+        };
       }
 
       // ── Snapshots / Days ────────────────────────────────────────────────
@@ -1881,6 +1923,93 @@ whenSettled(function () {
       if (fold) fold.addEventListener('toggle', () => {
         if (fold.open) { pinColumns(); refreshCrosshair(); }
       });
+      // The same re-measure for a chart shown by the alternates switch.
+      svg.chartApi.relayout = () => { pinColumns(); refreshCrosshair(); };
     }
+  });
+
+  // ── Alternate charts: one place, a toggle between them ────────────────
+  // A [data-chart-alts] block holds chart sections ([data-chart-alt=
+  // "<label>"]) that take turns (user decision 2026-10-28: Workshop
+  // Stats' Lines and Tracked size, "one graph with a toggle"). Each bar
+  // gains the same toggle, first; a switch hides the old section, carries
+  // its choice of lines and its control settings to the new one, and
+  // re-measures it. Which one is shown survives a reload, and an address
+  // naming a section (#size) opens on it.
+  document.querySelectorAll('[data-chart-alts]').forEach((group, g) => {
+    const alts = Array.from(group.querySelectorAll('[data-chart-alt]'));
+    if (alts.length < 2) return;
+    const svgOf = sec => sec.querySelector('.line-history-svg');
+    const barOf = sec => sec.querySelector('.chart-controls');
+    const store = `chart-alt:${location.pathname}:${g}`;
+    // A control's id without its bar's suffix: the same control in the
+    // other bar is that base plus the other suffix.
+    const base = (el, bar) => {
+      const k = bar.dataset.key ? '-' + bar.dataset.key : '';
+      return k && el.id.endsWith(k) ? el.id.slice(0, -k.length) : el.id;
+    };
+    const twin = (el, from, to) => {
+      const id = base(el, from) + (to.dataset.key ? '-' + to.dataset.key : '');
+      return to.querySelector(`#${CSS.escape(id)}`);
+    };
+    let shown = -1;
+    function show(i, carry) {
+      if (i === shown) return;
+      const old = shown >= 0 ? alts[shown] : null;
+      alts.forEach((sec, n) => { sec.hidden = n !== i; });
+      shown = i;
+      try { sessionStorage.setItem(store, String(i)); } catch (e) { /* */ }
+      group.querySelectorAll('.chart-alt-toggle input').forEach(r => {
+        r.checked = Number(r.dataset.alt) === i;
+      });
+      const sec = alts[i];
+      const svg = svgOf(sec);
+      const api = svg && svg.chartApi;
+      if (carry && old && barOf(old) && barOf(sec)) {
+        const from = barOf(old), to = barOf(sec);
+        from.querySelectorAll('input').forEach(el => {
+          if (el.closest('.chart-alt-toggle')) return;
+          const t = twin(el, from, to);
+          if (!t || t.checked === el.checked) return;
+          if (t.type === 'radio' && !el.checked) return;
+          t.checked = el.checked;
+          t.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        const oldApi = svgOf(old) && svgOf(old).chartApi;
+        const keys = oldApi && oldApi.getChoice && oldApi.getChoice();
+        if (keys && api && api.setChoice) api.setChoice(keys);
+        const year = oldApi && oldApi.getYear && oldApi.getYear();
+        if (year && api && api.setYear) api.setYear(year);
+      }
+      if (api && api.relayout) api.relayout();
+    }
+    alts.forEach((sec, s) => {
+      const bar = barOf(sec);
+      if (!bar) return;
+      const box = document.createElement('div');
+      box.className = 'view-toggle chart-alt-toggle';
+      box.setAttribute('role', 'radiogroup');
+      box.setAttribute('aria-label', 'Which chart');
+      alts.forEach((alt, i) => {
+        const r = document.createElement('input');
+        r.type = 'radio';
+        r.id = `chart-alt-${g}-${s}-${i}`;
+        r.name = `chart-alt-${g}-${s}`;
+        r.dataset.alt = String(i);
+        r.addEventListener('change', () => { if (r.checked) show(i, true); });
+        const l = document.createElement('label');
+        l.htmlFor = r.id;
+        l.textContent = alt.dataset.chartAlt;
+        box.append(r, l);
+      });
+      bar.prepend(box);
+    });
+    const named = alts.findIndex(
+      sec => sec.id && '#' + sec.id === location.hash);
+    let saved = -1;
+    try { saved = Number(sessionStorage.getItem(store) ?? -1); }
+    catch (e) { /* storage off: open on the first */ }
+    show(named >= 0 ? named : (saved >= 0 && saved < alts.length ? saved : 0),
+         false);
   });
 });

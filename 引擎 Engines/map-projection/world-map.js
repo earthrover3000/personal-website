@@ -93,19 +93,20 @@
       '.gcm-controls label{display:inline-flex;align-items:center;gap:0.35rem;font-size:0.9rem;color:var(--text);cursor:pointer;}' +
       '.gcm-controls input[type=radio],.gcm-controls input[type=checkbox]{accent-color:var(--accent);}' +
       '.gcm-controls label:has(input:disabled){color:var(--muted);opacity:0.55;cursor:default;}' +   // grey the WHOLE label of a disabled toggle (Provinces while Countries is off), not just the box
-      // A group may stack several rows (Framing = rotation + centre; Boundaries = countries + its
-      // child + cities). gcm-sublabel names each row; gcm-subopts marks a row that is a CHILD of the
-      // one above it (Provinces under Countries) — indented behind a rule so the nesting is visible
-      // rather than implied by a disabled box.
+      // A group may stack several rows (Boundaries = countries + cities);
+      // gcm-sublabel names a row, gcm-sep sets off a second control sharing it.
       '.gcm-sublabel{font-size:0.78rem;color:var(--muted);flex:0 0 auto;}' +
-      '.gcm-subopts{margin-left:0.55rem;padding-left:0.85rem;border-left:2px solid var(--border);}' +
       '.gcm-sep{color:var(--border);user-select:none;}' +
 
       '.gcm-controls input[type=number]{font:inherit;width:5rem;padding:0.3rem 0.5rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
       '.gcm-controls select{font:inherit;padding:0.4rem 0.6rem;max-width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
       '.gcm-routesel{display:inline-flex;align-items:center;gap:0.35rem;}' +
-      '.gcm-routefree{display:flex;align-items:center;gap:0.4rem;width:100%;}' +
-      '.gcm-routefree input[type=text]{flex:1 1 auto;min-width:0;font:inherit;padding:0.4rem 0.6rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
+      // Routes is one row: preset, typed routes + Add + Centre on it,
+      // arrows. It wraps on a narrow panel; an error takes its own line.
+      '.gcm-routesel select{max-width:11rem;}' +
+      '.gcm-routefree{display:flex;align-items:center;gap:0.4rem;}' +
+      '.gcm-errline{flex-basis:100%;}.gcm-errline:empty{display:none;}' +
+      '.gcm-routefree input[type=text]{flex:1 1 8rem;width:8rem;min-width:8rem;font:inherit;padding:0.4rem 0.6rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;}' +
       '.gcm-btn{font:inherit;padding:0.35rem 0.7rem;background:var(--surface);color:var(--text);' +
       'border:1px solid var(--border);border-radius:4px;cursor:pointer;}' +
       '.gcm-btn:hover{border-color:var(--accent);}' +
@@ -141,7 +142,7 @@
       '.gcm-zoombtn{height:2.2rem;text-align:center;padding:0;font-size:1.2rem;line-height:1;}' +
       '.gcm-zoom-readout{text-align:center;font-size:0.8rem;color:var(--muted);font-variant-numeric:tabular-nums;background:var(--surface);border-radius:4px;padding:0 0.3rem;}' +
       '.gcm-dial .gcm-zoombtn{min-width:2.2rem;padding:0 0.35rem;}' +
-      '.gcm-orient-readout{min-width:7rem;white-space:nowrap;text-align:center;font-size:0.85rem;color:var(--muted);font-variant-numeric:tabular-nums;}' +
+      '.gcm-orient-readout{min-width:3.6rem;white-space:nowrap;text-align:center;font-size:0.85rem;color:var(--muted);font-variant-numeric:tabular-nums;}' +
       '.gcm-northup,.gcm-northlive{display:inline-flex;align-items:center;gap:0.15rem;font-size:0.78rem;color:var(--muted);}' +
       '.gcm-northlive{background:var(--surface);border-radius:4px;padding:0 0.25rem;}' +
       '.gcm-zoombtn:disabled{opacity:0.4;cursor:default;}' +
@@ -202,7 +203,7 @@
       northLive: !!opts.northLive,                       // north mode: re-orient live during drag (default off → settle on release)
       _theta: -normalizeOrient(opts.orientation) * Math.PI / 180,  // applied rotation (radians); recomputed each render in north mode
       zoom: 1, cx: null, cy: null,   // projected coords shown at the canvas centre (null → init to the projection centre); rotation/zoom pivot here
-      centreOverride: null,          // {lat,lon}: a custom vertical-framing centre (from "Centre on arc"); overrides the preset hemisphere
+      centreOverride: null,          // {lat,lon}: a custom vertical-framing centre (from "Centre on it" or typed lat/lon); overrides the preset hemisphere
       centreArc: null,               // [codeA, codeB]: the arc we re-centred on, drawn straight down the middle
       stitch: opts.stitch != null ? !!opts.stitch : !!uiDefaults.stitch_edges   // Spilhaus square only: continue the map past its edges (see stitchTiles)
     };
@@ -216,7 +217,7 @@
 
     var canvas = el('canvas', 'gcm-canvas');
     var ctx = canvas.getContext('2d');
-    var freeWrap, errSpan, zoomReadout, orientReadout, selectedWrap, syncOrientUI = function () {}, syncOrientPresets = function () {}, orientSel, lastScale = 1, compassEl, compassNeedle, compassCircle, liveLab, liveChk, latBox, lonBox;
+    var freeWrap, errSpan, zoomReadout, orientReadout, selectedWrap, syncOrientUI = function () {}, syncOrientPresets = function () {}, orientSel, lastScale = 1, compassEl, compassNeedle, compassCircle, liveLab, liveChk, latBox, lonBox, centreChk;
     var framingInputs = [];   // the framing controls a self-framed projection (Spilhaus) greys out — see syncFramingUI
     var squareOnlyInputs = [];   // ...and the reverse: controls that exist only for the Spilhaus square
 
@@ -226,8 +227,8 @@
       // the headline "what map am I looking at" controls, so they're not buried in this panel.
       //
       // Panel order runs most-reached-for first: Routes (the page's whole point) → Framing (where the
-      // map points; its arc-centre box is really a route operation, hence the adjacency) → the two
-      // geography groups → the projection guides → Export. Each group is built by one of the builders
+      // map points, after the routes whose "Centre on it" sets it) → the two
+      // geography groups → the projection guides. Each group is built by one of the builders
       // further down; none of them is a catch-all.
       //
       // ROUTES — a preset group AND your own additive paths
@@ -250,66 +251,99 @@
       groupSel.addEventListener('change', function () { state.routeGroup = groupSel.value; render(); });
       selectedWrap.appendChild(groupSel);
 
-      freeWrap = el('span', 'gcm-routefree'); freeWrap.style.flex = '1 1 16rem';   // custom routes ADDED on top of the selected preset; grows to fill the row
+      freeWrap = el('span', 'gcm-routefree'); freeWrap.style.flex = '1 1 18rem';   // custom routes ADDED on top of the selected preset; grows to fill the row
       var input = el('input'); input.type = 'text'; input.placeholder = '+ add your own: NRT, PEK-JFK, LHR-HND-SIN';
-      var drawBtn = el('button', 'gcm-btn', 'Add'); errSpan = el('span', 'gcm-err');
-      function applyFree() { var r = parseRoutes(input.value); state.freeRoutes = r.routes; state.freePoints = r.points; errSpan.textContent = r.errors.length ? 'Unknown: ' + r.errors.join(', ') : ''; render(); }
-      drawBtn.addEventListener('click', applyFree);
-      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyFree(); });
-      freeWrap.appendChild(input); freeWrap.appendChild(drawBtn);
-
-      flightOpts.appendChild(selectedWrap); flightOpts.appendChild(freeWrap); flightOpts.appendChild(errSpan);   // dropdown + custom box shown together
-      flightGroup.appendChild(flightOpts);
-      // Direction arrows DECORATES the route arcs, so it belongs here rather than among the basemap
-      // layers where it used to sit. Own row, so it doesn't crowd the custom-route box above (which
-      // grows to fill its row).
-      var arrowRow = optRow();
-      check(arrowRow, 'Direction arrows', state.routeArrows, function (v) { state.routeArrows = v; render(); });   // arrowhead at each arc's midpoint, origin → destination
-      flightGroup.appendChild(arrowRow);
-      controls.appendChild(flightGroup);
-
-      // FRAMING — where the map is pointed: the rotation dial with its "put a region up" presets (the
-      // north-up lock lives on the compass in the toolbar), and the projection centre taken either
-      // from a flight arc or typed as lat/lon. One group, because they answer the same question.
-      var framingGroup = groupEl('Framing');
-      framingGroup.appendChild(orientationRow());
-      var centreOpts = optRow(), centreErr = el('span', 'gcm-err');       // CENTRE: from an arc (two airport codes) OR typed directly as lat/lon
-      centreOpts.appendChild(el('span', 'gcm-sublabel', 'Centre'));
-      var codeStyle = 'font:inherit;width:4.2rem;padding:0.35rem 0.5rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;text-transform:uppercase;';
-      var numStyle = 'font:inherit;width:5rem;padding:0.35rem 0.5rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;';
-      var box1 = el('input'), box2 = el('input');
-      box1.type = box2.type = 'text'; box1.maxLength = box2.maxLength = 3; box1.placeholder = box2.placeholder = 'AAA';
-      box1.style.cssText = box2.style.cssText = codeStyle;
-      var centreBtn = el('button', 'gcm-btn', 'Centre!');
-      latBox = el('input'); lonBox = el('input'); latBox.type = lonBox.type = 'text';
-      latBox.style.cssText = lonBox.style.cssText = numStyle; latBox.title = 'centre latitude °  (+ = N)'; lonBox.title = 'centre longitude °  (+ = E)';
-      function clearCodes() { if (box1) box1.value = ''; if (box2) box2.value = ''; }
-      function doCentre() {                                              // airport codes → straightening centre, written into the lat/lon boxes
-        var a = box1.value.trim().toUpperCase(), b = box2.value.trim().toUpperCase(), AIR = root.WORLD_AIRPORTS;
-        var A = AIR[a], B = AIR[b], bad = [];
-        if (!A) bad.push(a || '(empty)'); if (!B) bad.push(b || '(empty)');
-        if (bad.length) { centreErr.textContent = 'Unknown: ' + bad.join(', '); return; }
-        var c = PROJ.centreForStraightLine([A[0], A[1]], [B[0], B[1]]);
-        if (!c) { centreErr.textContent = 'No unique great circle (identical or antipodal points).'; return; }
-        centreErr.textContent = ''; state.centreOverride = c; state.centreArc = [a, b];
+      var drawBtn = el('button', 'gcm-btn', 'Add'); errSpan = el('span', 'gcm-err gcm-errline');
+      function applyFree() {
+        var r = parseRoutes(input.value);
+        state.freeRoutes = r.routes; state.freePoints = r.points;
+        errSpan.textContent = r.errors.length
+          ? 'Unknown: ' + r.errors.join(', ') : '';
+        if (centreChk.checked) centreOnFirstLeg(); else render();
+      }
+      // "Centre on it": the FIRST leg typed becomes the straight middle
+      // line. Typed routes only — a preset group has no obvious first
+      // route. A first leg that will not resolve (unknown code, or no leg
+      // yet) leaves the centre where it was; "Unknown:" already says why.
+      function centreOnFirstLeg() {
+        var AIR = root.WORLD_AIRPORTS, leg = firstLeg(input.value);
+        var A = leg && AIR[leg[0]], B = leg && AIR[leg[1]];
+        var c = A && B &&
+          PROJ.centreForStraightLine([A[0], A[1]], [B[0], B[1]]);
+        if (A && B && !c) errSpan.textContent = leg.join('–') +
+          ': no unique great circle (identical or antipodal).';
+        var arc = state.centreArc;
+        var same = c && arc && arc[0] === leg[0] && arc[1] === leg[1];
+        if (c && !same) {
+          state.centreOverride = c; state.centreArc = leg;
+          updateCentreBoxes(); resetView();
+        }
+        render();
+      }
+      function uncentre() {           // back to the hemisphere's own centre
+        if (!state.centreArc) return;
+        state.centreOverride = null; state.centreArc = null;
         updateCentreBoxes(); resetView(); render();
       }
-      function applyManualCentre() {                                     // typed lat/lon → custom centre; drops any arc and clears the airport boxes
+      drawBtn.addEventListener('click', applyFree);
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') applyFree();
+      });
+      if (state.centreArc && !input.value) {  // an init centreArc: typed leg
+        input.value = state.centreArc.join('-');
+        state.freeRoutes = [state.centreArc.slice()];
+      }
+      freeWrap.appendChild(input); freeWrap.appendChild(drawBtn);
+      centreChk = check(freeWrap, 'Centre on it', !!state.centreArc,
+        function (v) { if (v) centreOnFirstLeg(); else uncentre(); });
+      centreChk.parentNode.style.whiteSpace = 'nowrap';
+      centreChk.parentNode.title = 'Turn the globe so the first route ' +
+        'you typed runs straight across the middle';
+      framingInputs.push(centreChk);
+
+      // One row: preset, typed routes, then Direction arrows, which
+      // DECORATES the arcs and so lives here rather than in the basemap
+      // layers. The error line drops below the row when it has text.
+      flightOpts.appendChild(selectedWrap); flightOpts.appendChild(freeWrap);
+      var arrowChk = check(flightOpts, 'Direction arrows', state.routeArrows,
+        function (v) { state.routeArrows = v; render(); });
+      arrowChk.parentNode.style.whiteSpace = 'nowrap';
+      arrowChk.parentNode.title = 'An arrowhead mid-arc, origin → destination';
+      flightOpts.appendChild(errSpan);
+      flightGroup.appendChild(flightOpts);
+      controls.appendChild(flightGroup);
+
+      // FRAMING — where the map is pointed: the rotation dial with its
+      // "put a region up" presets (the north-up lock lives on the compass
+      // in the toolbar), and the projection centre as lat/lon. Centring on
+      // a flight arc is the Routes box's "Centre on it"; these boxes show
+      // the result.
+      var framingGroup = groupEl('Framing');
+      // Rotation and Centre share a row; the lat/lon boxes carry their
+      // names as placeholders (seen when blank: the Eastern/Western framings).
+      var centreOpts = orientationRow();
+      var centreErr = el('span', 'gcm-err gcm-errline');
+      centreOpts.appendChild(el('span', 'gcm-sep', '|'));
+      centreOpts.appendChild(el('span', 'gcm-sublabel', 'Centre'));
+      var numStyle = 'font:inherit;width:4rem;padding:0.35rem 0.4rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;';
+      latBox = el('input'); lonBox = el('input'); latBox.type = lonBox.type = 'text';
+      latBox.placeholder = 'lat'; lonBox.placeholder = 'lon';
+      latBox.style.cssText = lonBox.style.cssText = numStyle; latBox.title = 'centre latitude °  (+ = N)'; lonBox.title = 'centre longitude °  (+ = E)';
+      // Typed lat/lon → custom centre; drops any arc (unticks "Centre on it").
+      function applyManualCentre() {
         var la = parseFloat(latBox.value), lo = parseFloat(lonBox.value);
         if (isNaN(la) || isNaN(lo) || la < -90 || la > 90 || lo < -180 || lo > 180) { centreErr.textContent = 'centre needs lat ∈ [−90,90], lon ∈ [−180,180]'; return; }
-        centreErr.textContent = ''; state.centreOverride = { lat: la, lon: lo }; state.centreArc = null; clearCodes();
+        centreErr.textContent = '';
+        state.centreOverride = { lat: la, lon: lo }; state.centreArc = null;
         updateCentreBoxes(); render();   // keep the current zoom/pan — nudging the centre shouldn't reset the view
       }
-      centreBtn.addEventListener('click', doCentre);
-      box1.addEventListener('keydown', function (e) { if (e.key === 'Enter') doCentre(); });
-      box2.addEventListener('keydown', function (e) { if (e.key === 'Enter') doCentre(); });
       latBox.addEventListener('change', applyManualCentre); lonBox.addEventListener('change', applyManualCentre);
       latBox.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyManualCentre(); });
       lonBox.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyManualCentre(); });
-      centreOpts.appendChild(box1); centreOpts.appendChild(el('span', null, '–')); centreOpts.appendChild(box2); centreOpts.appendChild(centreBtn);
-      centreOpts.appendChild(el('span', null, ' · lat')); centreOpts.appendChild(latBox); centreOpts.appendChild(el('span', null, 'lon')); centreOpts.appendChild(lonBox);
+      centreOpts.appendChild(latBox);
+      centreOpts.appendChild(lonBox);
       centreOpts.appendChild(centreErr);
-      framingInputs.push(box1, box2, centreBtn, latBox, lonBox);
+      framingInputs.push(latBox, lonBox);
       framingGroup.appendChild(centreOpts);
       var stitchRow = optRow();                                           // the one framing control that is ONLY for Spilhaus (the square)
       stitchRow.appendChild(el('span', 'gcm-sublabel', 'Edges'));
@@ -324,11 +358,6 @@
       controls.appendChild(placesGroup());
       controls.appendChild(guidesGroup());
 
-      // EXPORT — Save PNG lives here (a panel action), not in the toolbar: it's an occasional export, not
-      // a primary view control. The serious export path is the offline Node port → Personal Works/maps/.
-      var exportGroup = el('fieldset', 'gcm-group'); exportGroup.appendChild(el('span', 'gcm-legend', 'Export'));
-      var save = el('button', 'gcm-btn', 'Save PNG'); save.title = 'Download the current map as a lossless 2× PNG'; save.addEventListener('click', savePng);
-      exportGroup.appendChild(save); controls.appendChild(exportGroup);
 
     }
 
@@ -397,7 +426,8 @@
         s.addEventListener('change', function () { onchange(s.value); });
         return s;
       }
-      var projSel = toolSelect(cfg.projections.map(idLabel), state.projection, 'Projection', function (v) { state.projection = v; updateCentreBoxes(); syncFramingUI(); resetView(); render(); });
+      var offered = cfg.projections.filter(function (p) { return !p.retired; });   // retired rows: kept for scripts, not offered
+      var projSel = toolSelect(offered.map(idLabel), state.projection, 'Projection', function (v) { state.projection = v; updateCentreBoxes(); syncFramingUI(); resetView(); render(); });
       var hemiSel = toolSelect(cfg.coordinates.map(idLabel), state.coordinate, 'Which hemisphere the map is framed on', function (v) { state.coordinate = v; state.centreOverride = null; state.centreArc = null; updateCentreBoxes(); syncOrientPresets(); resetView(); render(); });
       framingInputs.push(hemiSel);
       function toolField(text, sel) { var f = el('label', 'gcm-toolfield'); f.appendChild(document.createTextNode(text)); f.appendChild(sel); return f; }
@@ -405,10 +435,14 @@
       var selRow = el('div', 'gcm-toolrow');
       selRow.appendChild(toolField('Projection:', projSel)); selRow.appendChild(toolField('Hemisphere:', hemiSel));
       // ROW 2 — "adjust the view": zoom + compass on the LEFT (live LAST = inner edge, so toggling it shifts
-      // nothing), Reset pinned RIGHT. Save PNG lives in the panel.
+      // nothing), Save PNG and Reset pinned RIGHT.
       var ctrlRow = el('div', 'gcm-toolrow');
       var toolLeft = el('div', 'gcm-toolgroup'); toolLeft.appendChild(zbtns); toolLeft.appendChild(compassEl); toolLeft.appendChild(liveLab);
-      var toolRight = el('div', 'gcm-toolgroup gcm-toolright'); toolRight.appendChild(reset);
+      var save = el('button', 'gcm-btn gcm-railbtn', 'Save PNG');
+      save.title = 'Download the current map as a lossless 2× PNG';
+      save.addEventListener('click', savePng);
+      var toolRight = el('div', 'gcm-toolgroup gcm-toolright');
+      toolRight.appendChild(save); toolRight.appendChild(reset);
       ctrlRow.appendChild(toolLeft); ctrlRow.appendChild(toolRight);
       toolbar.appendChild(selRow); toolbar.appendChild(ctrlRow);
       syncFramingUI();                                                    // a page that opens on Spilhaus starts with the framing controls greyed
@@ -472,7 +506,7 @@
       // One radio set with an explicit "None" replaces the pair of checkboxes that
       // used to untick each other behind the user's back.
       var r2 = optRow();
-      r2.appendChild(el('span', 'gcm-sublabel', 'Land shading'));
+      r2.appendChild(el('span', 'gcm-sublabel', 'Land & ocean shading'));
       radioSet(r2, 'landshade', [['none', 'None'], ['topography', 'Land elevation'], ['regions', 'World regions']], landShade(),
         function (v) {
           state.topography = (v === 'topography');
@@ -483,11 +517,12 @@
           if (v === 'regions') ensureLayer('WORLD_UN_REGIONS', lazyLayers.regions, function (fresh) { if (fresh) geomKey = ''; render(); });
           else render();
         });
+      // Ocean depth shades WATER, so it is independent of the land choice;
+      // it shares the row, set off by a rule.
+      r2.appendChild(el('span', 'gcm-sep', '|'));
+      check(r2, 'Ocean depth', state.bathymetry,
+        function (v) { state.bathymetry = v; render(); });
       g.appendChild(r2);
-      var r3 = optRow();
-      r3.appendChild(el('span', 'gcm-sublabel', 'Ocean'));
-      check(r3, 'Ocean depth', state.bathymetry, function (v) { state.bathymetry = v; render(); });   // shades WATER, so it is independent of the land choice above
-      g.appendChild(r3);
       return g;
     }
     // BOUNDARIES & PLACES — the human geography drawn on top of the basemap.
@@ -500,19 +535,17 @@
         if (adm1Chk) adm1Chk.disabled = !v;               // Provinces subdivide the country layer — meaningless (and greyed) without it
         render();
       });
-      g.appendChild(r1);
       // Admin-1 (state/province) borders for the seven largest countries, lazy
-      // like the UN regions. Provinces is a CHILD of Countries, so it renders as
-      // one: indented in its own sub-row rather than sitting beside its parent as
-      // a sibling that mysteriously greys out.
-      var r2 = optRow('gcm-subopts');
-      adm1Chk = check(r2, 'Provinces', state.admin1, function (v) {
+      // like the UN regions. Provinces is a CHILD of Countries: it follows it on
+      // the same row behind a › and greys out while Countries is off.
+      r1.appendChild(el('span', 'gcm-sep', '›'));
+      adm1Chk = check(r1, 'Provinces', state.admin1, function (v) {
         state.admin1 = v;
         if (v) ensureLayer('WORLD_ADMIN1', lazyLayers.admin1, function (fresh) { if (fresh) geomKey = ''; render(); });
         else render();
       });
       adm1Chk.disabled = !state.boundaries;
-      g.appendChild(r2);
+      g.appendChild(r1);
       if (cities) {                                       // city-dot layers: World (49 GaWC) or Lived-in (4); name on hover
         var r3 = optRow();
         r3.appendChild(el('span', 'gcm-sublabel', 'Cities'));
@@ -547,7 +580,8 @@
       if (!orientReadout) return;
       if (state.orientMode === 'north') { orientReadout.textContent = 'north up'; return; }
       var d = state.orientation;
-      orientReadout.textContent = d + '°' + (d === 0 ? ' (top)' : (d === 180 ? ' (bottom)' : ''));
+      orientReadout.textContent = d + '°';                  // 0° = top, 180° = bottom
+      orientReadout.title = 'map rotation, clockwise from the top';
     }
     // Fixed dial (15° steps; 0°=top, 180°=bottom) OR dynamic North up. Returns a
     // ROW, not a whole group: it shares the "Framing" fieldset with the centre
@@ -671,6 +705,8 @@
     }
     function coordKey() { if (pinnedCoord()) return 'A:' + state.projection; return state.centreOverride ? ('C' + state.centreOverride.lat.toFixed(3) + ',' + state.centreOverride.lon.toFixed(3)) : state.coordinate; }
     function updateCentreBoxes() {                                        // mirror the active framing's centre into the editable lat/lon boxes (blank for seam-based horizontal framings)
+      // Every centre change passes here, so the tick follows it.
+      if (centreChk) centreChk.checked = !!state.centreArc;
       if (!latBox || !lonBox) return;
       var c = activeCoord();
       if (c.kind === 'vertical' && c.centre) { latBox.value = (+c.centre.lat).toFixed(1); lonBox.value = (+c.centre.lon).toFixed(1); }
@@ -690,6 +726,16 @@
         }
       });
       return { routes: routes, points: points, errors: errors };
+    }
+    // The first A-B pair typed, as written (unknown codes included).
+    function firstLeg(text) {
+      var segs = (text || '').split(',');
+      for (var i = 0; i < segs.length; i++) {
+        var parts = segs[i].trim().split(/[\s>\-]+/).filter(Boolean)
+          .map(function (s) { return s.toUpperCase(); });
+        if (parts.length >= 2) return [parts[0], parts[1]];
+      }
+      return null;
     }
     function groupById(id) { return ((presets && presets.groups) || []).filter(function (x) { return x.id === id; })[0]; }
     function groupSpec(g) {                                              // a group's routes/points; `routes` may be a text-box-grammar STRING or a legacy [[a,b],…] array

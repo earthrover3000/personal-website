@@ -40,7 +40,7 @@ export function agoText(seconds) {
 
 // THE SHORT FORM — a duration as at most two units, larger first, the
 // second always two digits: 45s · 3m45s · 2h05m · 1d03h (user decisions
-// 2026-10-22, for the 💬 Sessions widget). As parts, one per unit, so a
+// 2026-10-22, for the Sessions widget). As parts, one per unit, so a
 // page can stand each unit in its own column and every m sits under every
 // m. The SAME RULE in Python is claude_sessions.fmt_age (Readouts) —
 // change both together.

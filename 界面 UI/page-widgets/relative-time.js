@@ -12,7 +12,7 @@
    IN FRONT of this file by read_relative_time_js, so this file is never
    served on its own. Fallback (no JS) is whatever text the element
    already holds.
-   `relative-time-units` (2026-10-22, the 💬 Sessions widget): the age
+   `relative-time-units` (2026-10-22, the Sessions widget): the age
    as time-ago's SHORT form (`durationUnits`, 3m45s), one child per unit
    — <span data-u="d|h|m|s"> — so a page can give each unit a column. */
 (function() {

@@ -23,6 +23,10 @@ projections:
   - id: hao
     label: "郝晓光 等差分多圆锥"
     kind: polyconic         # Hǎo's equal-difference parallel polyconic, 《经纬跨越四百年》附录1 Eq (1)-(6)
+    # Retired from the website 2026-10-28 (user decision): world-map.js leaves it out of the
+    # Projection menu. The kernel stays, and so does this row — the shelved scripts in
+    # 素材代码 Raw Code/hao-projection still ask projById('hao').
+    retired: true
   - id: equalearth
     label: "Equal Earth"
     kind: equalearth        # Šavrič–Patterson–Jenny 2019 equal-area pseudocylindrical; θ=asin(√3/2·sin φ) through a fitted odd polynomial

@@ -421,6 +421,25 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   display: block; color: var(--muted); font-size: 0.85em;
 }
 
+/* A cell's second line: what a row's name means, under the name (Workshop
+   Stats' Parts, 2026-10-28). Plain weight even in a totals row. */
+.stats-table .cell-sub {
+  display: block; color: var(--muted); font-size: 0.85em; font-weight: normal;
+}
+/* …and its header's qualifier sits flush right over a number column. */
+.stats-table th.num .th-qual { text-align: right; }
+/* A vertical rule where one group of columns ends and the next begins
+   (Workshop Stats' Parts: the lines columns, then the bytes ones). */
+.stats-table .col-group-start { border-left: 1px solid var(--border); }
+/* The header row is --border grey itself: there the rule is a gap. */
+.stats-table th.col-group-start { border-left-color: var(--bg); }
+/* A part's short form ahead of its name (Workshop Stats: `atl · Lifespan
+   Atlas`): monospace, so every name after it starts at one edge. */
+.stats-table .part-key {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em; color: var(--muted);
+}
+
 /* Lock all three spans to the same minimum width so column sizing
    stays stable when the toggle swaps which one is visible. The widest
    possible content across views is the date "2026-05-04" (10 chars);
