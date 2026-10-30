@@ -643,13 +643,33 @@ span.inline-edit:empty { display: inline-block; min-width: 3ch; }
   display: none;
 }
 
-/* ---- Collapsible sections ---- */
+/* ---- Collapsible sections (plan-chrome.js sectionCollapse) ----
+   The chevron hangs in the margin left of the section's number, so the
+   number and title sit where they always did, open or closed; 1rem is
+   the narrowest page edge (base.css --edge-x), so it never leaves the
+   screen. The <summary> stays for find-in-page, but shows nothing (user
+   decision 2026-10-30: it was a "▾ Hide tasks" line of its own). */
 .section-collapse { margin-top: 0.5rem; }
-.section-collapse > summary { cursor: pointer; list-style: none; font-size: 0.8rem; color: var(--muted); padding: 0.2rem 0; user-select: none; }
-.section-collapse > summary::-webkit-details-marker { display: none; }
-.section-collapse > summary::before { content: "\25B8 Show tasks"; }
-.section-collapse[open] > summary::before { content: "\25BE Hide tasks"; }
-.section-collapse > summary:hover { color: var(--accent); }
+.section-collapse > summary { display: none; }
+/* Every heading level carries one (user decision 2026-10-30), all in
+   the same margin column; a page heading's fold hides the siblings below
+   it with hidden="until-found", whose box Chrome keeps — so its margins
+   and padding go too, or a folded page would leave a gap. */
+:is(h2.section-title, h3, h4, h5, h6):has(> .section-chevron) {
+  position: relative; }
+[hidden="until-found"][data-fold-hidden] {
+  margin: 0 !important; padding: 0 !important; border: 0 !important; }
+.section-chevron {
+  position: absolute; left: -1rem; top: 0; bottom: 0; width: 1rem;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  color: var(--muted); font: inherit; font-size: 0.8em;
+  display: flex; align-items: center; justify-content: flex-start;
+  user-select: none;
+}
+h2.section-title > .section-chevron { bottom: 0.3rem; }
+.section-chevron::before { content: "\25BE"; }
+.section-chevron[aria-expanded="false"]::before { content: "\25B8"; }
+.section-chevron:hover, .section-chevron:focus-visible { color: var(--accent); }
 
 /* ---- Groups (app-list style) ---- */
 .group { margin-bottom: 2rem; counter-increment: g; counter-reset: s; }

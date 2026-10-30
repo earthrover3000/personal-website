@@ -1102,6 +1102,7 @@
       row.appendChild(btn);
       ul.after(row);
     });
+    addHeadingFolds();
   }
 
   function wrapLiText(li) {
@@ -1324,6 +1325,130 @@
     });
   }
 
+  // ---- Folding: every heading level has a chevron ----
+  // A chevron hangs in the margin left of every section and page heading
+  // and folds what is under it (user decisions 2026-10-30: first the
+  // sections, whose "▾ Hide tasks" line it replaced, then every level).
+  // The buttons hold no text — the glyph is docs.css's — because the save
+  // path reads a heading's textContent back as its title.
+  //
+  // A SECTION (<h2>) folds its <details>: the <summary> stays, hidden by
+  // docs.css, so find-in-page still opens a closed section.
+  // A PAGE HEADING (<h3>–<h6>) has no box of its own: a section's headings,
+  // descriptions and lists are flat siblings, which the save and drag code
+  // walk as such. So a folded heading (`data-folded`) hides the siblings
+  // after it down to the next heading of its level or higher, with
+  // `hidden="until-found"` — find-in-page reveals a match, and `beforematch`
+  // unfolds the headings above it.
+  //
+  // ONE delegated click listener, not one per button: editing a heading and
+  // pressing Escape puts its saved innerHTML back, button included, but no
+  // listener with it.
+  const FOLD_MARK = 'data-fold-hidden';
+
+  function chevron() {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'section-chevron';
+    btn.setAttribute('contenteditable', 'false');
+    return btn;
+  }
+
+  function syncChevron(btn, open) {
+    if (!btn) return;
+    btn.setAttribute('aria-expanded', String(open));
+    btn.setAttribute('aria-label', open ? 'Hide tasks' : 'Show tasks');
+    btn.title = btn.getAttribute('aria-label');
+  }
+
+  function sectionCollapse(h2) {
+    const details = document.createElement('details');
+    details.className = 'section-collapse';
+    details.open = true;
+    details.appendChild(document.createElement('summary'));
+    const btn = chevron();
+    details.addEventListener('toggle', () => syncChevron(
+      h2.querySelector(':scope > .section-chevron'), details.open));
+    syncChevron(btn, true);
+    h2.prepend(btn);
+    return details;
+  }
+
+  const headLevel = el => {
+    const m = /^H([3-6])$/.exec(el.tagName);
+    return m ? +m[1] : 0;
+  };
+
+  function setFoldHidden(el, on) {
+    if (on && !el.hasAttribute('hidden')) {
+      el.setAttribute('hidden', 'until-found');
+      el.setAttribute(FOLD_MARK, '');
+    } else if (!on && el.hasAttribute(FOLD_MARK)) {
+      el.removeAttribute('hidden');
+      el.removeAttribute(FOLD_MARK);
+    }
+  }
+
+  // Hide and show a section's body to match its headings' folds.
+  function refold(box) {
+    const open = [];                       // [{lv, folded}] of the headings in scope
+    for (const el of box.children) {
+      if (el.tagName === 'SUMMARY') continue;
+      const lv = headLevel(el);
+      if (lv) while (open.length && open[open.length - 1].lv >= lv) open.pop();
+      setFoldHidden(el, open.some(o => o.folded));
+      if (lv) {
+        const folded = el.hasAttribute('data-folded');
+        open.push({ lv, folded });
+        syncChevron(el.querySelector(':scope > .section-chevron'), !folded);
+      }
+    }
+  }
+
+  // Give every page heading its chevron (idempotent), then apply the folds.
+  // Each renderer calls it after drawing; edit mode's controls call it too,
+  // since they add rows.
+  function addHeadingFolds() {
+    document.querySelectorAll('.section-collapse').forEach(box => {
+      for (const el of box.children) {
+        if (headLevel(el) && !el.querySelector(':scope > .section-chevron'))
+          el.prepend(chevron());
+      }
+      refold(box);
+    });
+  }
+
+  document.addEventListener('click', e => {
+    const btn = e.target.closest && e.target.closest('.section-chevron');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const head = btn.parentElement;
+    if (head.tagName === 'H2') {
+      const details = head.parentElement
+        .querySelector(':scope > .section-collapse');
+      if (details) details.open = !details.open;
+      return;
+    }
+    head.toggleAttribute('data-folded');
+    refold(head.parentElement);
+  }, true);
+
+  // Find-in-page found a match in a fold: unfold every heading above it.
+  document.addEventListener('beforematch', e => {
+    let el = e.target;
+    while (el && !(el.parentElement &&
+                   el.parentElement.classList.contains('section-collapse')))
+      el = el.parentElement;
+    if (!el) return;
+    let below = headLevel(el) || 7;
+    for (let p = el.previousElementSibling; p; p = p.previousElementSibling) {
+      const lv = headLevel(p);
+      if (lv && lv < below) { p.removeAttribute('data-folded'); below = lv; }
+    }
+    refold(el.parentElement);
+  });
+
   // ---- TOC search + toggle ----
   function onTocSearch(query) {
     const q = (query || '').trim().toLowerCase();
@@ -1353,7 +1478,7 @@
   window.PlanChrome = {
     configure, setLegend, legend, setVersionOrder, versionOrder, versionColor,
     activeFilter, beginExtract, extractWarnings, carryForwardUnrendered,
-    selectedRow, clearSelection,
+    selectedRow, clearSelection, sectionCollapse, addHeadingFolds,
     styleVersionEl, buildTocOl, slugify, appendAddRow, escHtml,
     appendLinkedText, renumberLis, updateCounts, setLiNum, isEditing, sortList,
     toggleStatus, legendRows, buildLegend, buildFilterBar,

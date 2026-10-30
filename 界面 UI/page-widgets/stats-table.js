@@ -471,7 +471,27 @@ whenSettled(function () {
       // rebuilt domain keeps the window the axis was widened to (whole-history
       // fallback only).
       let winEndMs = 0;
+      // ── Year | Zoom (user decision 2026-10-30) ──────────────────────────
+      // Zoom shows the previous block and the current blocks — the start of
+      // the block before them to the end of the window the axis already
+      // closes on — and fits the linear axis to what that shows, floor and
+      // all (measure). The window is the marks engine's, so it waits for it
+      // (below); without blocks (data vault unmounted) the last
+      // ZOOM_FALLBACK_DAYS. Every chart opens on Year.
+      let zoomWin = null;                    // {startMs, endMs}
+      const zoomOn = () => isOn('span-zoom');
+      const ZOOM_FALLBACK_DAYS = 120;
+      let syncSpanNav = () => {};            // the year arrows, once built
       function setDomain() {
+        if (zoomOn()) {
+          if (zoomWin) {
+            domainMinMs = zoomWin.startMs; domainMaxMs = zoomWin.endMs;
+          } else {
+            domainMaxMs = Math.max(dataEndMs, +now);
+            domainMinMs = domainMaxMs - ZOOM_FALLBACK_DAYS * DAY_MS;
+          }
+          return;
+        }
         if (yr) { domainMinMs = yr.startMs; domainMaxMs = yr.endMs; return; }
         domainMinMs = +dates[0];
         domainMaxMs = Math.max(dataEndMs, winEndMs);
@@ -480,11 +500,33 @@ whenSettled(function () {
       // series (indexed by the server against the raw payload) follows the
       // view: a day shows the value its last snapshot had.
       const pick = arr => idxMap.map(j => arr[j]);
+      // ── Live ─────────────────────────────────────────────────────────────
+      // A chart that names a live count (`data-chart-live`, source_stats.
+      // chart `live` — user decisions 2026-10-30, the Backlog's open tasks)
+      // gets it as one more point after its newest reading: the line runs on
+      // to it, the readout and the 24h row read it, the Table's current
+      // period ends on it. READ, NEVER RECORDED — the payload is untouched,
+      // so the log stays one reading a day. Asked on open and every five
+      // minutes (below). A series chart's lines get their live values too,
+      // by key, where the live answer carries them (liveHook).
+      const liveUrl = svg.dataset.chartLive || '';
+      let live = null;                       // {ms, total[, line keys]}
+      // A series chart's live values (filed / unfiled): its picker fills
+      // them in, at the live point's own index (below).
+      let liveHook = () => {};
       function loadPoints() {
         const view = daysMode() ? collapseDaily(rawPoints) : rawPoints.map((p, i) => ({ ts: p.ts, j: i }));
         idxMap = view.map(v => v.j);
         points = view.map(v => ({ ts: v.ts, total: rawPoints[v.j].total, words: rawPoints[v.j].words }));
         dates = points.map(p => new Date(p.ts));
+        if (live && dates.length && live.ms > +dates[dates.length - 1]) {
+          points.push({ ts: new Date(live.ms).toISOString(), total: live.total,
+                        words: null, live: true });
+          dates.push(new Date(live.ms));
+          // Its own slot, one past the payload: a series' value there is the
+          // live one (liveHook), never the last recorded reading.
+          idxMap.push(rawPoints.length);
+        }
         const last = dates[dates.length - 1];
         // Where the DATA ends: the newest snapshot, or now. The Table view reads
         // up to here and no further — a ledger has no rows for periods that have
@@ -584,6 +626,26 @@ whenSettled(function () {
         return 4 * AXIS_STEPS.map(m => m * mag)
           .find(step => Number.isInteger(step) && step >= raw - 1e-9);
       };
+      // Zoom's linear axis: four round steps (AXIS_STEPS) from a floor at a
+      // step multiple, the smallest that cover the window's values — so the
+      // axis may start above 0, and its bottom label says where. `whole`
+      // keeps counts on whole-number steps.
+      let yMinLines = 0, yMinWords = 0;
+      const fitBounds = (vals, whole) => {
+        const lo0 = Math.min(...vals), hi0 = Math.max(...vals);
+        const raw = Math.max((hi0 - lo0) / 4, Math.abs(hi0) * 0.005,
+                             whole ? 1 : 1e-9);
+        let mag = Math.pow(10, Math.floor(Math.log10(raw)));
+        for (let t = 0; t < 3; t++, mag *= 10) {
+          for (const m of AXIS_STEPS) {
+            const step = m * mag;
+            if (whole && !Number.isInteger(step)) continue;
+            const lo = Math.max(0, Math.floor(lo0 / step) * step);
+            if (lo + 4 * step >= hi0 - 1e-9) return { lo, hi: lo + 4 * step };
+          }
+        }
+        return { lo: 0, hi: roundUpAxisMax(vals) };
+      };
       let scoped = false;   // `points` holds one project, not the totals
       // OVERLAY (user decision 2026-10-18): two or more projects chosen at
       // once are drawn together, one line each, on one left axis. Each rides
@@ -614,6 +676,15 @@ whenSettled(function () {
         }
         yMaxWords = scoped ? niceMax(wordVals)
           : wordVals.length ? roundUpAxisMax(wordVals) : 0;
+        yMinLines = 0; yMinWords = 0;
+        if (zoomOn() && !shareOn() && totals.length) {
+          const b = fitBounds(totals.map(v => v / unitScale), unitScale === 1);
+          yMinLines = b.lo * unitScale; yMaxLines = b.hi * unitScale;
+        }
+        if (zoomOn() && wordVals.length) {
+          const b = fitBounds(wordVals, true);
+          yMinWords = b.lo; yMaxWords = b.hi;
+        }
       }
       measure();
       // Label a tick with just enough decimals for its step (0.5→"9.5", 1→"9").
@@ -625,14 +696,19 @@ whenSettled(function () {
 
       const SCALES = {
         linear: {
-          yl: v => padT + chartH * (1 - v / yMaxLines),
-          yw: v => yMaxWords <= 0 ? padT + chartH : padT + chartH * (1 - v / yMaxWords),
-          labL: i => shareOn() ? `${Math.round(yMaxLines * i / 4)}%`
-            : unitScale !== 1
-            ? (yMaxLines * i / 4 / unitScale).toLocaleString(
-              undefined, { maximumFractionDigits: 2 })
-            : Math.round(yMaxLines * i / 4).toLocaleString(),
-          labR: i => Math.round(yMaxWords * i / 4).toLocaleString(),
+          yl: v => padT + chartH * (1 - (v - yMinLines) / (yMaxLines - yMinLines)),
+          yw: v => yMaxWords <= yMinWords ? padT + chartH
+            : padT + chartH * (1 - (v - yMinWords) / (yMaxWords - yMinWords)),
+          labL: i => {
+            const v = yMinLines + (yMaxLines - yMinLines) * i / 4;
+            return shareOn() ? `${Math.round(v)}%`
+              : unitScale !== 1
+              ? (v / unitScale).toLocaleString(
+                undefined, { maximumFractionDigits: 2 })
+              : Math.round(v).toLocaleString();
+          },
+          labR: i => Math.round(
+            yMinWords + (yMaxWords - yMinWords) * i / 4).toLocaleString(),
         },
         log: {
           yl: v => padT + chartH * (1 - lnPos(v, lnLines)),
@@ -646,14 +722,16 @@ whenSettled(function () {
       const wordsPath = svg.querySelector('path.words-series');
       // Clip the series to the plot's x-range: they run through the points
       // either side of the window.
-      if (yr) {
+      // Zoom too: its fitted axis leaves older values above the plot or
+      // below its floor, so the clip closes top and bottom as well.
+      {
         const clipNS = 'http://www.w3.org/2000/svg';
         const clip = document.createElementNS(clipNS, 'clipPath');
         clip.id = 'stats-plot-clip-' + Math.random().toString(36).slice(2, 10);
         const rect = document.createElementNS(clipNS, 'rect');
-        rect.setAttribute('x', padL); rect.setAttribute('y', 0);
+        rect.setAttribute('x', padL); rect.setAttribute('y', padT - 2);
         rect.setAttribute('width', chartW);
-        rect.setAttribute('height', H - padB + 2);
+        rect.setAttribute('height', chartH + 4);
         clip.appendChild(rect);
         svg.appendChild(clip);
         [linesPath, wordsPath].forEach(
@@ -798,6 +876,28 @@ whenSettled(function () {
       });
       redraw(currentMode());
       applyVisibility();
+      if (liveUrl) {
+        const askLive = async () => {
+          try {
+            const r = await fetch(liveUrl, { cache: 'no-store' });
+            if (!r.ok) return;
+            const d = await r.json();
+            const ms = Date.parse(d.at);
+            if (typeof d.total !== 'number' || isNaN(ms)) return;
+            if (live && live.ms === ms
+                && JSON.stringify(live.values) === JSON.stringify(d)) return;
+            live = { ms, total: d.total, values: d };
+            liveHook();
+            // The Snapshots / Days rebuild: the index space changed.
+            loadPoints();
+            activeIdx = -1;
+            reapply();
+            refreshAxis();
+          } catch (e) { /* no live point; the line is unchanged */ }
+        };
+        askLive();
+        setInterval(askLive, 300000);
+      }
       ctlGroup('chart-scale').forEach(radio => {
         radio.addEventListener('change', () => redraw(currentMode()));
       });
@@ -873,6 +973,16 @@ whenSettled(function () {
         const current = marks.currentBlocks(blockCtx);
         const win = marks.currentBlocksWindow(blockCtx);
         if (win) winEndMs = win.endMs;
+        // Zoom's window: the block before the current ones, through them.
+        if (win && current.length) {
+          const first = current[0].startMs;
+          const below = (blockCtx.blockMs || []).filter(b => b < first);
+          let prev = below.length ? Math.max(...below) : -Infinity;
+          if (blockCtx.synthesized)
+            prev = Math.max(prev, first - blockCtx.avgLen * DAY_MS);
+          zoomWin = { startMs: isFinite(prev) ? prev : first, endMs: win.endMs };
+          if (zoomOn()) applySpan();
+        }
         if (!yr && winEndMs > domainMaxMs) {
           domainMaxMs = winEndMs;
           redraw(currentMode());
@@ -1198,7 +1308,7 @@ whenSettled(function () {
       //     string: passing it through Date would print an invented 00:00 and,
       //     for any reader west of UTC, roll the date back a day.
       const fmtWhen = i => {
-        if (dayGranular) return points[i].ts.slice(0, 10);
+        if (dayGranular && !points[i].live) return points[i].ts.slice(0, 10);
         const d = dates[i];
         return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ` +
                `${p2(d.getHours())}:${p2(d.getMinutes())}`;
@@ -1574,18 +1684,36 @@ whenSettled(function () {
           const ks = chosen.filter(k => shareSet.has(k) && listed(k));
           return ks.length ? ks : sharedParts();
         };
+        // A page with no table of rows names its lines on the chart itself
+        // (data-chart-series-labels, source_stats.chart `series_labels` —
+        // the Backlog's All / Filed / Unfiled, 2026-10-30).
+        let seriesLabels = {};
+        try { seriesLabels = JSON.parse(svg.dataset.chartSeriesLabels || '{}'); } catch (e) { seriesLabels = {}; }
         const labelOf = key => {
           // The totals row may name the whole (data-series-label on its
           // `data-series=""` row: Repository Size's `All folders`); a page
           // that does not says `All projects`, as before.
           if (key === '') {
             const t = rowOf('');
-            return (t && t.dataset.seriesLabel) || 'All projects';
+            return (t && t.dataset.seriesLabel) || seriesLabels[''] || 'All projects';
           }
           const r = rowOf(key);
           // data-series-label: the row's name where the table's own cell is
           // ambiguous out of its section (two `Scripts` rows, say).
-          return r ? (r.dataset.seriesLabel || r.cells[0].textContent.trim()) : key;
+          return r ? (r.dataset.seriesLabel || r.cells[0].textContent.trim())
+            : seriesLabels[key] || key;
+        };
+        // The live point's slot (loadPoints): the totals and each series at
+        // index rawPoints.length, from the live answer's same-named fields.
+        liveHook = () => {
+          const L = rawPoints.length;
+          const v = live ? live.values : {};
+          all.total[L] = live ? live.total : null;
+          all.words[L] = null;
+          for (const key of Object.keys(expanded)) {
+            expanded[key].total[L] = typeof v[key] === 'number' ? v[key] : null;
+            expanded[key].words[L] = null;
+          }
         };
         function show(key) {
           const s = expanded[key];
@@ -1880,7 +2008,26 @@ whenSettled(function () {
           activeIdx = -1;
           reapply();
           refreshAxis();
+          syncSpanNav();
         }
+        // Zoomed, the arrows stand aside (they step years) and the label
+        // says the window; back on Year, the year again.
+        const yearLabel = () => label.innerHTML;
+        let savedLabel = '';
+        syncSpanNav = () => {
+          const z = zoomOn();
+          prevBtn.disabled = z || yearIdx <= 0;
+          nextBtn.disabled = z || yearIdx >= years.length - 1;
+          if (z) {
+            if (!savedLabel) savedLabel = yearLabel();
+            label.innerHTML = '<span class="year-name">Zoom</span>'
+              + `<span class="year-span">${isoOf(domainMinMs)} – `
+              + `${isoOf(domainMaxMs - DAY_MS)}</span>`;
+          } else if (savedLabel) {
+            label.innerHTML = savedLabel;
+            savedLabel = '';
+          }
+        };
         const stepYear = d => {
           const i = yearIdx + d;
           if (i >= 0 && i < years.length) { yearIdx = i; applyYear(); }
@@ -1896,6 +2043,18 @@ whenSettled(function () {
           if (i >= 0 && i !== yearIdx) { yearIdx = i; applyYear(); }
         };
       }
+
+      // ── Year | Zoom ─────────────────────────────────────────────────────
+      function applySpan() {
+        setDomain();
+        activeIdx = -1;
+        reapply();
+        refreshAxis();
+        syncSpanNav();
+      }
+      ctlGroup('chart-span').forEach(radio => {
+        radio.addEventListener('change', applySpan);
+      });
 
       // ── Snapshots / Days ────────────────────────────────────────────────
       // Rebuild the view, then everything that was measured against it: the

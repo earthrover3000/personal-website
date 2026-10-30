@@ -376,11 +376,7 @@
     h2.innerHTML = '🔧 ' + escHtml(DEV_SECTION);
     section.appendChild(h2);
 
-    const details = document.createElement('details');
-    details.className = 'section-collapse';
-    details.open = true;
-    const summary = document.createElement('summary');
-    details.appendChild(summary);
+    const details = PC.sectionCollapse(h2);
 
     subs.forEach(sub => {
       const h3 = document.createElement('h3');
@@ -431,11 +427,7 @@
       h2.innerHTML = escHtml(sec.title);
       section.appendChild(h2);
 
-      const details = document.createElement('details');
-      details.className = 'section-collapse';
-      details.open = true;
-      const summary = document.createElement('summary');
-      details.appendChild(summary);
+      const details = PC.sectionCollapse(h2);
 
       // Section-level entries (rare — most go on individual pages).
       renderEntriesFor(details, sec.id, 3);
