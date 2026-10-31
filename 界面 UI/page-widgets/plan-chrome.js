@@ -677,7 +677,7 @@
       det.setAttribute('contenteditable', 'false');
       // Its look and its place below the entry line are docs.css's
       // (`.li-detail`: the detail field's one style, shared with the
-      // Termination Planner since 2026-10-25), no longer inline here.
+      // Death Plan since 2026-10-25), no longer inline here.
       // The <summary> exists but shows nothing: a <details> WITHOUT one gets
       // the UA's own 'Details' marker, so it cannot simply be dropped. Hidden
       // by docs.css, which leaves <details>'s open/closed machinery — and the

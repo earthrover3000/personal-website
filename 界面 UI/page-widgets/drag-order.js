@@ -1,7 +1,7 @@
 // drag-order.js — THE shelf's drag-to-reorder: any page whose list can be
 // put in order by hand uses this, rather than writing its own (user
 // decision 2026-10-24: "SSOT it so in the future other apps can use this
-// drag logic"). First callers: 临终规划器 Termination Planner's Checklist
+// drag logic"). First callers: 临终规划 Death Plan's Checklist
 // (items, within a method or into another) and Schedule (entries between
 // stages, stages between methods) — each a `group`.
 //
@@ -113,7 +113,7 @@ function gripOf(container, target) {
 
 // The container under the pointer: the one it is inside, else the nearest
 // above or below it among those it is level with. NESTED LISTS (2026-10-25,
-// the Termination Planner's sub-references): of two the pointer is inside,
+// the Death Plan's sub-references): of two the pointer is inside,
 // the inner one — the outer one holds it, so it would always win, and a row
 // dropped into a sub-list would land back in the list around it.
 function containerAt(targets, x, y) {

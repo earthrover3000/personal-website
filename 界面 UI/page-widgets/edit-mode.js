@@ -1,7 +1,7 @@
 // edit-mode.js — THE shelf's edit mode: how a page turns from reading into
 // editing, and how its text is edited where it is read (user decision
 // 2026-10-24: share the editing layer, keep each app's data its own).
-// First caller: 临终规划器 Termination Planner's lists.
+// First caller: 临终规划 Death Plan's lists.
 //
 // WHAT THE USER SEES. A page reads clean. "✏ Edit" (docs.css `#edit-btn`,
 // in the fixed `#toolbar` at the bottom right, as on the plan pages) turns
@@ -71,7 +71,7 @@
 // pages'), else made beside ✏. `saveKey` names its words in controls.js:
 // `commit` ("Save") by default, `save` ("Save to file") for a download.
 //
-// Callers: 临终规划器 Termination Planner's lists (lists.js), and since the
+// Callers: 临终规划 Death Plan's lists (lists.js), and since the
 // same day every plan page and the site map (plan-chrome.js) — all three
 // on the draft too (lists.js, plan-renderer.js, the site map's page).
 

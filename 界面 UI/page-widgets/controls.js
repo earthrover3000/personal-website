@@ -3,7 +3,7 @@
 // the left of text … and of course make it SSOT").
 //
 // The row (base.css `.controls-row`) is the plan pages', the site map's and
-// 临终规划器 Termination Planner's: Edit, Save (a draft) or Save to file
+// 临终规划 Death Plan's: Edit, Save (a draft) or Save to file
 // (a download), Add, and the lock's
 // Unlock / Lock / Change passphrase. Each one's emoji and words live HERE
 // and nowhere else. Markup a Python builder writes names the control and

@@ -1,6 +1,7 @@
 /* hub.css — THE HUB'S PAGE FRAME, once for every part (user decision
-   2026-10-20: "SSOT page size"). Linked after base.css by the Noticeboard,
-   the Dashboard and the Planning Room (surfaces.HUB_FRAME).
+   2026-10-20: "SSOT page size"). Linked after base.css by the Noticeboard
+   and the Dashboard (surfaces.HUB_FRAME); the Planning Room until it left
+   the Hub (2026-10-31).
 
    The column itself — base.css's --column, and its edge padding — is
    base.css's, as on every page. This file holds only what the Hub does

@@ -50,8 +50,8 @@ section { margin-bottom: 3rem; }
    - h4–h6: smaller, plain text, no monospace (Segoe UI inherited from body)
    THE FIRST TWO LEVELS' SIZES ARE NAMED (user decision 2026-10-25: "SSOT
    from the Planning Room"), so a page laid out in the same levels takes
-   them rather than its own — the Termination Planner's method and phase
-   folds (build_termination_planner.py). Their TYPE — size, colour,
+   them rather than its own — the Death Plan's method and phase
+   folds (build_death_plan.py). Their TYPE — size, colour,
    weight — is one rule each, shared by any heading at that level
    (`.level-1-heading`, `.level-2-heading`); the box (border, margins) is
    each page's own. */
@@ -130,7 +130,7 @@ h6.page-h6::before { content: var(--sl, counter(s1)) "." counter(s2) "." counter
 /* ONE LIST INDENT (user decision 2026-10-25: "SSOT this style"): how far
    a list's rows sit in from the heading they belong to. Every plain list
    takes it, and so does `.fold-rows` — a list that zeroes its own
-   padding (the Termination Planner's cards) but sits under a fold's
+   padding (the Death Plan's cards) but sits under a fold's
    heading: a step under its phase, an item under its method. */
 :root { --list-indent: 1.4rem; }
 ul { padding-left: var(--list-indent); }
@@ -141,7 +141,7 @@ section li { list-style: none; display: flex; align-items: baseline; flex-wrap: 
 /* Layout: number on the LEFT, content, then the stage tag on the RIGHT — the same
    "content-left / status-right" alignment the flat cards use. `li-text` grows to
    push the tag to the right edge. */
-/* An entry's number — and the Termination Planner's (`.entry-num`, user
+/* An entry's number — and the Death Plan's (`.entry-num`, user
    decision 2026-10-25), which is the same label beside its own uuid. */
 section li > .num, .entry-num { order: 0; flex-shrink: 0; margin-right: 0.4rem; color: var(--muted); font-size: 0.85em; font-variant-numeric: tabular-nums; }
 section li::before { content: "\2022"; order: 0; flex-shrink: 0; margin-right: 0.4rem; color: var(--muted); }
@@ -189,7 +189,7 @@ section li[data-entry] > .li-detail { grid-area: 3 / 3 / 4 / -1; }
 .zh { display: block; margin-top: 1px; }
 /* AN ENTRY'S FIELDS, ONE STYLE EACH (user decision 2026-10-25: "unify
    field names and styles and SSOT them"). The Planning Room's names, and
-   the Termination Planner's since that day:
+   the Death Plan's since that day:
    - title   — a bold name line, on its own line above the summary;
    - summary — the entry's main line, body text (`.li-text`, no rule);
    - detail  — the long text, its line breaks kept. A plan row's opens

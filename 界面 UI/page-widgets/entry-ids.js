@@ -4,7 +4,7 @@
 // short form (the first 8 hex digits).
 //
 // A plain script, so the classic plan pages (plan-chrome.js) and the
-// Termination Planner's module scripts can both use it: it sets
+// Death Plan's module scripts can both use it: it sets
 // `window.EntryIds`. It also fits the row grid's NUMBER COLUMN, the label
 // the uuid lines up beside (`fitNumbers`, at the end).
 //

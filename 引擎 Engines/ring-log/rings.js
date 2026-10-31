@@ -211,8 +211,10 @@ export function visibleRingWindow({ tSolidS1, refFrac, N }) {
 // DELEGATES here — the app view and the site's Site Log widget must stay
 // pixel-identical, so do NOT change any formula in one place only.
 
-/** Sparse solid-window length in days: 403 ≈ e^6 (user decision
- *  2026-10-18; 600 until then). The atlas's default split is 241 past +
+/** Sparse solid-window length in days, the DEFAULT: 403 ≈ e^6 (user
+ *  decision 2026-10-18; 600 until then). Since 2026-10-30 a caller may pass
+ *  its own `windowDays` to sparseRingWindow (the atlas's Length steps and
+ *  epoch spans); omitted, it is this. The atlas's default split is 241 past +
  *  today + 161 future (rings/sparseWindow DEFAULT_FUTURE_OFFSET_DAYS). The
  *  site's Site Log widget draws the dense spiral, not this window. */
 export const SPARSE_WINDOW_DAYS = 403;
@@ -244,13 +246,17 @@ export function sparseWindowEndFrac(anchorFrac, futureOffsetDays) {
  * sparse sliding window. Pure math; anchor animation/clamping policy stays
  * consumer-side.
  * @param {{ t_ref: number, refFrac: number, anchorFrac: number,
- *           futureOffsetDays: number }} input
+ *           futureOffsetDays: number, windowDays?: number }} input
  *   anchorFrac — the (possibly animated) anchor's year-fraction.
+ *   windowDays — the solid band's length; default SPARSE_WINDOW_DAYS.
  * @returns {{ tSolidS1: number, tInnerS1: number, winLoFrac: number,
  *            winHiFrac: number, anchorClampLo: number, anchorClampHi: number }}
  */
-export function sparseRingWindow({ t_ref, refFrac, anchorFrac, futureOffsetDays }) {
-  const windowSpanFrac = SPARSE_WINDOW_DAYS / DAYS_PER_YEAR;
+export function sparseRingWindow({
+  t_ref, refFrac, anchorFrac, futureOffsetDays,
+  windowDays = SPARSE_WINDOW_DAYS,
+}) {
+  const windowSpanFrac = windowDays / DAYS_PER_YEAR;
   const futureOffFrac = futureOffsetDays / DAYS_PER_YEAR;
   const winEnd = sparseWindowEndFrac(anchorFrac, futureOffsetDays);
   const winStart = winEnd - windowSpanFrac;
@@ -262,6 +268,28 @@ export function sparseRingWindow({ t_ref, refFrac, anchorFrac, futureOffsetDays 
     anchorClampLo: refFrac - SPARSE_SLIDE_REVS + windowSpanFrac - futureOffFrac,
     anchorClampHi: refFrac - futureOffFrac,
   };
+}
+
+// ─── THE BOUNDARY TICK'S SPAN (SSOT, user decision 2026-10-30) ──────────
+//
+// A boundary tick (block / month / week / year / lunar month) is centred ON
+// THE BOUNDARY — the midnight between the last day of one period and the
+// first of the next — and spans `widthDays` of a day, half on each side. Not
+// inside the first day: this engine's spiral wedges started a quarter-day in
+// until 2026-10-30, so every Waterwheel and Rings tick sat half a day late
+// against the Clock ring's. Every surface that draws such a tick asks here:
+// the spiral wedges below, the Clock ring (the atlas's clockGeometry
+// boundaryTickFracs), and through them the site's Site Log widget.
+
+/**
+ * @param {number} frac  the boundary, as a year-fraction
+ * @param {number} dayFrac  one day as a year-fraction (1 / DAYS_PER_YEAR)
+ * @param {number} widthDays  the tick's width in days
+ * @returns {[number, number]}  the tick's [start, end] year-fractions
+ */
+export function boundaryTickSpan(frac, dayFrac, widthDays) {
+  const half = (dayFrac * widthDays) / 2;
+  return [frac - half, frac + half];
 }
 
 // ─── Label marks (ported verbatim from rings/RingsLabelMarks.tsx) ────────
@@ -318,7 +346,6 @@ export function placeLabelMarks(marks, cfg) {
   const boundaryTickDayWidth =
     cfg.boundaryTickDayWidth !== undefined ? cfg.boundaryTickDayWidth : 0.5;
   const TWO_PI = 2 * Math.PI;
-  const halfStart = (1 - boundaryTickDayWidth) / 2;
   const rO = (tt) => b * tt;
   const rI = (tt) => b * (tt - PHASE_DIFF);
   // Side is clear iff the neighbouring revolution's band (incl. fade tails,
@@ -329,8 +356,9 @@ export function placeLabelMarks(marks, cfg) {
   const inSolid = (tt) => tt >= tInnerS1 && tt <= tSolidS1;
   const wedgePath = (frac, edge, dir, len) => {
     const useLen = len !== undefined ? len : tickLen;
-    const t1 = fracToT(frac + dayFrac * halfStart);
-    const t2 = fracToT(frac + dayFrac * (halfStart + boundaryTickDayWidth));
+    const [f1, f2] = boundaryTickSpan(frac, dayFrac, boundaryTickDayWidth);
+    const t1 = fracToT(f1);
+    const t2 = fracToT(f2);
     const e1 = edge(t1);
     const e2 = edge(t2);
     const p1 = polarPt(e1, t1 + PHASE_ABS);

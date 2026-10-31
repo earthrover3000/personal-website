@@ -117,6 +117,8 @@ export declare function sparseRingWindow(input: {
   anchorFrac: number;
   /** Days of future the window reaches past the anchor. */
   futureOffsetDays: number;
+  /** The solid band's length in days; default SPARSE_WINDOW_DAYS. */
+  windowDays?: number;
 }): {
   tSolidS1: number;
   tInnerS1: number;
@@ -218,3 +220,9 @@ export declare function placeEvents(
     yOffset?: number;
   },
 ): PlacedRingEvent[];
+
+/** A boundary tick's [start, end] year-fractions: centred ON the boundary,
+ *  `widthDays` of a day wide (rings.js, the SSOT). */
+export declare function boundaryTickSpan(
+  frac: number, dayFrac: number, widthDays: number,
+): [number, number];
