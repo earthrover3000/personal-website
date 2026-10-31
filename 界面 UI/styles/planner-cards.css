@@ -4,7 +4,7 @@
  *   - Website site map (`site-map.html`) <link>s this file; entries get the
  *     `.plan-mini` class (a mini-card row in the tree).
  *   - Flat `plan.html` INLINES this file at generation (planner/render.py reads
- *     it off the Modules shelf, with a vendored fallback) and uses `.plan-card`.
+ *     it off the Libraries shelf, with a vendored fallback) and uses `.plan-card`.
  *
  * Tokens are self-sufficient: a light default, dark via BOTH
  * `prefers-color-scheme` (the flat page's auto-theme) AND `[data-theme]` (the
