@@ -62,11 +62,16 @@ export type BlockPosition = {
   lenDays: number;
   /** Math.round(day / lenDays × 100). */
   pct: number;
+  /** The length is the projection, not a recorded block's. */
+  projected: boolean;
 };
 /** Position of `ms` within its block; null when the context has no usable
  *  length (no blocks and no projection). The ONE implementation behind the
  *  atlas readouts and the Origin statusline's 📅 segment. */
 export declare function blockPosition(ms: number, ctx: BlockContext): BlockPosition | null;
+/** "Block 22, Day 28/70 · 40%" — `*` before a projected length; the block
+ *  alone when `pos` is null. See marks.js blockLineText. */
+export declare function blockLineText(label: string, pos: BlockPosition | null): string;
 
 /** One block of the atlas Blocks view's CURRENT section. */
 export type CurrentBlock = {
@@ -155,8 +160,9 @@ export declare const CANONICAL_BLOCK_DAYS: number;
  *  undefined (the personal average) for "average" or absent. */
 export declare function resolveProjLen(setting: string | null | undefined,
   boundaries: readonly string[] | null | undefined): number | undefined;
-/** The local calendar day, on the block grid (UTC midnight of that date). */
-export declare function localTodayDayMs(now?: Date): number;
+/** Today's SLEEP day (04:00 cut, day_cut), on the block grid (UTC midnight
+ *  of that date); `tz` defaults to the device's zone. */
+export declare function localTodayDayMs(now?: Date, tz?: string): number;
 /** A block number → its start timestamp (the inverse of msToBlock). */
 export declare function blockToMs(blockN: number, ctx: BlockContext): number;
 /** The last block ending on or before `limitMs`; null without a grid. */

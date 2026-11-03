@@ -16,6 +16,11 @@
 // block-mark walk from lib/marks.ts — keep behaviour identical, the atlas has
 // ~30 consumers reading block numbers off it.
 
+// Where one day ends and the next begins (TODAY, localTodayDayMs) is
+// day_cut's: the one import. Every place that ships this module ships
+// day_cut beside it, at the same relative path.
+import { DAY_CUT, dayOf } from "../day_cut/day-cut.js";
+
 /** Milliseconds in one calendar day (UTC day grid). Mirrors lib/edges.DAY_MS. */
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -154,14 +159,16 @@ export function resolveProjLen(setting, boundaries) {
   return undefined;
 }
 
-/** TODAY as a day on the block grid: the LOCAL calendar day (user decision
- *  2026-10-18), expressed the way boundaries are — the UTC midnight of that
- *  ISO date. `now` defaults to the current instant. */
-export function localTodayDayMs(now = new Date()) {
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return isoToDayMs(`${y}-${m}-${d}`);
+/** TODAY as a day on the block grid: the SLEEP day — the day turns at
+ *  04:00 on the local clock (user decision 2026-11-03, "unify on 04:00",
+ *  replacing 2026-10-18's local calendar day, so a block's day count turns
+ *  with the date the Hub and the atlas show beside it; the cut is
+ *  day_cut's) — expressed the way boundaries are, the UTC midnight of that
+ *  ISO date. `now` defaults to the current instant, `tz` to the device's
+ *  own zone. */
+export function localTodayDayMs(now = new Date(),
+                                tz = Intl.DateTimeFormat().resolvedOptions().timeZone) {
+  return isoToDayMs(dayOf(now.getTime(), DAY_CUT.SLEEP, tz));
 }
 
 // ─── Block ↔ date (moved from the atlas's lib/blocks.ts, 2026-10-18) ────
@@ -213,8 +220,11 @@ export function elapsedDaysInclusive(pastMs, todayMs) {
  *  synthesised / pre-genesis slots, so this can never disagree with the
  *  `~Nd` slots msToBlockString labels. Block starts mirror msToBlock's slot
  *  math exactly (its inverse), so `day` never exceeds `lenDays`.
- *  `pct = Math.round(day / lenDays · 100)` — half rounds up. Returns null
- *  when the context has no usable length (no blocks and no projection). */
+ *  `pct = Math.round(day / lenDays · 100)` — half rounds up. `projected`
+ *  says the length is the projection, not a recorded block's (user
+ *  decision 2026-11-03: it is written `Day 5/*54`, blockLineText). Returns
+ *  null when the context has no usable length (no blocks and no
+ *  projection). */
 export function blockPosition(ms, ctx) {
   const { blockMs, numBlocks, lastBoundaryMs, genesisMs, avgLen } = ctx;
   const idx = msToBlock(ms, ctx);
@@ -232,7 +242,20 @@ export function blockPosition(ms, ctx) {
   }
   if (lenDays <= 0) return null;
   const day = Math.round((ms - startMs) / MS_PER_DAY) + 1;
-  return { day, lenDays, pct: Math.round((day / lenDays) * 100) };
+  return { day, lenDays, pct: Math.round((day / lenDays) * 100),
+           projected: !(idx >= 0 && idx < numBlocks) };
+}
+
+/** THE CURRENT-BLOCK LINE, as every surface writes it — "Block 22, Day
+ *  28/70 · 40%" (the atlas probe and dashboard, the Hub's Big Screen). A
+ *  projected LENGTH wears the leading `*` a projected block does (user
+ *  decision 2026-11-03, blockLabelText's rule): "Block 23, Day 5/*54 ·
+ *  9%". `label` is the block's display form (formatBlockText), `pos`
+ *  blockPosition's answer — null gives the block alone. */
+export function blockLineText(label, pos) {
+  if (!pos) return `Block ${label}`;
+  const len = (pos.projected ? "*" : "") + pos.lenDays;
+  return `Block ${label}, Day ${pos.day}/${len} \u00b7 ${pos.pct}%`;
 }
 
 // ─── The CURRENT blocks (the atlas Blocks view's "Current" section) ─────

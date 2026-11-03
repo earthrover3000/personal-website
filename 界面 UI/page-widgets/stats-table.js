@@ -959,7 +959,8 @@ whenSettled(function () {
         // projLen and the day are the shared rules (2026-10-18): the
         // people.yaml projection, resolved server-side into
         // data-chart-block-proj (empty = the personal average), and TODAY
-        // as the local calendar day on the block grid — not the raw instant.
+        // as the 04:00 sleep day on the block grid (since 2026-11-03) — not
+        // the raw instant.
         const projLen = svg.dataset.chartBlockProj ? Number(svg.dataset.chartBlockProj) : undefined;
         const blockCtx = marks.computeBlockContext(boundaries, marks.localTodayDayMs(now), projLen);
         // Draw to the end of the current blocks (user decision 2026-09-30):

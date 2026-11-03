@@ -68,8 +68,8 @@
   });
 })();
 </script>
-<script>if(localStorage.getItem("site-show-planned")==="on")document.documentElement.setAttribute("data-show-planned","");</script>
-<script>if(localStorage.getItem("site-show-dev")==="on")document.documentElement.setAttribute("data-show-dev","");</script>
+<script>if(localStorage.getItem('site-show-planned')==="on")document.documentElement.setAttribute("data-show-planned","");</script>
+<script>if(localStorage.getItem('site-show-dev')==="on")document.documentElement.setAttribute("data-show-dev","");</script>
 <style>/* Shared base styles for index pages (root, protected, private) and docs
    pages (site-map, site-stats, lifespan-atlas plan). Loaded BEFORE the
    page-specific stylesheet so page rules can override.
@@ -628,8 +628,9 @@ li { margin: var(--row-gap) 0; }
 }
 .row a:hover { background: var(--surface); text-decoration: underline; }
 /* A SUB-ROW sits under the row above it — a project inside that row's
-   folder (the Planning Room's PC Setup Companion and Digital Inventory under
-   System Environment, user decision 2026-10-19). Opt-in per entry (`sub`),
+   folder (the Planning Room's PC Setup Companion under System Environment,
+   user decision 2026-10-19; the Digital Inventory too until it became a
+   top-level folder, 2026-10-31). Opt-in per entry (`sub`),
    so every other page renders as before. */
 .row li.sub-row > a:not(.row-folder):not(.row-open) { padding-left: 2rem; }
 
@@ -1509,7 +1510,7 @@ a.app-card:hover {
 <div class="container">
 <div class="crumb-line"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Personal Website</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav><span class="head-controls"><button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">25,361 lines · 14,404 words · 907 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-10-31" class="relative-time relative-time-coarse">2026-10-31</time></p>
+<p class="head-meta"><a href="site-stats/">25,429 lines · 14,404 words · 907 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-11-03" class="relative-time relative-time-coarse">2026-11-03</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
@@ -1583,7 +1584,7 @@ a.app-card:hover {
 </div>
 </div>
 </div>
-<script>window.__indexTopicKinds=[];</script>
+<script>window.__indexTopicKinds=[];window.__indexScopedKinds=[];</script>
 <script>
 (() => {
 // time-ago — how long ago, in words: THE one spelling of it (user decision
@@ -1853,7 +1854,9 @@ function durationUnits(seconds) {
     const revealable = document.querySelector(
       '.' + kind + '-row, .app-card--' + kind + ', .' + kind + '-entry');
     if (!sw && !revealable) return;
-    const K = 'site-show-' + kind;
+    // A switch shown on this page keeps its own state (show_stamp_script).
+    const K = 'site-show-' + kind + ((window.__indexScopedKinds || [])
+      .includes(kind) ? ':'+location.pathname.replace(/index\.html$/,'') : '');
     const ATTR = 'data-show-' + kind;
     const stamp = () => {
       const on = localStorage.getItem(K) === 'on';

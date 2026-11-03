@@ -1,0 +1,33 @@
+{
+  "_comment": "The test both halves pass (day-cut.js via check.mjs, __init__.py via self_check). Expected values worked out by hand, not by either half. EU clocks change 2026-03-29 01:00 UTC and 2026-10-25 01:00 UTC, inside the sleep days of Saturday the 28th and the 24th.",
+  "window": [
+    {"day": "2026-10-21", "cut": "sleep", "tz": "Europe/Dublin", "start": "2026-10-21T03:00:00Z", "end": "2026-10-22T03:00:00Z", "why": "summer clock: 04:00 to 04:00"},
+    {"day": "2026-01-15", "cut": "sleep", "tz": "Europe/Dublin", "start": "2026-01-15T04:00:00Z", "end": "2026-01-16T04:00:00Z", "why": "winter clock: 04:00 to 04:00"},
+    {"day": "2026-03-28", "cut": "sleep", "tz": "Europe/Dublin", "start": "2026-03-28T04:00:00Z", "end": "2026-03-29T03:00:00Z", "why": "spring change inside: 23h"},
+    {"day": "2026-10-24", "cut": "sleep", "tz": "Europe/Dublin", "start": "2026-10-24T03:00:00Z", "end": "2026-10-25T04:00:00Z", "why": "autumn change inside: 25h"},
+    {"day": "2026-03-29", "cut": "sleep", "tz": "Europe/Dublin", "start": "2026-03-29T03:00:00Z", "end": "2026-03-30T03:00:00Z", "why": "the Sunday after the spring change: 24h"},
+    {"day": "2026-10-21", "cut": "sleep", "tz": "Asia/Shanghai", "start": "2026-10-20T20:00:00Z", "end": "2026-10-21T20:00:00Z", "why": "no clock change: 04:00 CST"},
+    {"day": "2026-01-15", "cut": "sleep", "tz": "Australia/Sydney", "start": "2026-01-14T17:00:00Z", "end": "2026-01-15T17:00:00Z", "why": "southern summer: 04:00 AEDT (+11)"},
+    {"day": "2026-07-04", "cut": "sleep", "tz": "America/New_York", "start": "2026-07-04T08:00:00Z", "end": "2026-07-05T08:00:00Z", "why": "04:00 EDT (-4)"},
+    {"day": "2026-10-21", "cut": "calendar", "tz": "Europe/Dublin", "start": "2026-10-20T23:00:00Z", "end": "2026-10-21T23:00:00Z", "why": "midnight on the summer clock"},
+    {"day": "2026-10-25", "cut": "calendar", "tz": "Europe/Dublin", "start": "2026-10-24T23:00:00Z", "end": "2026-10-26T00:00:00Z", "why": "calendar day of the autumn change is 25h"},
+    {"day": "2026-03-29", "cut": "calendar", "tz": "Europe/Dublin", "start": "2026-03-29T00:00:00Z", "end": "2026-03-29T23:00:00Z", "why": "calendar day of the spring change is 23h"},
+    {"day": "2026-10-21", "cut": "calendar", "tz": "Asia/Shanghai", "start": "2026-10-20T16:00:00Z", "end": "2026-10-21T16:00:00Z", "why": "midnight CST"}
+  ],
+  "day_of": [
+    {"at": "2026-10-21T02:59:00Z", "cut": "sleep", "tz": "Europe/Dublin", "day": "2026-10-20", "why": "03:59 summer clock: still last night"},
+    {"at": "2026-10-21T03:00:00Z", "cut": "sleep", "tz": "Europe/Dublin", "day": "2026-10-21", "why": "04:00 summer clock: the new day"},
+    {"at": "2026-01-15T03:59:00Z", "cut": "sleep", "tz": "Europe/Dublin", "day": "2026-01-14", "why": "03:59 winter clock"},
+    {"at": "2026-01-15T04:00:00Z", "cut": "sleep", "tz": "Europe/Dublin", "day": "2026-01-15", "why": "04:00 winter clock"},
+    {"at": "2026-10-25T00:30:00Z", "cut": "sleep", "tz": "Europe/Dublin", "day": "2026-10-24", "why": "01:30 summer clock, the first time"},
+    {"at": "2026-10-25T01:30:00Z", "cut": "sleep", "tz": "Europe/Dublin", "day": "2026-10-24", "why": "01:30 winter clock, the second time: same day"},
+    {"at": "2026-10-25T03:59:00Z", "cut": "sleep", "tz": "Europe/Dublin", "day": "2026-10-24", "why": "03:59 winter clock: the 25th hour"},
+    {"at": "2026-10-25T04:00:00Z", "cut": "sleep", "tz": "Europe/Dublin", "day": "2026-10-25", "why": "04:00 winter clock"},
+    {"at": "2026-10-21T19:59:00Z", "cut": "sleep", "tz": "Asia/Shanghai", "day": "2026-10-21", "why": "03:59 on the 22nd in Shanghai"},
+    {"at": "2026-10-21T20:00:00Z", "cut": "sleep", "tz": "Asia/Shanghai", "day": "2026-10-22", "why": "04:00 on the 22nd in Shanghai"},
+    {"at": "2026-01-01T03:30:00Z", "cut": "sleep", "tz": "Europe/Dublin", "day": "2025-12-31", "why": "across the year boundary"},
+    {"at": "2026-10-20T23:30:00Z", "cut": "calendar", "tz": "Europe/Dublin", "day": "2026-10-21", "why": "00:30 summer clock"},
+    {"at": "2026-10-20T22:59:00Z", "cut": "calendar", "tz": "Europe/Dublin", "day": "2026-10-20", "why": "23:59 summer clock"},
+    {"at": "2026-10-25T23:30:00Z", "cut": "calendar", "tz": "Europe/Dublin", "day": "2026-10-25", "why": "23:30 winter clock, after the change"}
+  ]
+}
