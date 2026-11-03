@@ -112,6 +112,14 @@
      (0.85em × 1.5 of the page text until today, the same size here.) */
   --crumb-font: 0.85rem;
   --crumb-h: calc(var(--crumb-font) * 1.5);
+  /* THE HEAD'S GAPS (user decision 2026-11-03: "convention should SSOT
+     be applied to all pages"): every page's head — the trail line, the
+     title, and any row under it (the Hub's day strip and icon row,
+     Settings' tabs) — stacks its rows --head-gap apart and ends
+     --head-end above the page's content. The head end was 1.2rem, the
+     title's own margin, until the same day. */
+  --head-gap: 0.6rem;
+  --head-end: 0.8rem;
   --bg:      light-dark(#f5f5f5, #0f0f0f);
   --surface: light-dark(#ffffff, #1a1a1a);
   --border:  light-dark(#d0d0d0, #2e2e2e);
@@ -248,7 +256,7 @@ body {
    Wraps on a narrow screen, the controls staying right-aligned. */
 .crumb-line {
   display: flex; flex-wrap: wrap; align-items: center;
-  column-gap: 0.9rem; row-gap: 0.2rem; margin: 0 0 0.6rem;
+  column-gap: 0.9rem; row-gap: 0.2rem; margin: 0 0 var(--head-gap);
   /* ONE HEIGHT on every surface (user report 2026-10-18: Filter ▸ and the
      Planned switch made the line taller than a bare breadcrumb). The line
      is the breadcrumb's own line box (--crumb-h) whatever sits beside
@@ -312,8 +320,13 @@ body {
 h1 {
   font-size: 1.6rem;
   color: var(--text);
-  margin-bottom: 1.2rem;
+  margin-bottom: var(--head-end);
 }
+/* A HEAD WITH ROWS UNDER ITS TITLE (`.head-rows`: the Hub's pinned head,
+   and the outer page's copy of it): each row --head-gap below the last,
+   the last --head-end above the content. */
+.head-rows > * { margin-block: 0 var(--head-gap); }
+.head-rows > :last-child { margin-bottom: var(--head-end); }
 
 /* Category glyphs injected into a content page's own h1 at build time from
    site-structure.yaml's `categories:` (same emoji SSOT as the tier-index
