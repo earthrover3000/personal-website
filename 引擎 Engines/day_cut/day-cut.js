@@ -183,9 +183,8 @@ export function sleepDayName(day) {
  *  hand, not by Intl's zh-CN, so a device without Chinese locale data
  *  writes it the same. */
 export function sleepDayNameZh(day) {
-  const [y, m, d] = day.split("-").map(Number);
-  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-  return `${y}年${m}月${d}日 周${"日一二三四五六"[dow]}`;
+  const { zh, wd } = sleepDayParts(day);
+  return `${zh} ${wd}`;
 }
 
 /** The board heads' date line, both languages (user request 2026-10-28):
@@ -193,4 +192,19 @@ export function sleepDayNameZh(day) {
  *  dot (user decision 2026-10-28). */
 export function sleepDayNames(day) {
   return sleepDayName(day) + " " + sleepDayNameZh(day);
+}
+
+/** That line's three parts, for a head that dresses them apart — the
+ *  board's grid, a date's CALENDAR_AHEAD_MARK after each DATE but not
+ *  after the weekday: { en: "Thursday 22 October", zh: "2026年10月22日",
+ *  wd: "周四" }. The Noticeboard heads and the atlas Diary's head both
+ *  read it (2026-11-03), so the split is said once. */
+export function sleepDayParts(day) {
+  const [y, m, d] = day.split("-").map(Number);
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return {
+    en: sleepDayName(day),
+    zh: `${y}年${m}月${d}日`,
+    wd: `周${"日一二三四五六"[dow]}`,
+  };
 }

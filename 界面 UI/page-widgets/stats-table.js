@@ -25,6 +25,110 @@ function whenSettled(start) {
   else start();
 }
 
+// ── Line colours ─────────────────────────────────────────────────────────
+// LINES THAT RUN CLOSE GET THE MOST DIFFERENT COLOURS (user request
+// 2026-11-03: Lifespan Atlas and 数字基建 sat side by side in two reds).
+// Every pair of series is scored by how near their curves run — on the
+// linear scale or the log one, whichever is nearer, since the reader may
+// pick either — and colours are handed out greedily, the most crowded
+// line first, each taking the free colour farthest (in Lab ΔE) from the
+// colours of the lines it runs near. Same data, same colours: nothing
+// depends on what is ticked. None is blue, which is the totals'.
+const SERIES_PALETTE = ['#e4572e', '#2ca25f', '#9b5de5', '#f0b429',
+                        '#17becf', '#e0399a', '#8cc63f', '#8c564b',
+                        '#ffa3c4', '#006d5b'];
+// Past ten (the atlas has ~45): golden-angle hues squeezed out of the
+// accent's blue (200°–245°), lightness stepping between neighbours.
+function overflowColour(n) {
+  let h = ((n * 137.508) % 360) * (315 / 360);
+  if (h >= 200) h += 45;
+  const l = [0.48, 0.64, 0.56][n % 3], s = 0.6;
+  const f = k => {
+    const a = (k + h / 30) % 12;
+    const v = l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(a - 3, 9 - a, 1));
+    return Math.round(v * 255).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+function hexToLab(hex) {
+  const lin = c => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const [r, g, b] = [1, 3, 5].map(i => lin(parseInt(hex.slice(i, i + 2), 16) / 255));
+  const t = v => (v > 0.008856 ? Math.cbrt(v) : 7.787 * v + 16 / 116);
+  const x = t((r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047);
+  const y = t(r * 0.2126 + g * 0.7152 + b * 0.0722);
+  const z = t((r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883);
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+}
+// One page, one colour per part: a page with two charts (Workshop Stats'
+// lines and size) keeps the first chart's choices and only fills in keys
+// the first did not have.
+const _pageSeriesColours = {};
+function assignSeriesColours(expanded) {
+  const keys = Object.keys(expanded);
+  const vals = keys.map(k => expanded[k].total);
+  let max = 0, minPos = Infinity;
+  vals.forEach(v => v.forEach(x => {
+    if (x > max) max = x;
+    if (x > 0 && x < minPos) minPos = x;
+  }));
+  const logSpan = Math.max(1, Math.log(max / minPos) || 1);
+  // How far apart two curves run, 0 = on top of each other, 1 = far.
+  const len = vals.length ? vals[0].length : 0;
+  const stride = Math.max(1, Math.floor(len / 400));
+  const apart = (a, b) => {
+    let lin = 0, log = 0, n = 0;
+    for (let i = 0; i < len; i += stride) {
+      const p = a[i], q = b[i];
+      if (p == null || q == null) continue;
+      lin += Math.abs(p - q) / (max || 1);
+      if (p > 0 && q > 0) log += Math.abs(Math.log(p / q)) / logSpan;
+      else log += 1;
+      n += 1;
+    }
+    return n ? Math.min(lin, log) / n : 1;
+  };
+  const near = keys.map(() => new Array(keys.length).fill(0));
+  for (let i = 0; i < keys.length; i++) {
+    for (let j = i + 1; j < keys.length; j++) {
+      near[i][j] = near[j][i] = 1 / (apart(vals[i], vals[j]) + 0.02);
+    }
+  }
+  const pool = SERIES_PALETTE.slice();
+  for (let n = pool.length; n < keys.length; n++) pool.push(overflowColour(n));
+  const labs = pool.map(hexToLab);
+  const colourIx = new Array(keys.length).fill(-1);
+  const taken = new Set();
+  keys.forEach((k, i) => {
+    const c = _pageSeriesColours[k];
+    if (c && pool.includes(c)) { colourIx[i] = pool.indexOf(c); taken.add(colourIx[i]); }
+  });
+  const crowd = i => near[i].reduce((s, w) => s + w, 0);
+  const order = keys.map((_, i) => i).filter(i => colourIx[i] < 0)
+    .sort((a, b) => crowd(b) - crowd(a) || a - b);
+  for (const i of order) {
+    let best = -1, bestCost = Infinity;
+    for (let c = 0; c < pool.length; c++) {
+      if (taken.has(c)) continue;
+      let cost = 0;
+      for (let j = 0; j < keys.length; j++) {
+        if (colourIx[j] < 0) continue;
+        const d = Math.hypot(...labs[c].map((v, m) => v - labs[colourIx[j]][m]));
+        cost += near[i][j] / Math.max(d, 1) ** 2;
+      }
+      if (cost < bestCost - 1e-12) { bestCost = cost; best = c; }
+    }
+    if (best < 0) best = taken.size % pool.length;   // more keys than colours
+    colourIx[i] = best;
+    taken.add(best);
+  }
+  const out = {};
+  keys.forEach((k, i) => {
+    out[k] = pool[colourIx[i]];
+    if (!_pageSeriesColours[k]) _pageSeriesColours[k] = out[k];
+  });
+  return out;
+}
+
 // Click-to-sort table headers. Default order is what the server renders, so
 // crawlers + JS-disabled browsers see the canonical sort. JS only affects
 // the order; the data is already in the DOM.
@@ -361,10 +465,24 @@ whenSettled(function () {
       const unitScale = +svg.dataset.chartUnitScale || 1;
       const decimals = +svg.dataset.chartDecimals || 0;
       const plain = unitScale === 1 && !decimals;
-      const fmtNum = (v, places) => plain ? v.toLocaleString()
-        : (v / unitScale).toLocaleString(
-          undefined, { minimumFractionDigits: places,
-                       maximumFractionDigits: places });
+      // One formatter per decimal count, made once: toLocaleString builds
+      // a fresh one on every call in Chrome (~13 µs with options, less
+      // without), and pinColumns formats every point — 533 ms of Workshop
+      // Stats' load (measured 2026-11-03). A default NumberFormat writes
+      // exactly what a bare toLocaleString() does.
+      const plainFormat = new Intl.NumberFormat();
+      const formatters = new Map();
+      const formatter = places => {
+        let f = formatters.get(places);
+        if (!f) {
+          f = new Intl.NumberFormat(undefined, {
+            minimumFractionDigits: places, maximumFractionDigits: places });
+          formatters.set(places, f);
+        }
+        return f;
+      };
+      const fmtNum = (v, places) => plain ? plainFormat.format(v)
+        : formatter(places).format(v / unitScale);
       let yMaxWords = +svg.dataset.chartYMaxWords;
       const chartW = W - padL - padR, chartH = H - padT - padB;
       const DAY_MS = 86400000;
@@ -1648,21 +1766,11 @@ whenSettled(function () {
         picker.append(summary, panel);
         // ONE FIXED COLOUR PER LINE (user decision 2026-10-18): a line's
         // colour belongs to its series, not to the order it was ticked in,
-        // so a project wears the same colour alone, beside others, and on
-        // every visit. The totals keep the page accent; each project takes
-        // the colour of its place in the page's series list — ten chosen
-        // hues, then golden-angle hues for a page with more (the atlas has
-        // ~45), still fixed by place.
-        const PALETTE = ['#e07a5f', '#81b29a', '#f2cc8f', '#9b5de5', '#3d9be9',
-                         '#e76f51', '#2a9d8f', '#d4a5a5', '#8d99ae', '#c9a227'];
-        const seriesOrder = Object.keys(series);
-        const colourOf = key => {
-          if (key === '') return 'var(--accent, #7c9ef5)';
-          const n = seriesOrder.indexOf(key);
-          if (n < 0) return 'var(--accent, #7c9ef5)';
-          return n < PALETTE.length ? PALETTE[n]
-            : `hsl(${Math.round((n * 137.508) % 360)}, 55%, 58%)`;
-        };
+        // so a project wears the same colour alone and beside others. The
+        // totals keep the page accent.
+        const seriesColour = assignSeriesColours(expanded);
+        const colourOf = key =>
+          seriesColour[key] || 'var(--accent, #7c9ef5)';
 
         let shown = '';
         // The lines on screen, in tick order. '' is the TOTALS — a line like

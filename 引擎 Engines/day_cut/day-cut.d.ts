@@ -42,3 +42,7 @@ export declare function sleepDayName(day: string): string;
 export declare function sleepDayNameZh(day: string): string;
 /** Both: "Thursday 22 October 2026年10月22日 周四". */
 export declare function sleepDayNames(day: string): string;
+/** That line's parts: { en: "Thursday 22 October", zh: "2026年10月22日",
+ *  wd: "周四" }. */
+export declare function sleepDayParts(day: string):
+  { en: string; zh: string; wd: string };

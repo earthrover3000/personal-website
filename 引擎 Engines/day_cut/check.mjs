@@ -4,7 +4,8 @@
 import { readFileSync } from "node:fs";
 import { DAY_CUT, calendarAhead, dayOf, dayWindow, dayOffsetText,
          daysBetween, sleepClock,
-         sleepDayName, sleepDayNameZh, sleepDayNames } from "./day-cut.js";
+         sleepDayName, sleepDayNameZh, sleepDayNames,
+         sleepDayParts } from "./day-cut.js";
 
 const cases = JSON.parse(readFileSync(new URL("./cases.json", import.meta.url)));
 const iso = (ms) => new Date(ms).toISOString().replace(".000Z", "Z");
@@ -51,6 +52,12 @@ if (sleepDayNames("2026-10-28")
   fail("sleepDayNames", { day: "2026-10-28" }, sleepDayNames("2026-10-28"));
 }
 n++;
+{
+  const p = sleepDayParts("2026-11-03");
+  if (p.en !== "Tuesday 3 November" || p.zh !== "2026年11月3日"
+      || p.wd !== "周二") fail("sleepDayParts", { day: "2026-11-03" }, p);
+  n++;
+}
 for (const [args, want] of [
   [[1], "+1d"], [[-2], "\u22122d"], [[3, true], "*+3d"],
   [[-3652], "\u22123,652d"], [[12345], "+12,345d"],
