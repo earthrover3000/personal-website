@@ -705,9 +705,19 @@ whenSettled(function () {
         const p = Math.pow(10, Math.floor(Math.log10(raw)));
         return [1, 2, 5, 10].map(m => m * p).find(v => v >= raw - 1e-9) || 10 * p;
       };
-      const lnBounds = vals => {
+      // A page's fixed floor, in ln units (data-chart-log-floor, source_stats
+      // .chart render_svg `log_floor`; user decision 2026-11-05): the axis
+      // starts no lower, so a young part's first readings run off the bottom
+      // instead of squashing every other line. Ignored when nothing on
+      // screen reaches above it, so the chart never goes blank.
+      const logFloor = svg.dataset.chartLogFloor !== undefined
+        ? +svg.dataset.chartLogFloor : null;
+      const lnBounds = (vals, floor = null) => {
         if (!vals.length) return { lo: 0, hi: 2, step: 0.5 };
-        const lo = Math.floor(ln(Math.min(...vals)));
+        let lo = Math.floor(ln(Math.min(...vals)));
+        if (floor !== null && ln(Math.max(...vals)) > floor) {
+          lo = Math.max(lo, floor);
+        }
         const raw = Math.max(ln(Math.max(...vals)) - lo, 1e-6) / 4; // per-step to cover data
         const step = niceStep(raw);
         return { lo, hi: lo + step * 4, step };
@@ -781,7 +791,7 @@ whenSettled(function () {
         const lineKeys = overlayKeys.length ? overlayKeys : ['total'];
         totals = idx.flatMap(i => lineKeys.map(k => points[i][k])).filter(v => v != null);
         wordVals = idx.map(i => points[i].words).filter(v => v != null);
-        lnLines = lnBounds(totals);
+        lnLines = lnBounds(totals, logFloor);
         lnWords = wordVals.length
           ? lnBounds(wordVals) : { lo: 0, hi: 2, step: 0.5 };
         // An empty chart keeps the counts axis it had; a share axis is 100%.
@@ -1564,7 +1574,13 @@ whenSettled(function () {
         const x = xs(dates[i]);
         chLine.setAttribute('x1', x.toFixed(1));
         chLine.setAttribute('x2', x.toFixed(1));
-        const lOn = linesOn() && p.total != null, wOn = wordsOn() && p.words != null;
+        // A reading below the axis's bottom (a log floor, or Zoom's fitted
+        // axis) gets no dot (user decision 2026-11-05): its line is clipped
+        // there, so a dot under the plot would point at nothing.
+        const above = y => y <= padT + chartH + 0.5;
+        const lOn = linesOn() && p.total != null
+          && above(s.yl(p.total));
+        const wOn = wordsOn() && p.words != null && above(s.yw(p.words));
         if (lOn) {
           chDotLines.setAttribute('cx', x.toFixed(1));
           chDotLines.setAttribute('cy', s.yl(p.total).toFixed(1));
@@ -1577,7 +1593,7 @@ whenSettled(function () {
         chDotWords.style.display = wOn && !overlayKeys.length ? '' : 'none';
         overlayDots.forEach((dot, n) => {
           const v = points[i][overlayKeys[n]];
-          const on = linesOn() && v != null;
+          const on = linesOn() && v != null && above(s.yl(v));
           if (on) {
             dot.setAttribute('cx', x.toFixed(1));
             dot.setAttribute('cy', s.yl(v).toFixed(1));
