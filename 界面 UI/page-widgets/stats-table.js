@@ -34,6 +34,8 @@ function whenSettled(start) {
 // line first, each taking the free colour farthest (in Lab ΔE) from the
 // colours of the lines it runs near. Same data, same colours: nothing
 // depends on what is ticked. None is blue, which is the totals'.
+// source_stats/series_colours.py is the same rule in Python, for charts
+// that choose on the server: keep the palette and overflow in step.
 const SERIES_PALETTE = ['#e4572e', '#2ca25f', '#9b5de5', '#f0b429',
                         '#17becf', '#e0399a', '#8cc63f', '#8c564b',
                         '#ffa3c4', '#006d5b'];
@@ -207,11 +209,12 @@ whenSettled(function () {
   // the bars are hidden, every row shows) and restores on re-grouping.
   // The expand/collapse-all button is injected here so every stats page
   // gets it without templating changes: into the .group-toggle row when one
-  // exists, else into a fresh row above the table.
+  // exists, else into a fresh row above the table. Not at all on a table
+  // with no sections (Workshop Stats' Parts): nothing there folds.
   const foldBtn = document.createElement('button');
   foldBtn.type = 'button';
   foldBtn.className = 'fold-all';
-  {
+  if (sections.length) {
     let host = document.querySelector('.group-toggle');
     if (!host) {
       host = document.createElement('div');
@@ -361,7 +364,10 @@ whenSettled(function () {
   // all keep every column exactly where it loaded. Measure once with every
   // section expanded (the initial state), pin the measurements on the header
   // cells, then switch to fixed layout so content no longer drives sizing.
-  {
+  // A table with nothing to fold or sort has nothing to reflow it, and is
+  // left free: Workshop Stats' Parts hides one group of columns at load
+  // and shows it later, which a freeze would pin at zero width.
+  if (sections.length || headers.length) {
     const ths = table.querySelectorAll('thead th');
     const widths = Array.from(ths, th => th.getBoundingClientRect().width);
     ths.forEach((th, i) => { th.style.width = widths[i] + 'px'; });
@@ -430,6 +436,13 @@ whenSettled(function () {
   // axis, no table, and buttons that drove the chart above it. Nothing below
   // may reach for a control through `document`: go through ctl / ctlGroup.
   const charts = document.querySelectorAll('.line-history-svg[data-chart-points]');
+  // THE SLEEP DAY (引擎 Engines/day_cut, 04:00 to 04:00 on this clock):
+  // the readout's `24h` and `today`, and the Days view's days (user
+  // decision 2026-11-08). Each chart draws at once and redraws when it
+  // lands (`dayCut` below); until then its changes read as dashes.
+  const dayCutLoad = charts.length
+    ? import('../../引擎 Engines/day_cut/day-cut.js') : null;
+  const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
   charts.forEach((svg, chartIdx) => {
     // What other code may ask of this chart (the alternates switch below):
     // filled in as the pieces it needs are made.
@@ -452,8 +465,19 @@ whenSettled(function () {
     let rawPoints;
     try { rawPoints = JSON.parse(svg.dataset.chartPoints); } catch (e) { rawPoints = null; }
     if (rawPoints && rawPoints.length) {
-      const W = +svg.dataset.chartW, H = +svg.dataset.chartH;
-      const padL = +svg.dataset.chartPadLeft, padR = +svg.dataset.chartPadRight;
+      // W is the drawing's width in viewBox units — `let`: fitWidth (below)
+      // redraws the chart at its box's own width.
+      let W = +svg.dataset.chartW;
+      const H = +svg.dataset.chartH;
+      // padL is `let`: fitPadLeft widens it past the server's when a
+      // zoomed axis needs longer labels, and returns it after.
+      const basePadL = +svg.dataset.chartPadLeft;
+      let padL = basePadL;
+      const padR = +svg.dataset.chartPadRight;
+      // Set further down; declared here because redraw calls both when
+      // fitPadLeft moves the plot, which can happen before they are set.
+      let refreshAxis = () => {};
+      let onWidth = () => {};       // the crosshair's refresh, once it exists
       const padT = +svg.dataset.chartPadTop, padB = +svg.dataset.chartPadBottom;
       // The server sized these for the totals. `let`, like the log bounds
       // below: showing one project re-measures both axes (measure()).
@@ -484,7 +508,8 @@ whenSettled(function () {
       const fmtNum = (v, places) => plain ? plainFormat.format(v)
         : formatter(places).format(v / unitScale);
       let yMaxWords = +svg.dataset.chartYMaxWords;
-      const chartW = W - padL - padR, chartH = H - padT - padB;
+      let chartW = W - padL - padR;
+      const chartH = H - padT - padB;
       const DAY_MS = 86400000;
 
       // ── Counts / Share (user decision 2026-10-24) ────────────────────────
@@ -504,8 +529,8 @@ whenSettled(function () {
       // markup, source_stats.chart._collapse_daily) and offers no choice. A
       // payload that kept its clock times — the private page, the consoles —
       // carries a Snapshots / Days radio instead, and Days applies THE SAME
-      // RULE here: UTC calendar day, the day's last snapshot, stamped
-      // midnight, idle days carrying the previous value forward so the series
+      // RULE here: the sleep day (day_cut, since 2026-11-08; the UTC
+      // calendar day before), the day's last snapshot, stamped midnight, idle days carrying the previous value forward so the series
       // holds flat and steps rather than ramping across a gap. So the private
       // page's Days view is the public page's chart, point for point — one of
       // its views, not a different page. Change one rule, change both.
@@ -523,10 +548,19 @@ whenSettled(function () {
       //
       // Returns one entry per output point: the ts to show and the index of
       // the raw snapshot it reads. Snapshots mode is the identity.
+      // The sleep day a timestamp falls in; a bare date is its own day.
+      // Before day_cut has loaded, the UTC date — only ever for a moment.
+      let dayCut = null;
+      const dayKey = ts => {
+        const t = String(ts);
+        const ms = Date.parse(t);
+        return dayCut && t.length > 10 && !isNaN(ms)
+          ? dayCut.dayOf(ms, dayCut.DAY_CUT.SLEEP, TZ) : t.slice(0, 10);
+      };
       const collapseDaily = raw => {
         const lastOf = new Map();   // 'YYYY-MM-DD' → index of that day's LAST snapshot
         raw.forEach((p, i) => {
-          const day = String(p.ts).slice(0, 10);
+          const day = dayKey(p.ts);
           const j = lastOf.get(day);
           // Not trusting payload order: a mis-ordered input would otherwise
           // stamp some other build's values onto the day.
@@ -536,7 +570,8 @@ whenSettled(function () {
         if (!days.length) return raw.map((p, i) => ({ ts: p.ts, j: i }));
         const out = [];
         let carried = lastOf.get(days[0]);
-        const end = Math.max(Date.parse(days[days.length - 1]), Date.parse(now.toISOString().slice(0, 10)));
+        const end = Math.max(Date.parse(days[days.length - 1]),
+                             Date.parse(dayKey(now.toISOString())));
         for (let ms = Date.parse(days[0]); ms <= end; ms += DAY_MS) {
           const day = new Date(ms).toISOString().slice(0, 10);
           if (lastOf.has(day)) carried = lastOf.get(day);
@@ -583,7 +618,7 @@ whenSettled(function () {
       // What `points` currently is, and everything derived from its shape.
       // All `let`: loadPoints() rebuilds the lot, and every function below
       // reads these bindings live rather than caching a value.
-      let points, dates, idxMap, baseOf, dayGranular;
+      let points, dates, idxMap, span24, spanToday, dayGranular;
       let dataEndMs, domainMinMs, domainMaxMs;
       // The current blocks' end once the engine has said where it is, so a
       // rebuilt domain keeps the window the axis was widened to (whole-history
@@ -622,8 +657,7 @@ whenSettled(function () {
       // A chart that names a live count (`data-chart-live`, source_stats.
       // chart `live` — user decisions 2026-10-30, the Backlog's open tasks)
       // gets it as one more point after its newest reading: the line runs on
-      // to it, the readout and the 24h row read it, the Table's current
-      // period ends on it. READ, NEVER RECORDED — the payload is untouched,
+      // to it, the readout and the 24h row read it. READ, NEVER RECORDED — the payload is untouched,
       // so the log stays one reading a day. Asked on open and every five
       // minutes (below). A series chart's lines get their live values too,
       // by key, where the live answer carries them (liveHook).
@@ -646,25 +680,52 @@ whenSettled(function () {
           idxMap.push(rawPoints.length);
         }
         const last = dates[dates.length - 1];
-        // Where the DATA ends: the newest snapshot, or now. The Table view reads
-        // up to here and no further — a ledger has no rows for periods that have
-        // not happened. The chart's domain starts here too, and widens to the
-        // current blocks' end once the engine can say where that is.
+        // Where the DATA ends: the newest snapshot, or now. The chart's
+        // domain starts here too, and widens to the current blocks' end
+        // once the engine can say where that is.
         dataEndMs = +(last > now ? last : now);
         setDomain();
         dayGranular = serverDaily || daysMode();
-        // baseOf[i] — the newest snapshot at or before (t_i − 24h), or -1 where
-        // the history doesn't reach a full day back (the 24h row, below).
-        // Precomputed in one forward sweep: the cutoff only ever moves right,
-        // so the baseline pointer never rewinds, and the hover path becomes an
-        // array lookup rather than a backward scan through four thousand
-        // points on every mouse move.
-        baseOf = new Array(points.length);
-        let j = -1;
-        for (let i = 0; i < points.length; i++) {
-          const cutoff = dates[i].getTime() - DAY_MS;
-          while (j + 1 < points.length && dates[j + 1].getTime() <= cutoff) j++;
-          baseOf[i] = j;
+        // span24[i] / spanToday[i] — the [from, to] points whose difference
+        // is point i's `24h` and `today` change (the readout, below), or
+        // null where the history does not reach back that far.
+        // DAYS (a day per point): `24h` is the day before's point to this
+        // one — the change over its sleep day — and there is no `today`.
+        // SNAPSHOTS: `24h` is the last whole sleep day before point i, 04:00
+        // to 04:00, and `today` its own sleep day so far: from the last
+        // snapshot BEFORE its 04:00 (a reading at 04:00 sharp is the new
+        // day's) to i. Precomputed, so a hover is an array lookup.
+        span24 = new Array(points.length).fill(null);
+        spanToday = new Array(points.length).fill(null);
+        const ms = dates.map(d => d.getTime());
+        if (dayGranular) {
+          let j = -1;
+          for (let i = 0; i < points.length; i++) {
+            const cutoff = ms[i] - DAY_MS;
+            while (j + 1 < points.length && ms[j + 1] <= cutoff) j++;
+            if (j >= 0) span24[i] = [j, i];
+          }
+        } else if (dayCut) {
+          // The newest point strictly before `edge`, or -1.
+          const before = edge => {
+            let lo = 0, hi = ms.length;
+            while (lo < hi) {
+              const mid = (lo + hi) >> 1;
+              if (ms[mid] < edge) lo = mid + 1; else hi = mid;
+            }
+            return lo - 1;
+          };
+          const SLEEP = dayCut.DAY_CUT.SLEEP;
+          for (let i = 0; i < points.length; i++) {
+            const day = dayCut.dayOf(ms[i], SLEEP, TZ);
+            const [start] = dayCut.dayWindow(day, SLEEP, TZ);
+            const prev = new Date(Date.parse(day) - DAY_MS)
+              .toISOString().slice(0, 10);
+            const [prevStart] = dayCut.dayWindow(prev, SLEEP, TZ);
+            const a = before(prevStart), b = before(start);
+            if (a >= 0) span24[i] = [a, b];
+            if (b >= 0) spanToday[i] = [b, i];
+          }
         }
       }
       loadPoints();
@@ -821,6 +882,15 @@ whenSettled(function () {
         return Number(v.toFixed(d)).toString();
       };
       const lnPos = (v, b) => (ln(v) - b.lo) / (b.hi - b.lo);
+      // Counts on an axis reaching 10,000 read in thousands, "400k" (user
+      // decision 2026-11-08); source_stats.chart `_shown` is the same rule.
+      const kTick = (v, top) => {
+        const r = Math.round(v);
+        return top >= 10000 && r
+          ? `${(r / 1000).toLocaleString(
+            undefined, { maximumFractionDigits: 2 })}k`
+          : r.toLocaleString();
+      };
 
       const SCALES = {
         linear: {
@@ -833,10 +903,10 @@ whenSettled(function () {
               : unitScale !== 1
               ? (v / unitScale).toLocaleString(
                 undefined, { maximumFractionDigits: 2 })
-              : Math.round(v).toLocaleString();
+              : kTick(v, yMaxLines);
           },
-          labR: i => Math.round(
-            yMinWords + (yMaxWords - yMinWords) * i / 4).toLocaleString(),
+          labR: i => kTick(
+            yMinWords + (yMaxWords - yMinWords) * i / 4, yMaxWords),
         },
         log: {
           yl: v => padT + chartH * (1 - lnPos(v, lnLines)),
@@ -852,6 +922,7 @@ whenSettled(function () {
       // either side of the window.
       // Zoom too: its fitted axis leaves older values above the plot or
       // below its floor, so the clip closes top and bottom as well.
+      let plotClip = null;          // its rect, which fitWidth resizes
       {
         const clipNS = 'http://www.w3.org/2000/svg';
         const clip = document.createElementNS(clipNS, 'clipPath');
@@ -860,6 +931,7 @@ whenSettled(function () {
         rect.setAttribute('x', padL); rect.setAttribute('y', padT - 2);
         rect.setAttribute('width', chartW);
         rect.setAttribute('height', chartH + 4);
+        plotClip = rect;
         clip.appendChild(rect);
         svg.appendChild(clip);
         [linesPath, wordsPath].forEach(
@@ -897,9 +969,8 @@ whenSettled(function () {
       // boundary lines, and placed by redraw(): the domain it sits in widens
       // once the marks engine says where the current blocks end. Drawn in
       // both resolutions — today is a fact of the clock, not of the series.
-      // The strip beyond it is inert to the pointer (user decision
-      // 2026-10-07): there is no value there to read, so the crosshair rests
-      // rather than snapping back to a point the cursor is nowhere near.
+      // The strip beyond it reads the newest point (indexAt, user decision
+      // 2026-11-08), as the strip before the first point reads the first.
       const SVGNS = 'http://www.w3.org/2000/svg';
       const todayLayer = document.createElementNS(SVGNS, 'g');
       todayLayer.setAttribute('class', 'today-layer');
@@ -965,6 +1036,31 @@ whenSettled(function () {
         leftLabels.forEach((el, i) => { el.textContent = s.labL(i); });
         rightLabels.forEach((el, i) => { el.textContent = s.labR(i); });
         placeToday();
+        if (fitPadLeft()) { redraw(mode); refreshAxis(); onWidth(); }
+      }
+
+      // The left margin fits the left labels (source_stats.chart sizes it
+      // the same way, for the full-history axis). It never goes below the
+      // server's, so only a zoomed axis whose labels run longer ("19.975k")
+      // moves the plot.
+      function fitPadLeft() {
+        const widest = Math.max(0, ...[...leftLabels]
+          .map(el => el.textContent.length));
+        const np = Math.max(basePadL, Math.round(widest * 5.7) + 10);
+        if (np === padL) return false;
+        svg.querySelectorAll('line').forEach(l => {
+          if (+l.getAttribute('x1') === padL) l.setAttribute('x1', np);
+        });
+        leftLabels.forEach(el => el.setAttribute('x', np - 6));
+        svg.querySelectorAll('.legend-lines')
+          .forEach(el => el.setAttribute('x', np));
+        padL = np;
+        chartW = W - padL - padR;
+        if (plotClip) {
+          plotClip.setAttribute('x', padL);
+          plotClip.setAttribute('width', chartW);
+        }
+        return true;
       }
 
       // Series visibility — two orthogonal checkboxes. Each hides its path, that
@@ -996,11 +1092,10 @@ whenSettled(function () {
       // Initial y-scale draw + series visibility (Linear default), then wire the
       // scale + series controls to re-scale / re-filter in place.
       // A share is always drawn linear: the log radio keeps its state but
-      // stands aside while Share shows, as it does for the Table.
+      // stands aside while Share shows.
       const currentMode = () => !shareOn() && isOn('scale-log') ? 'log' : 'linear';
-      let tableShown = () => false;   // the Table view's own test, once built
       const syncScaleRadios = () => ctlGroup('chart-scale').forEach(r => {
-        r.disabled = tableShown() || shareOn();
+        r.disabled = shareOn();
       });
       redraw(currentMode());
       applyVisibility();
@@ -1061,21 +1156,16 @@ whenSettled(function () {
       let phaseBnd = [];
       try { phaseBnd = JSON.parse(svg.dataset.chartPhaseBoundaries || '[]'); } catch (e) { phaseBnd = []; }
 
-      // Re-render the Table view, if it is the one on screen. A no-op until
-      // the engine import below has built the table (and for good on a page
-      // without one); the project selection further down calls it blind.
-      let refreshTable = () => {};
       // Likewise the unit axis: its boundary lines are placed against the
       // domain, which moves when the first point does (a day starts at
-      // midnight, its first snapshot later).
-      let refreshAxis = () => {};
+      // midnight, its first snapshot later). (`refreshAxis` is declared
+      // beside padL: redraw may call it before this point runs.)
 
       // The ledger (event-marks/ledger.js) is the marks engine's sibling: it
       // slices the range into periods of one unit (the same walk the axis
-      // labels use) and reads the series at each period's close for the
-      // Table view further down. One Promise.all so the axis and the table
-      // agree on which periods exist, and fail together if the engine is
-      // unreachable.
+      // labels use; user decision 2026-11-08 took away the Table view that
+      // read the series at each period's close). One Promise.all, so both
+      // fail together if the engine is unreachable.
       Promise.all([
         import('../../引擎 Engines/event-marks/marks.js'),
         import('../../引擎 Engines/event-marks/ledger.js'),
@@ -1165,7 +1255,7 @@ whenSettled(function () {
         // ring's midpoint labels), which on a linear axis would otherwise clamp
         // a non-overlapping label (e.g. a month before the first snapshot)
         // onto the left edge.
-        // `endMs` defaults to the chart's domain; the Table passes dataEndMs.
+        // `endMs` defaults to the chart's domain.
         const periodsFor = (mode, endMs = domainMaxMs) =>
           ledger.periodsFor(mode, domainMinMs, endMs, { blockCtx, phases });
         // The day count under a Blocks / Phases mark and in the table's Days
@@ -1245,120 +1335,12 @@ whenSettled(function () {
           radio.addEventListener('change', () => drawXAxis(xMode()));
         });
         refreshAxis = () => drawXAxis(xMode());
-
-        // ── Table view: the series at the close of each period ──────────────
-        // Same points as the chart, read as a step function at each x-axis
-        // boundary (ledger.ledgerRows — see that file for why "at the close"
-        // is exact rather than approximate). One row per period, NEWEST FIRST:
-        // a ledger is consulted for the latest balance, unlike the axis, which
-        // is read left to right. The x-axis radios choose the rows, the series
-        // checkboxes the columns, and the scale radios go inert — there is
-        // nothing to scale. Only when the control bar offers the Table radio;
-        // a page without it keeps its chart alone.
-        //
-        // Runs inside the engine import's .then, so by the time any of this
-        // executes the crosshair block below has finished declaring the
-        // helpers it shares (linesOn / wordsOn / the .chart-hover-wrap).
-        const viewTableRadio = ctl('view-table');
-        if (viewTableRadio) {
-          const table = document.createElement('table');
-          table.className = 'stats-table ledger-table';
-          table.hidden = true;
-          const wrapEl = svg.closest('.chart-hover-wrap') || svg;
-          wrapEl.parentNode.insertBefore(table, wrapEl.nextSibling);
-          // Last calendar day of a period: endMs is 00:00 UTC of the day AFTER,
-          // so one millisecond back lands on the last day itself.
-          const lastDay = ms => new Date(ms - 1).toISOString().slice(0, 10);
-          const th = (label, qual, cls) =>
-            `<th${cls ? ` class="${cls}"` : ''}><span class="th-label">${label}</span>` +
-            (qual ? `<span class="th-qual">${qual}</span>` : '') + '</th>';
-          const num = (v, cls) => `<td class="num${cls ? ' ' + cls : ''}">${v}</td>`;
-          function renderLedger(mode) {
-            const lOn = linesOn(), wOn = wordsOn();
-            // Built per render, not once: `points` holds whichever series is
-            // on screen, and that changes when a project is selected.
-            const periods = periodsFor(mode, Math.min(dataEndMs, domainMaxMs));
-            const rowsFor = key => ledger.ledgerRows(points.map((p, i) => ({
-              ms: dates[i].getTime(), total: p[key], words: p.words,
-            })), periods, +now).reverse();
-            const rows = rowsFor('total');
-            // Several lines on the chart (the overlay, and every Share view)
-            // → a pair of columns per line, headed by its swatch and name.
-            // The periods are the same list, so row r of each lines up.
-            const lineCols = overlayKeys.length
-              ? overlayKeys.map((k, n) => ({
-                rows: rowsFor(k),
-                head: `<span class="ch-swatch" style="background:${overlayInfo[n].color}"></span>`
-                  + overlayInfo[n].label,
-              }))
-              : [{ rows, head: seriesName }];
-            const daysCol = DAYS_UNITS.includes(mode);
-            let html = '<thead><tr>' + th('Period') + th('Last day') + (daysCol ? th('Days', '', 'num') : '');
-            // ONE column per line when there are several: its change sits
-            // under its value in the same cell, or five parts' pairs run the
-            // table off the side of the page.
-            const stacked = lineCols.length > 1;
-            if (lOn) {
-              lineCols.forEach(c => {
-                html += stacked ? th(c.head, '(at close · change)', 'num col-lines')
-                  : th(c.head, '(at close)', 'num col-lines') + th('Change', '(in period)', 'num col-lines');
-              });
-            }
-            if (wOn) html += th('Words', '(at close)', 'num col-words') + th('Change', '(in period)', 'num col-words');
-            html += '</tr></thead><tbody>';
-            rows.forEach((r, ri) => {
-              html += `<tr${r.open ? ' class="ledger-open"' : ''}>` +
-                `<td>${labelFor(r.period, true)}</td>` +
-                (r.open ? '<td class="ledger-sofar">so far</td>' : `<td>${lastDay(r.period.endMs)}</td>`) +
-                (daysCol ? num(fmtDays(r.period)) : '');
-              if (lOn) {
-                lineCols.forEach(c => {
-                  const lr = c.rows[ri];
-                  const d = lr.movement.total == null ? DASH : fmtDelta(lr.movement.total);
-                  html += stacked
-                    ? num(`${fmtCount(lr.closing.total)}<span class="ledger-change">${d}</span>`)
-                    : num(fmtCount(lr.closing.total)) + num(d, 'delta');
-                });
-              }
-              if (wOn) {
-                html += num(fmtCount(r.closing.words)) +
-                  num(r.movement.words == null ? DASH : fmtDelta(r.movement.words), 'delta');
-              }
-              html += '</tr>';
-            });
-            table.innerHTML = html + '</tbody>';
-          }
-          const tableOn = () => viewTableRadio.checked;
-          tableShown = tableOn;
-          function applyView() {
-            const on = tableOn();
-            wrapEl.style.display = on ? 'none' : '';
-            table.hidden = !on;
-            syncScaleRadios();
-            if (on) renderLedger(xMode());
-          }
-          applyView();
-          ctlGroup('chart-view').forEach(radio => {
-            radio.addEventListener('change', applyView);
-          });
-          // Rows follow the x-axis unit, columns the series checkboxes — but
-          // only re-render while the table is the thing on screen.
-          const refreshLedger = () => { if (tableOn()) renderLedger(xMode()); };
-          ctlGroup('chart-xaxis').forEach(radio => {
-            radio.addEventListener('change', refreshLedger);
-          });
-          [showLines, showWords].forEach(cb => cb && cb.addEventListener('change', refreshLedger));
-          refreshTable = refreshLedger;
-        }
       }).catch(err => {
-        // Log it: a throw anywhere in the axis/table setup lands here too,
+        // Log it: a throw anywhere in the axis setup lands here too,
         // and silence once hid a dead axis behind the fallback dates.
         console.error('stats-table: event-marks engine step failed', err);
         // Engine unavailable → keep the server date fallbacks; refresh the
         // right-edge label to the live "now" (its old build-time behaviour).
-        // The Table view needs the engine too, so its radio goes inert.
-        const tableRadio = ctl('view-table');
-        if (tableRadio) tableRadio.disabled = true;
         const lbl = svg.querySelector('text.x-label-right');
         if (lbl) {
           const yyyy = now.getUTCFullYear();
@@ -1395,11 +1377,99 @@ whenSettled(function () {
       svg.parentNode.insertBefore(wrap, svg);
       wrap.appendChild(svg);
       const readout = document.createElement('div');
-      // ch-grid: the two-row column-aligned variant of the readout (stats.css).
+      // ch-grid: the column-aligned, row-per-series readout (stats.css).
       // The other consumer of .chart-readout (site-log-rings) emits a single
       // line of prose and keeps the plain flex layout.
       readout.className = 'chart-readout ch-grid';
       wrap.appendChild(readout);
+      // BESIDE THE GRAPH, INSIDE THE COLUMN (user decision 2026-11-05): the
+      // graph narrows and the readout takes a fixed column on its right, so
+      // the pair is as wide as the rest of the page (stats.css .ch-side). The
+      // SVG scales with its box, so its text shrinks with it — accepted. On
+      // a column under 35rem (a phone) the readout goes back underneath. The
+      // test reads only the column's width, never the readout's content, so
+      // ticking a line cannot flip it. (In the margin beyond the column, on
+      // wide windows only, earlier the same day.)
+      // Beside it, the bars split too (user decision 2026-11-08): the pills
+      // over the graph alone, the year and the picker over the readout —
+      // both moved into the wrap's grid (stats.css .ch-side areas). Under
+      // it, they go back above the wrap as before.
+      let navRow = null;
+      // Only the bar render_section put right ahead of this chart moves; a
+      // lone bar a page placed elsewhere by hand stays where it was put.
+      const ownBar = !!controls && wrap.previousElementSibling === controls;
+      const placeBars = () => {
+        const side = wrap.classList.contains('ch-side');
+        if (side) {
+          if (navRow) wrap.prepend(navRow);
+          if (ownBar) wrap.prepend(controls);
+        } else {
+          if (navRow) wrap.before(navRow);
+          if (ownBar) (navRow || wrap).after(controls);
+        }
+      };
+      const placeReadout = () => {
+        const w = wrap.getBoundingClientRect().width;
+        if (!w) return;                  // a hidden chart: keep the last place
+        const rem = parseFloat(
+          getComputedStyle(document.documentElement).fontSize);
+        const side = w >= 35 * rem;
+        if (side === wrap.classList.contains('ch-side') && wrap.dataset.placed)
+          return;
+        wrap.dataset.placed = '1';
+        wrap.classList.toggle('ch-side', side);
+        placeBars();
+      };
+      placeReadout();
+      window.addEventListener('resize', placeReadout);
+
+      // ── DRAWN AT ITS OWN WIDTH (user decision 2026-11-05) ───────────────
+      // The server draws at a nominal 800 wide; here the drawing takes the
+      // box's real width, one unit per CSS pixel, so its text is the same
+      // size in a full column, beside the readout and on a phone, and its
+      // height never changes — it is not a picture scaled to fit. Until
+      // then the whole drawing scaled with its box. What sits against the
+      // right edge moves with it: the server's horizontal gridlines, the
+      // Words labels and legend, the last date, the plot's clip; the rest
+      // (paths, axis, marks, crosshair) is redrawn from W.
+      function setChartWidth(nw) {
+        nw = Math.round(nw);
+        if (!(nw > padL + padR) || nw === W) return false;
+        const old = W, d = nw - old;
+        svg.querySelectorAll('line').forEach(l => {
+          if (+l.getAttribute('x1') === padL
+              && +l.getAttribute('x2') === old - padR) {
+            l.setAttribute('x2', nw - padR);
+          }
+        });
+        svg.querySelectorAll('.y-label-right, .legend-words, .x-label-right')
+          .forEach(el => el.setAttribute('x', +el.getAttribute('x') + d));
+        W = nw;
+        chartW = W - padL - padR;
+        if (plotClip) plotClip.setAttribute('width', chartW);
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        return true;
+      }
+      function fitWidth() {
+        const cs = getComputedStyle(svg);
+        const box = svg.getBoundingClientRect().width;
+        if (!box) return;               // a hidden chart: drawn when shown
+        const inner = box - parseFloat(cs.paddingLeft)
+          - parseFloat(cs.paddingRight) - parseFloat(cs.borderLeftWidth)
+          - parseFloat(cs.borderRightWidth);
+        if (!setChartWidth(inner)) return;
+        redraw(currentMode());
+        refreshAxis();
+        onWidth();
+      }
+      fitWidth();
+      // Any change of the box's width — the window, the readout moving
+      // beside it or back, a fold opening, a chart taking its turn — redraws.
+      // On the next frame: redrawing inside the observer's own callback
+      // resizes what it watches, the loop browsers warn about.
+      if (window.ResizeObserver) new ResizeObserver(() => {
+        requestAnimationFrame(() => { placeReadout(); fitWidth(); });
+      }).observe(wrap);
 
       // Crosshair layer is APPENDED (not inserted first like .x-axis-layer):
       // the guide and its markers read on top of the series, not behind them.
@@ -1455,27 +1525,35 @@ whenSettled(function () {
         return best;
       }
 
-      // ── The 24h row ─────────────────────────────────────────────────────
-      // Line 2 of the readout: how much each count moved over the 24 hours
-      // ENDING at the moment line 1 is reporting — the hovered snapshot, or
-      // the newest build at rest. Tying it to the hovered point rather than to
-      // the reader's clock is what keeps the two lines honest: a fixed "last
-      // 24h from now" sitting under a line reporting a build from March would
-      // be two different moments stacked in one box.
+      // ── The 24h and today columns ───────────────────────────────────────
+      // The readout's last columns (user decision 2026-11-08; one rolling
+      // 24h before): `24h`, how much each count moved over the last whole
+      // SLEEP day, 04:00 to 04:00, and `today`, over its own sleep day so
+      // far — both read from the moment the heading reports, the hovered
+      // snapshot or the newest build at rest, never the reader's clock: a
+      // "today" under a line reporting a build from March would be two
+      // moments stacked in one box.
       //
-      // The baseline is the newest snapshot at or before (t − 24h), and that
-      // is EXACT, not an approximation. The counts are a step function: they
-      // change only where a build recorded a snapshot, so the value at any
-      // instant between two snapshots IS the earlier one's. A quiet fortnight
-      // doesn't smear the window — it means the baseline is a fortnight old
-      // and the 24h delta is correctly zero. In Days mode every point sits at
-      // midnight, so the row reads as the day's change over the day before.
-      // The baseline index per point (baseOf) is built with the points, in
-      // loadPoints.
-      const deltaAt = (i, key) => {
-        const b = baseOf[i] >= 0 ? points[baseOf[i]] : null;
-        if (!b || b[key] == null || points[i][key] == null) return null;
-        return points[i][key] - b[key];
+      // The figure at an edge is the newest snapshot before it, and that is
+      // EXACT: the counts are a step function, changing only where a build
+      // recorded a snapshot. A quiet fortnight means that snapshot is a
+      // fortnight old and the change is correctly zero. In Days mode every
+      // point is a sleep day, so `24h` is the day's change over the day
+      // before, and `today` is not drawn. The [from, to] pair per point
+      // (span24, spanToday) is built with the points, in loadPoints.
+      const change = (span, key) => {
+        if (!span) return null;
+        const a = points[span[0]][key], b = points[span[1]][key];
+        return a == null || b == null ? null : b - a;
+      };
+      const deltaAt = (i, key) => change(span24[i], key);
+      const todayAt = (i, key) => change(spanToday[i], key);
+      // The `today` column: snapshots only — a day per point (the Days
+      // view, a public page) has no today (user decision 2026-11-08).
+      const todayOn = () => !dayGranular;
+      const fmtTodayText = (i, k) => {
+        const d = todayAt(i, k);
+        return d === null ? DASH : fmtDelta(d);
       };
 
       // ── Pinned value columns ──────────────────────────────────
@@ -1487,84 +1565,189 @@ whenSettled(function () {
       // pinned there, so only the digits change while the layout holds still.
       // Measured with a probe carrying .ch-val rather than with a canvas, so it
       // inherits the real font and tabular-nums instead of a reconstruction.
-      const colW = { total: 0, words: 0 };
+      // Per series and per column (count, exponent, delta): the readout pins
+      // each column to the widest of the series it is showing.
+      const colW = {};
+      // THE FLOOR EVERY SELECTION SHARES (user request 2026-11-08: ticking
+      // `total` moved the key column). The key and count tracks are never
+      // narrower than the widest key any series may show — `total` and
+      // every part's code, set by the line picker (keyFloorHtml) — and the
+      // widest count of the totals, which no part exceeds. The readout sits
+      // flush right beside the graph, so a track that grew with the rows
+      // showing pushed everything left of it.
+      let keyFloorHtml = [];
+      const floor = { key: 0, count: 0 };
+      // Logarithmic shows each count as its natural log, `e^10.000`, in the
+      // count's place, the `e^` grey (user decisions 2026-11-05; it ran
+      // after the count, `· e^10.00`, earlier the same day): the axis is in
+      // ln steps, so this is the reading in the axis's own terms. Three
+      // places (user decision 2026-11-05; two earlier that day): 0.001 is
+      // 0.1% growth, so a quiet day still moves it. The column is pinned to the wider of the two forms, so
+      // switching scale never moves the readout or the graph beside it.
+      const lnOn = () => currentMode() === 'log';
+      const lnText = v => v > 0 ? `e^${Math.log(v).toFixed(3)}` : DASH;
+      const lnHtml = v => v > 0
+        ? `<span class="ch-e">e^</span>${Math.log(v).toFixed(3)}` : DASH;
+      // Its 24h change is the exponent's — ln now − ln 24h ago, no `e^`
+      // again — in thousandths, always: `+12`, under a `24h (×10⁻³)` heading
+      // (user decisions 2026-11-05; `+0.012`, then `+12×10⁻³` on every row,
+      // earlier the same day). 1×10⁻³ is about 0.1% growth. The heading's
+      // `(×10⁻³)` is grey like the `e^` — bracketed, the usual form for a
+      // heading's multiplier, so it cannot read as "24h times" — and a
+      // change that rounds to nothing is a bare 0, as the counts' is.
+      // `today` takes the same multiplier. Since 2026-11-08 each change
+      // column has its own, on a line of its own under its heading (user
+      // requests: narrower columns — `today (×10⁻³)` set the column's
+      // width on the linear scale too — then one under 24h as well; a
+      // single one spanning both read as today's alone).
+      const LN_MULT = '(×10⁻³)';
+      const lnChange = (span, key) => {
+        if (!span) return DASH;
+        const u = points[span[0]][key], v = points[span[1]][key];
+        if (!(v > 0) || !(u > 0)) return DASH;
+        const n = Math.round(1000 * (Math.log(v) - Math.log(u)));
+        return n === 0 ? '0' : (n > 0 ? '+' : '−') + Math.abs(n);
+      };
+      const lnDeltaText = (i, key) => lnChange(span24[i], key);
+      const lnTodayText = (i, key) => lnChange(spanToday[i], key);
       function pinColumns() {
         const probe = document.createElement('span');
         probe.className = 'ch-val';
         probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
         readout.appendChild(probe);
         const longest = strs => strs.reduce((a, b) => b.length > a.length ? b : a, '');
-        for (const key of ['total', 'words', ...overlayKeys]) {
-          const counts = longest(points.map(q => fmtCount(q[key])));
-          const deltas = longest(points.map((q, i) => {
-            const d = deltaAt(i, key);
-            return d === null ? DASH : fmtDelta(d);
-          }));
+        const width = (strs, cls = 'ch-val') => {
+          probe.className = cls;
           let w = 0;
-          for (const str of [counts, deltas, DASH]) {
+          for (const str of strs) {
             probe.textContent = str;
             w = Math.max(w, probe.getBoundingClientRect().width);
           }
-          colW[key] = Math.ceil(w);
+          return Math.ceil(w);
+        };
+        // A change column is as wide as a change of four digits (−9,999;
+        // −9.99 on a chart with decimals, −99.9 pt for a share), whatever
+        // the history holds (user requests 2026-11-08: "24h and today would
+        // ever only likely be 4 digits", and the width must not move): the
+        // same before day_cut has landed, when every change is a dash, as
+        // after. A rarer, bigger change runs into the gap beside it.
+        const unit = (plain ? 9999 : 10 - 10 ** -decimals) * unitScale;
+        const wide = [`−${fmtNum(unit, decimals)}`, DASH];
+        if (shareKeys.length) wide.push('−99.9 pt');
+        for (const key of ['total', 'words', ...overlayKeys]) {
+          colW[key] = {
+            count: width([longest(points.map(q => fmtCount(q[key]))),
+                          longest(points.map(q => lnText(q[key]))), DASH]),
+            delta: width([...wide, '24h'], 'ch-val ch-d'),
+            today: width([...wide, 'today'], 'ch-val ch-d'),
+          };
         }
+        probe.className = 'ch-key';
+        floor.key = 0;
+        for (const h of keyFloorHtml) {
+          probe.innerHTML = h;
+          floor.key = Math.max(floor.key, probe.getBoundingClientRect().width);
+        }
+        floor.key = Math.ceil(floor.key);
+        floor.count = shareOn() ? 0 : width([
+          longest(rawPoints.map(q => fmtCount(q.total))),
+          longest(rawPoints.map(q => lnText(q.total)))]);
         probe.remove();
       }
 
+      // ONE ROW PER SERIES (user decision 2026-11-05): a heading row — the
+      // moment being read, and `24h` over the change column — then each
+      // visible series as key · count · exponent (Logarithmic only) · 24h
+      // change. Series ran side by side, the changes on a second row, until
+      // then; with several parts and their exponents that row ran off the
+      // box. Ticking a series now adds a row, so the page below moves on a
+      // tick, never on a hover.
       // Counts are always the raw values: the Log toggle changes the axis, not
-      // what the number is. A point predating word tracking has words == null
-      // and reads as a dash rather than dropping its field: a vanishing column
-      // is the one layout shift the pinned widths above cannot prevent.
+      // what the number is — except that Logarithmic writes it as its
+      // exponent (lnHtml).
+      // A point predating word tracking has words == null and reads as a dash
+      // rather than dropping its row.
       function renderReadout(i) {
         const p = points[i];
-        const lOn = linesOn(), wOn = wordsOn();
-        const field = (cls, key, val) =>
-          `<span class="ch-field ${cls}"><span class="ch-key">${key}</span>` +
-          `<span class="ch-val">${val}</span></span>`;
-        if (overlayKeys.length) {
-          const swatch = n => `<span class="ch-swatch" style="background:${overlayInfo[n].color}"></span>`;
-          let html = `<span class="ch-when">${fmtWhen(i)}</span>` + (lOn ? overlayKeys.map((k, n) =>
-            field('ch-f-overlay', swatch(n) + overlayInfo[n].label, fmtCount(p[k]))).join('') : '');
-          html += '<span class="ch-when ch-since">24h</span>' + (lOn ? overlayKeys.map(k => {
-            const d = deltaAt(i, k);
-            return field('ch-f-overlay ch-d', '', d === null ? DASH : fmtDelta(d));
-          }).join('') : '');
-          const track = w => w ? `${w}px` : 'auto';
-          readout.style.gridTemplateColumns = 'auto'
-            + (lOn ? overlayKeys.map(k => ` auto ${track(colW[k])}`).join('') : '');
-          readout.innerHTML = html;
-          return;
+        const ln = lnOn();
+        // A part's share on its name line: whole percent, always — 0.3%
+        // reads 0% (user decision 2026-11-05). Its own cell in the change's
+        // column, right-aligned so the percentages line up; no dot before
+        // it — the column already sets it apart from the name (user
+        // decisions 2026-11-05).
+        const fmtShare = v => v == null ? ''
+          : `<span class="ch-pct">${Math.round(v)}%</span>`;
+        // [css class, key html, series key, name line beneath or '']
+        const rows = [];
+        if (linesOn() && overlayKeys.length) {
+          overlayKeys.forEach((k, n) => {
+            const o = overlayInfo[n];
+            const sw = `<span class="ch-swatch" style="background:${o.color}"></span>`;
+            rows.push(o.code
+              ? ['ch-f-overlay', `${sw}<span class="ch-code">${o.code}</span>`,
+                 k, o.key === '' ? '' : [o.label, fmtShare(p[o.share])]]
+              : ['ch-f-overlay', sw + o.label, k, '']);
+          });
+          // The totals last, under a grey rule, as the Noticeboard widget
+          // has them (user decision 2026-11-05) — but only beneath parts.
+          const t = overlayInfo.findIndex(o => o.key === '');
+          if (t >= 0 && rows.length > 1) {
+            const [tot] = rows.splice(t, 1);
+            rows.push(['rule'], tot);
+          }
+        } else if (!overlayKeys.length) {
+          if (linesOn()) rows.push(['ch-f-lines', seriesName, 'total']);
+          if (wordsOn()) rows.push(['ch-f-words', 'Words', 'words']);
         }
-        let html =
-          `<span class="ch-when">${fmtWhen(i)}</span>` +
-          (lOn ? field('ch-f-lines', seriesName, fmtCount(p.total)) : '') +
-          (wOn ? field('ch-f-words', 'Words', fmtCount(p.words)) : '');
-
-        // The row is unconditional. Through the first day of any history there
-        // is no instant 24h back to measure from, and a dash says so plainly;
-        // a row that came and went would move the page under the reader for
-        // the same reason a resizing column does.
-        const cell = (cls, key) => {
-          const d = deltaAt(i, key);
-          return field(cls + ' ch-d', '', d === null ? DASH : fmtDelta(d));
-        };
-        html +=
+        const two = todayOn();
+        let html = `<span class="ch-when ch-head">${fmtWhen(i)}</span>` +
           '<span class="ch-when ch-since">24h</span>' +
-          (lOn ? cell('ch-f-lines', 'total') : '') +
-          (wOn ? cell('ch-f-words', 'words') : '');
-        // One column for the when/since label, then a (key, value) pair per
-        // VISIBLE series — set here rather than in CSS because unchecking a
-        // series removes its two columns, and a fixed template would leave
-        // their gaps behind. Line 2's empty key cells hold its deltas in the
-        // same columns as the counts they modify; that alignment is what lets
-        // the row drop its own labels.
-        // A pinned width of 0 means the probe measured inside a hidden box —
-        // fall back to an auto track rather than clamping the column shut.
-        const track = w => w ? `${w}px` : 'auto';
-        readout.style.gridTemplateColumns = 'auto'
-          + (lOn ? ` auto ${track(colW.total)}` : '')
-          + (wOn ? ` auto ${track(colW.words)}` : '');
+          (two ? '<span class="ch-when ch-since">today</span>' : '') +
+          (ln ? `<span class="ch-e ch-mult ch-mult-24">${LN_MULT}</span>`
+            + (two ? `<span class="ch-e ch-mult">${LN_MULT}</span>` : '')
+            : '');
+        for (const [cls, label, k, name] of rows) {
+          if (cls === 'rule') { html += '<span class="ch-rule"></span>'; continue; }
+          const d = deltaAt(i, k);
+          html += `<span class="ch-field ${cls}">` +
+            `<span class="ch-key">${label}</span>` +
+            `<span class="ch-val">${ln ? lnHtml(p[k]) : fmtCount(p[k])}` +
+            '</span>' +
+            `<span class="ch-val ch-d">${ln ? lnDeltaText(i, k)
+              : d === null ? DASH : fmtDelta(d)}` +
+            '</span>' +
+            (two ? `<span class="ch-val ch-d">${ln ? lnTodayText(i, k)
+              : fmtTodayText(i, k)}</span>` : '') +
+            (name ? `<span class="ch-name">${name[0]}</span>` +
+              `<span class="ch-name ch-name-share">${name[1]}</span>` : '') +
+            '</span>';
+        }
+        // Key, count, [exponent], change — each value track pinned to the
+        // widest of the rows showing. A pinned width of 0 means the probe
+        // measured inside a hidden box: fall back to an auto track rather
+        // than clamping the column shut.
+        const track = part => {
+          const w = Math.max(floor[part] || 0, ...rows.filter(r => r[2])
+            .map(r => (colW[r[2]] || {})[part] || 0));
+          return w ? `${w}px` : 'auto';
+        };
+        const keyTrack = floor.key ? `minmax(${floor.key}px, auto)` : 'auto';
+        readout.style.gridTemplateColumns = `${keyTrack} ${track('count')}`
+          + ` ${track('delta')}` + (two ? ` ${track('today')}` : '');
+        readout.classList.toggle('ch-today', two);
         readout.innerHTML = html;
+        // Beside the graph, the readout's column only ever grows: measured
+        // when the set of lines changes, never on a mere move.
+        const shape = (ln ? 'ln|' : '') + (two ? 'today|' : '') + rows.map(r => r[2]).join(',');
+        if (shape !== readoutShape && wrap.classList.contains('ch-side')) {
+          readoutShape = shape;
+          readout.style.minWidth = '';
+          const w = Math.ceil(readout.getBoundingClientRect().width);
+          readoutW = Math.max(readoutW, w);
+          readout.style.minWidth = `${readoutW}px`;
+        }
       }
+      let readoutShape = '', readoutW = 0;
 
       let activeIdx = -1;
       function showAt(i) {
@@ -1645,16 +1828,11 @@ whenSettled(function () {
         // so the CTM is the only reliable way to undo the responsive scaling.
         const v = q.matrixTransform(ctm.inverse());
         if (v.x < padL - 8 || v.x > W - padR + 8) return -1;
-        // Past now there is nothing to read — the series has no value yet
-        // and the axis only runs on so it can close on a block boundary. The
-        // cut is at NOW, not at the newest point: in Snapshots mode the last
-        // build may be days old, and the stretch up to today still holds its
-        // value (the step function), so it keeps snapping to that build.
-        // Beyond the today guide the crosshair rests, which already means
-        // "pointing at nothing": guide hidden, readout on the newest point.
-        // The same 8-unit tolerance as the plot edges, so a point stamped
-        // seconds ago is still reachable under the guide itself.
-        if (v.x > xForMs(+now) + 8) return -1;
+        // Past now the series has no value yet, so the strip beyond the
+        // today guide snaps to the newest point, as the strip before the
+        // first point snaps to the first (user decision 2026-11-08; inert
+        // since 2026-10-07 before). No points lie past now, so the nearest
+        // one is already the newest.
         return nearestIndex(v.x);
       }
 
@@ -1685,6 +1863,7 @@ whenSettled(function () {
       // are already settled by the time this runs.
       const refreshCrosshair = () =>
         activeIdx >= 0 ? showAt(activeIdx) : restCrosshair();
+      onWidth = refreshCrosshair;
       ctlGroup('chart-scale').forEach(radio => {
         radio.addEventListener('change', refreshCrosshair);
       });
@@ -1714,16 +1893,16 @@ whenSettled(function () {
         applyVisibility();
         pinColumns();
         refreshCrosshair();
-        refreshTable();
       };
 
-      // The row above the pills: year arrows left, project picker right.
-      let navRow = null;
+      // The row above the pills: year arrows left, project picker right —
+      // or, beside the graph, the two stacked over the readout (placeBars).
       const navRowEl = () => {
         if (!navRow) {
           navRow = document.createElement('div');
           navRow.className = 'chart-nav-row';
           (controls || wrap).before(navRow);
+          placeBars();
         }
         return navRow;
       };
@@ -1784,6 +1963,16 @@ whenSettled(function () {
         // colour belongs to its series, not to the order it was ticked in,
         // so a project wears the same colour alone and beside others. The
         // totals keep the page accent.
+        // A chart that names its colours (data-chart-colours, chosen on
+        // the server by source_stats.series_colours — the same rule as
+        // assignSeriesColours) keeps them: the Status Board's Workshop
+        // Stats card wears the same ones (user decision 2026-11-08).
+        try {
+          const given = JSON.parse(svg.dataset.chartColours || '{}');
+          for (const [k, c] of Object.entries(given)) {
+            if (!_pageSeriesColours[k]) _pageSeriesColours[k] = c;
+          }
+        } catch (e) { /* none given: the widget chooses */ }
         const seriesColour = assignSeriesColours(expanded);
         const colourOf = key =>
           seriesColour[key] || 'var(--accent, #7c9ef5)';
@@ -1828,6 +2017,25 @@ whenSettled(function () {
           return r ? (r.dataset.seriesLabel || r.cells[0].textContent.trim())
             : seriesLabels[key] || key;
         };
+        // A part's three-letter code, where its row shows one (Workshop
+        // Stats' `atl`, the .part-key span) — the readout's key, with the
+        // name beneath it (user decision 2026-11-05). '' elsewhere.
+        // The totals line, on such a page, is `total`, with no name beneath
+        // (the widget's own word for it; user decision 2026-11-05).
+        const coded = rows.some(r => r.querySelector('.part-key'));
+        if (coded) {
+          keyFloorHtml = [...rows.map(r => {
+            const k = r.querySelector('.part-key');
+            return k ? k.textContent.trim() : '';
+          }).filter(Boolean), 'total'].map(c =>
+            `<span class="ch-swatch"></span><span class="ch-code">${c}</span>`);
+          pinColumns();
+        }
+        const codeOf = key => {
+          if (key === '') return coded ? 'total' : '';
+          const k = rowOf(key) && rowOf(key).querySelector('.part-key');
+          return k ? k.textContent.trim() : '';
+        };
         // The live point's slot (loadPoints): the totals and each series at
         // index rawPoints.length, from the live answer's same-named fields.
         liveHook = () => {
@@ -1860,7 +2068,6 @@ whenSettled(function () {
           applyVisibility();
           pinColumns();
           refreshCrosshair();
-          refreshTable();
         }
         function clearOverlay() {
           overlayPaths.forEach(el => el.remove());
@@ -1875,12 +2082,23 @@ whenSettled(function () {
           // nothing.
           const first = pick(valuesOf(keys[0]));
           points.forEach((p, i) => { p.total = first[i]; p.words = null; });
+          // Each part's share of the Total at every point, for its name
+          // line in the readout (user decision 2026-11-05): only where the
+          // page offers that part a Share, and not while Share is drawn —
+          // the count is the share then.
+          const grand = pick(all.total);
           keys.forEach((key, n) => {
             const k = 'o' + n;
             const vals = pick(valuesOf(key));
             points.forEach((p, i) => { p[k] = vals[i]; });
+            const share = !shareOn() && shareSet.has(key) ? 's' + n : '';
+            if (share) points.forEach((p, i) => {
+              p[share] = vals[i] == null || !grand[i] ? null
+                : 100 * vals[i] / grand[i];
+            });
             overlayKeys.push(k);
-            overlayInfo.push({ key, label: labelOf(key), color: colourOf(key) });
+            overlayInfo.push({ key, label: labelOf(key), code: codeOf(key),
+                               share, color: colourOf(key) });
             const path = linesPath.cloneNode(false);
             path.removeAttribute('d');
             path.classList.add('overlay-series');
@@ -1898,7 +2116,6 @@ whenSettled(function () {
           applyVisibility();
           pinColumns();
           refreshCrosshair();
-          refreshTable();
         }
         // THE CHOICE SURVIVES A RELOAD (user request 2026-10-28): kept per
         // page and per chart in this tab's sessionStorage, so F5 — or the
@@ -1936,7 +2153,6 @@ whenSettled(function () {
             applyVisibility();
             pinColumns();
             refreshCrosshair();
-            refreshTable();
           } else if (drawn.length > 1 || shareOn()) {
             // Share is always the overlay, even for one part: its line
             // wears the part's colour and its readout the part's name.
@@ -1964,9 +2180,9 @@ whenSettled(function () {
           });
           rows.forEach(r => {
             const n = drawn.indexOf(r.dataset.series);
-            // The Total row lights only when the totals are one line among
-            // several — alone they are just the chart's default.
-            const on = n >= 0 && (r.dataset.series !== '' || drawn.length > 1);
+            // Every drawn line's row lights, the Total's alone too (user
+            // decision 2026-11-08; dark while alone from 2026-10-18).
+            const on = n >= 0;
             r.classList.toggle('series-selected', on);
             if (on) {
               r.setAttribute('aria-current', 'true');
@@ -2001,8 +2217,11 @@ whenSettled(function () {
         };
         // All / None (user request 2026-10-24), above the list. All ticks
         // every project — not the totals, which would flatten them against
-        // the whole; tick that row too to draw it. None empties the chart,
-        // ready for the lines you tick next.
+        // the whole; tick that row too to draw it. Where the chart names the
+        // parts that make up its Total (data-chart-share), All is those, in
+        // Counts as in Share: Workshop Stats' Raw Code, outside the Total,
+        // stays unticked (user decision 2026-11-08). None empties the
+        // chart, ready for the lines you tick next.
         const bulk = (label, keys) => {
           const b = document.createElement('button');
           b.type = 'button';
@@ -2016,7 +2235,7 @@ whenSettled(function () {
           const bulkRow = document.createElement('div');
           bulkRow.className = 'chart-multi__bulk';
           bulkRow.append(
-            bulk('All', () => shareOn() ? sharedParts()
+            bulk('All', () => shareSet.size ? sharedParts()
               : Object.keys(series).filter(listed)),
             bulk('None', () => []));
           panel.appendChild(bulkRow);
@@ -2195,6 +2414,15 @@ whenSettled(function () {
           refreshAxis();
         });
       });
+      // day_cut landed: the days and the changes can be placed now.
+      if (dayCutLoad) dayCutLoad.then(m => {
+        dayCut = m;
+        loadPoints();
+        activeIdx = -1;
+        pinColumns();
+        reapply();
+        refreshAxis();
+      }).catch(() => { /* no day_cut: the changes stay dashes */ });
 
       // Re-pin once webfonts land: widths first measured against the fallback
       // face would sit a few pixels off the text that finally renders.
@@ -2205,10 +2433,12 @@ whenSettled(function () {
       // <details> the probe has no layout, so every width above measured 0.
       const fold = svg.closest('details');
       if (fold) fold.addEventListener('toggle', () => {
-        if (fold.open) { pinColumns(); refreshCrosshair(); }
+        if (fold.open) { placeReadout(); pinColumns(); refreshCrosshair(); }
       });
       // The same re-measure for a chart shown by the alternates switch.
-      svg.chartApi.relayout = () => { pinColumns(); refreshCrosshair(); };
+      svg.chartApi.relayout = () => {
+        placeReadout(); pinColumns(); refreshCrosshair();
+      };
     }
   });
 

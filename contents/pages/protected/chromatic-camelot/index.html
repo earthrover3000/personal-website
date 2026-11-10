@@ -68,7 +68,38 @@
   });
 })();
 </script>
-<style>/* Shared base styles for index pages (root, protected, private) and docs
+<style>/* THE HOUSE STYLE — every interface's one design language (user decision
+   2026-11-09: "make it official and use the same design language"). A
+   new page or app is built from these pieces, top to bottom, and adds
+   only what its content needs:
+
+     .container      the column (--column), centred, at the page's edge
+     .crumb-line     the trail (.breadcrumb) from the page's root; its
+                     right end (.head-controls) holds the page's own
+                     links and settings (.up-link, a gear). Light/dark
+                     is not a page control: it follows the system
+     h1              the title — the interface's name
+     .head-meta      one muted line: counts, status, progress
+     .controls-row   one row of buttons acting on the content, each an
+                     emoji and a word (page-widgets/controls.js says the
+                     shared ones); the open one of a pair is outlined in
+                     the accent
+     .filter         the search row, when there is a list to narrow
+     details.fold    a section that opens and shuts
+     .container.split  two halves, the right one a pinned pane
+     .sidebar        an APP's list to move around in (its stages, its
+                     sections): full height at the window's left edge,
+                     hidden and shown by a ☰ button. Apps only — a
+                     document page keeps the bare column
+
+   Colours are the tokens below and nothing else (an app's extra hues are
+   light-dark() pairs of its own); light/dark is theme-init.js's choice;
+   type is the system stack, monospace only for numbers and code. A page
+   that cannot load ES modules (opened from file://) repeats a shared
+   label rather than inventing its own — 装机助手 PC Setup Companion's
+   companion.html is the worked example of an app moved onto this.
+
+   Shared base styles for index pages (root, protected, private) and docs
    pages (site-map, site-stats, lifespan-atlas plan). Loaded BEFORE the
    page-specific stylesheet so page rules can override.
 
@@ -93,6 +124,13 @@
      every site, docs and Hub page): `.container`'s width, and anything
      that measures the gutter beside it, reads this. */
   --column: 880px;
+  /* THE HALVES (user decision 2026-11-08): the column split into two
+     equal halves this far apart — the index pages' main and side
+     (index.css .row) and a split page's side and pane (.container.split
+     below) read it. Both stack into one column at 600px wide and under;
+     a media query can't read a variable, so that number is written at
+     both rules. */
+  --halves-gap: 2rem;
   /* THE PAGE'S EDGE, named (2026-10-22): `body`'s padding below, and
      anything that paints the gap — the Hub's bedtime frame — reads these
      rather than restating the rule. */
@@ -185,6 +223,78 @@ body {
   position: relative;
   user-select: text;
   -webkit-user-select: text;
+}
+
+/* A SPLIT PAGE (user decision 2026-11-08): the column in two halves
+   (--halves-gap), where the right half is a pane that starts at the very
+   top, level with the trail, and stays in view while the left scrolls.
+   Everything else — the trail, the title, the controls, the content —
+   lives in the left half. Opt-in: the page's container carries `split`,
+   holding `.page-side` then `.page-pane`. 600px and under, one column,
+   the pane after the side. */
+.container.split { display: flex; gap: var(--halves-gap);
+                   align-items: flex-start; }
+.container.split > .page-side,
+.container.split > .page-pane { flex: 1; min-width: 0; }
+.container.split > .page-pane {
+  position: sticky; top: var(--edge-y);
+  max-height: calc(100vh - 2 * var(--edge-y)); overflow-y: auto;
+}
+@media (max-width: 600px) {
+  .container.split { flex-direction: column; gap: 0; }
+  .container.split > .page-pane { position: static; max-height: none;
+    overflow-y: visible; margin-top: 1rem; }
+}
+
+/* THE SIDEBAR (user decision 2026-11-09: "can we just make the left
+   column back?"): an app's list to move around in, full height at the
+   window's left edge — the PC Setup Companion's stages. The page opts in
+   with `with-sidebar` on <body> and holds `.sidebar` and a
+   `.sidebar-toggle` (☰); `sidebar-shut` on <body> hides it, and the
+   page's script toggles that and remembers it. The column is centred in
+   the room to the sidebar's right. 900px and under there is no room: the
+   sidebar opens OVER the page (`.sidebar-backdrop` shuts it), and a page
+   should start it shut there. */
+:root { --sidebar-w: 15rem; }
+.sidebar {
+  position: fixed; inset: 0 auto 0 0; z-index: 40;
+  width: var(--sidebar-w); overflow-y: auto;
+  /* its first line level with the trail, clear of the ☰ */
+  padding: var(--edge-y) 1rem 1rem 3rem;
+  background: var(--surface); border-right: 1px solid var(--border);
+  transition: transform 0.2s;
+}
+.sidebar-toggle {
+  position: fixed; z-index: 41; left: 0.75rem; top: var(--edge-y);
+  height: var(--crumb-h); line-height: var(--crumb-h); padding: 0 0.4rem;
+  background: none; border: none; border-radius: 4px; cursor: pointer;
+  color: var(--muted); font: inherit; font-size: 1rem;
+}
+.sidebar-toggle:hover { color: var(--text); background: var(--border); }
+/* The scrollbar strip on the LEFT (html, above) is for centring the bare
+   column; beside a sidebar it would only open a gap at the window's edge
+   (Chrome measures `left: 0` from inside it). */
+html:has(> body.with-sidebar) { scrollbar-gutter: stable; }
+body.with-sidebar {
+  padding-left: calc(var(--sidebar-w) + var(--edge-x));
+  transition: padding-left 0.2s;
+}
+body.with-sidebar.sidebar-shut { padding-left: max(var(--edge-x), 3rem); }
+body.sidebar-shut .sidebar { transform: translateX(-100%); }
+/* A page of the app without the sidebar (its index) drops `with-sidebar`
+   and the sidebar goes with it. */
+body:not(.with-sidebar) > :is(.sidebar, .sidebar-toggle, .sidebar-backdrop) {
+  display: none;
+}
+.sidebar-backdrop { display: none; }
+@media (max-width: 900px) {
+  body.with-sidebar,
+  body.with-sidebar.sidebar-shut { padding-left: 3rem; }
+  .sidebar { box-shadow: 4px 0 16px rgb(0 0 0 / 0.2); }
+  body.with-sidebar:not(.sidebar-shut) .sidebar-backdrop {
+    display: block; position: fixed; inset: 0; z-index: 39;
+    background: rgb(0 0 0 / 0.35);
+  }
 }
 
 /* (`.back-link`, a link pinned to the container's top-right corner, lived
@@ -616,6 +726,21 @@ table { width: 100%; border-collapse: collapse; }
 .toc li > a::before { content: "\25B8 "; color: transparent; font-size: 0.8em; }
 .toc details > ol { margin-top: 0.3rem; }
 
+/* A FOLD — a section that opens and shuts (user decision 2026-11-08:
+   "the style SSOTs with other interface apps"). Healing Trajectory's
+   `details.fold` (its old page's `details.crit`), lifted onto the shelf
+   so every interface folds alike; 生活自理 Life Skills' Checklist
+   uses it, and controls.js `wireFoldAll` / `rememberFolds` drive it. */
+details.fold { margin-top: 0.9rem; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--surface); }
+details.fold > summary { cursor: pointer; padding: 0.55rem 0.9rem;
+  font-weight: 600; list-style: none; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before { content: "\25B8 "; color: var(--muted); }
+details.fold[open] > summary::before { content: "\25BE "; }
+details.fold > .inside { padding: 0 0.9rem 0.9rem; }
+details.fold > .inside > :first-child { margin-top: 0.2rem; }
+
 /* Index-page-specific styles (root, protected, private). Layered on top of
    base.css — theme tokens, body, h1, .head-meta, .container live
    there. Index pages render block-style anchor links and sidebar
@@ -640,7 +765,7 @@ li { margin: var(--row-gap) 0; }
 .row a:hover { background: var(--surface); text-decoration: underline; }
 /* A SUB-ROW sits under the row above it — a project inside that row's
    folder (the Planning Room's PC Setup Companion under System Environment,
-   user decision 2026-10-19; the Digital Inventory too until it became a
+   user decision 2026-10-19; the Digital Estate too until it became a
    top-level folder, 2026-10-31). Opt-in per entry (`sub`),
    so every other page renders as before. */
 .row li.sub-row > a:not(.row-folder):not(.row-open) { padding-left: 2rem; }
@@ -1107,9 +1232,10 @@ li.has-folder, li.has-open { --row-icon-w: 1.9rem; --row-icon-h: 1.6rem; }
   color: var(--muted); font-size: 0.8rem;
 }
 
-.row { display: flex; gap: 2rem; align-items: flex-start; }
+.row { display: flex; gap: var(--halves-gap); align-items: flex-start; }
 /* Both columns flex:1 → they divide the row's available width evenly,
-   minus the 2 rem gap. No hardcoded width on either side. */
+   minus the gap (base.css --halves-gap, shared with a split page). No
+   hardcoded width on either side. */
 .main { flex: 1; min-width: 0; }
 .side { flex: 1; min-width: 0; }
 .side hr { margin: 0.8rem 0; }

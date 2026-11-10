@@ -22,7 +22,7 @@ li { margin: var(--row-gap) 0; }
 .row a:hover { background: var(--surface); text-decoration: underline; }
 /* A SUB-ROW sits under the row above it — a project inside that row's
    folder (the Planning Room's PC Setup Companion under System Environment,
-   user decision 2026-10-19; the Digital Inventory too until it became a
+   user decision 2026-10-19; the Digital Estate too until it became a
    top-level folder, 2026-10-31). Opt-in per entry (`sub`),
    so every other page renders as before. */
 .row li.sub-row > a:not(.row-folder):not(.row-open) { padding-left: 2rem; }
@@ -489,9 +489,10 @@ li.has-folder, li.has-open { --row-icon-w: 1.9rem; --row-icon-h: 1.6rem; }
   color: var(--muted); font-size: 0.8rem;
 }
 
-.row { display: flex; gap: 2rem; align-items: flex-start; }
+.row { display: flex; gap: var(--halves-gap); align-items: flex-start; }
 /* Both columns flex:1 → they divide the row's available width evenly,
-   minus the 2 rem gap. No hardcoded width on either side. */
+   minus the gap (base.css --halves-gap, shared with a split page). No
+   hardcoded width on either side. */
 .main { flex: 1; min-width: 0; }
 .side { flex: 1; min-width: 0; }
 .side hr { margin: 0.8rem 0; }

@@ -167,8 +167,13 @@
     .container .t-unknown { color: var(--muted); }
     /* A bracketed note after an ingredient or a food: "esp. root". */
     .container .note { color: var(--muted); font-weight: 400; }
-    /* The number on siblings that share a name: Algogens, chemical I/II. */
-    .container .nth { color: var(--muted); font-weight: 400; }
+    /* Each entry's outline number, S.1.2.5 (render.py _NUMBERS): grey
+       and plain, so it locates without competing with the colours. */
+    .container .num {
+      color: var(--muted);
+      font-weight: 400;
+      font-variant-numeric: tabular-nums;
+    }
     /* A heading's mechanism, on its own grey line under the name. Italic
        so it reads as the heading's caption, not as the first entry. Not
        indented: aligned with the name is what ties it to the name. */
@@ -183,7 +188,7 @@
     /* A COUNTEREXAMPLE: looks related, but I don't react to it — listed
        to show where the line falls. A neutral band behind the label, not
        a colour: colour is the word's type. */
-    .container li.contrast > span:first-child,
+    .container li.contrast > span:first-child:not(.numbered),
     .container .shade {
       background: light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.09));
       border-radius: 4px;
@@ -231,6 +236,79 @@
       background: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.07));
     }
 
+    /* CHINESE NAMES: each entry's, on its own line under the English
+       (user, 2026-11-10), in the word's colour. So the line holding them
+       is a box as wide as its words, and a counterexample's band covers
+       both lines as one. */
+    .container .zh { display: block; }
+    .container li > span:first-child { display: inline-block; }
+    /* A numbered entry: the number, then a column holding the English
+       line and the Chinese line, so the two start at the same edge. */
+    .container li > span.numbered {      /* beats the inline-block above */
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.3em;
+    }
+    .container .key .shade { display: inline-block; vertical-align: top; }
+    .container .key .item {
+      display: inline-flex;
+      align-items: baseline;
+    }
+    .container .key .item .glyph { margin-bottom: 0.08em; }
+
+    /* STICKY HEADINGS (user, 2026-11-10): the section title stays at the
+       top of the window, and in sections 3 and 4 each heading you are
+       inside stacks under it — the class, then the ingredient; the
+       declared/other heading, then the food type. Each stops when its
+       own list ends. The script below sets each one's `top` (the height
+       of the headings above it, measured, since a title can wrap) and
+       lets go of a section title once the next one has taken its place,
+       so a taller one cannot show under a shorter one.
+       Opaque, so the list scrolls out of sight beneath: the window's
+       background is carried out to both sides by a clipped shadow, while
+       a counterexample's grey band stays behind its own words. */
+    .container > h2,
+    .container > h3,
+    .container li[data-key] > span:first-child,
+    .container li.plain > span:first-child {
+      position: sticky;
+      top: 0;
+      background-color: var(--bg);
+    }
+    .container > h2 { z-index: 6; }
+    .container > h2.fi-past,
+    .container > h3.fi-past { position: relative; }
+    .container > h3 { z-index: 5; }
+    .container li[data-key] > span:first-child,
+    .container li.plain > span:first-child {
+      display: block;
+      width: fit-content;
+      box-shadow: 0 0 0 100vmax var(--bg);
+      clip-path: inset(0 -100vmax);
+    }
+    .container li[data-key] > span.numbered { display: flex; }
+    .container > ul > li[data-key] > span:first-child,
+    .container li.plain > span:first-child { z-index: 4; }
+    .container > ul > li > ul > li[data-key] > span:first-child {
+      z-index: 3;
+    }
+    /* A numbered row draws its circle inline, between the number and
+       the name (render.py entry), not hanging off the row. */
+    .container li.numbered::before { display: none; }
+    .container span.numbered > .item {
+      display: inline-flex;
+      align-items: baseline;
+    }
+    .container span.numbered .glyph { margin-bottom: 0.08em; }
+    /* A heading's description lines up with its name too (the script
+       measures where names start in each list). */
+    .container li.numbered > .desc { margin-left: var(--name-x, 0); }
+    .container li.contrast > span.numbered > .item {
+      background: light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.09));
+      border-radius: 4px;
+      padding: 0.05em 0.4em;
+    }
+
     /* SUPPLEMENTS: shown unless the reader unticks "Include supplements"
        on the Fold all line (the script adds .no-supp, and remembers the
        choice). Shown by default, so they are there even without script. */
@@ -244,7 +322,11 @@
       padding: 0 0.35em;
       vertical-align: 0.08em;
     }
-    .container .supp-toggle { color: var(--muted); cursor: pointer; }
+    .container .supp-toggle,
+    .container .zh-toggle { color: var(--muted); cursor: pointer; }
+    /* "Show Chinese" unticked: every Chinese line goes (user, 2026-11-10;
+       shown by default). The sticky headings re-measure themselves. */
+    .container.no-zh .zh { display: none; }
 
     /* THE KEY: a real example per row, drawn as in the list, and its
        meaning beside it. Bold only where the list is bold (the top
@@ -272,14 +354,16 @@
 <p>I don’t have any ethical or religious dietary restrictions, but I do
 have quite a few food intolerances linked to my neurodivergence.</p>
 <p>For me, these intolerances show up in two ways: as effects on my
-senses, such as pain, itch or discomfort, or as effects on my mind,
-such as overstimulation or sedation. To capture the full range of
+mind, such as overstimulation or sedation, or as effects on my
+senses, such as pain, itch or discomfort. To capture the full range of
 these adverse effects, the list includes substances I ingest as well
 as those I inhale passively when people nearby smoke or vape them,
 such as tobacco and cannabis.</p>
 <p>Below they’re listed in two sections. The first, by
-<strong>pharmacological/chemical class</strong>, explains how each substance
-affects me and helps identify intolerances not listed. The second, by
+<strong>pharmacological/chemical class</strong>, is split the same two ways, into
+what <strong>alters my mind</strong> and what <strong>disrupts my senses</strong>. It explains
+how each substance or texture affects me and helps identify
+intolerances not listed. The second, by
 <strong>food type</strong>, is a practical index for cooking, shopping and eating
 out. Each food links back to why it’s listed, and so whether related
 foods are likely to be fine. Please pay special attention to the
@@ -290,226 +374,251 @@ work in progress, so some items may be missing. If in doubt, please
 ask me.</p>
 <h2>Key</h2>
 <dl class="key">
-<dt><span class="glyph st-no"></span><span class="t-food">Tea</span></dt><dd>I can’t consume</dd>
-<dt><span class="glyph st-some"></span><span class="t-food">Ginger</span></dt><dd>Only a small amount</dd>
-<dt><span class="glyph st-ok"></span><span class="shade"><span class="t-food">Tofu</span></span></dt><dd>A related counterexample: I can consume</dd>
-<dt><span class="t-pharm key-top">Opioids</span></dt><dd>Pharmacological class</dd>
-<dt><span class="t-class">Shogaols</span></dt><dd>Chemical/physical class</dd>
-<dt><a class="t-chem" href="../molecule-lookup/?q=monosodium%20glutamate&amp;collection=food-intolerances" target="_blank" rel="noopener">MSG</a></dt><dd>Individual chemical (linked)</dd>
-<dt><span class="t-group">Curry pastes</span></dt><dd>Food group</dd>
-<dt><span class="t-food">Tea</span></dt><dd>Food item</dd>
-<dt><span class="desc">via mouth ulcers</span></dt><dd>How it acts in the body</dd>
+<dt><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Tea</span><span class="zh t-food" lang="zh-Hans">茶</span></span></span></dt><dd>I can’t consume</dd>
+<dt><span class="item"><span class="glyph st-some"></span><span class="body"><span class="t-food">Ginger</span><span class="zh t-food" lang="zh-Hans">姜</span></span></span></dt><dd>Only a small amount</dd>
+<dt><span class="item"><span class="glyph st-ok"></span><span class="shade"><span class="body"><span class="t-food">Tofu</span><span class="zh t-food" lang="zh-Hans">豆腐</span></span></span></span></dt><dd>A related counterexample: I can consume</dd>
+<dt><span class="t-pharm key-top">Opioids<span class="zh t-pharm" lang="zh-Hans">阿片类物质</span></span></dt><dd>Pharmacological class</dd>
+<dt><span class="t-class">Shogaols<span class="zh t-class" lang="zh-Hans">姜烯酚类</span></span></dt><dd>Chemical/physical class</dd>
+<dt><a class="t-chem" href="../molecule-lookup/?q=monosodium%20glutamate&amp;collection=food-intolerances" target="_blank" rel="noopener">MSG</a><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=monosodium%20glutamate&amp;collection=food-intolerances" target="_blank" rel="noopener">味精</a></span></dt><dd>Individual chemical (linked)</dd>
+<dt><span class="t-group">Curry pastes<span class="zh t-group" lang="zh-Hans">咖喱酱</span></span></dt><dd>Food group</dd>
+<dt><span class="t-food">Tea<span class="zh t-food" lang="zh-Hans">茶</span></span></dt><dd>Food item</dd>
+<dt><span class="desc">via CB1 receptors</span></dt><dd>How it acts in the body</dd>
 </dl>
-<p class="fold-all"><button type="button" class="fold-toggle">Fold all</button> · <label class="supp-toggle"><input type="checkbox" checked> Include supplements</label></p>
+<p class="fold-all"><button type="button" class="fold-toggle">Fold all</button> · <label class="supp-toggle"><input type="checkbox" checked> Include supplements</label> · <label class="zh-toggle"><input type="checkbox" checked> Show Chinese</label></p>
 <h2>Intolerances by pharmacological/chemical class</h2>
 <p class="section-desc">A systematic classification of how each substance affects me, and what else might</p>
+<h3>Substances that alter the mind <span class="note">(psychoactive substances)</span><span class="zh" lang="zh-Hans">改变精神状态的物质<span class="note">（精神活性物质）</span></span></h3>
 <ul class="topics">
-<li class="st-no" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances"><span><span class="t-pharm">Stimulants &amp; entactogens <span class="note">(substances that enhance empathy and affection)</span></span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">dopaminergic, noradrenergic or serotonergic substances</span><ul class="topics">
-<li class="st-no" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Methylxanthines (incl. caffeine, theobromine) / via adenosine receptors"><span><span class="t-class">Methylxanthines</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=caffeine&amp;collection=food-intolerances" target="_blank" rel="noopener">caffeine</a>, <a class="t-chem" href="../molecule-lookup/?q=theobromine&amp;collection=food-intolerances" target="_blank" rel="noopener">theobromine</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via adenosine receptors</span><ul class="topics">
-<li class="st-no"><span><span class="t-food">Coffee</span> <span class="note">(<em>Coffea arabica</em>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Decaf coffee</span></span></li>
-<li class="st-no"><span><span class="t-food">Tea</span> <span class="note">(<em>Camellia sinensis</em>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Matcha</span></span></li>
-<li class="st-no"><span><span class="t-food">Cola</span></span></li>
-<li class="st-no"><span><span class="t-group">Energy drinks</span></span></li>
-<li class="st-no"><span><span class="t-food">Cacao</span> <span class="note">(<em>Theobroma cacao</em>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Acai</span> <span class="note">(<em>Euterpe oleracea</em>)</span></span></li>
+<li class="st-no numbered" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances"><span class="numbered"><span class="num">M.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-pharm">Stimulants &amp; entactogens <span class="note">(substances that enhance empathy and affection)</span></span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-pharm" lang="zh-Hans">兴奋剂与同感剂<span class="note">（增强同理心与亲密感的物质）</span></span></span></span></span><span class="desc">dopaminergic, noradrenergic or serotonergic substances</span><ul class="topics">
+<li class="st-no numbered" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Methylxanthines (incl. caffeine, theobromine) / via adenosine receptors"><span class="numbered"><span class="num">M.1.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-class">Methylxanthines</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=caffeine&amp;collection=food-intolerances" target="_blank" rel="noopener">caffeine</a>, <a class="t-chem" href="../molecule-lookup/?q=theobromine&amp;collection=food-intolerances" target="_blank" rel="noopener">theobromine</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">甲基黄嘌呤类<span class="note">（含<a class="t-chem" href="../molecule-lookup/?q=caffeine&amp;collection=food-intolerances" target="_blank" rel="noopener">咖啡因</a>、<a class="t-chem" href="../molecule-lookup/?q=theobromine&amp;collection=food-intolerances" target="_blank" rel="noopener">可可碱</a>）</span></span></span></span></span><span class="desc">via adenosine receptors</span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">M.1.1.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Coffee</span> <span class="note">(<em>Coffea arabica</em>)</span><span class="zh t-food" lang="zh-Hans">咖啡</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.1.1.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Decaf coffee</span><span class="zh t-food" lang="zh-Hans">低因咖啡</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.1.1.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Tea</span> <span class="note">(<em>Camellia sinensis</em>)</span><span class="zh t-food" lang="zh-Hans">茶</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.1.1.4</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Matcha</span><span class="zh t-food" lang="zh-Hans">抹茶</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.1.1.5</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Cola</span><span class="zh t-food" lang="zh-Hans">可乐</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.1.1.6</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-group">Energy drinks</span><span class="zh t-group" lang="zh-Hans">能量饮料</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.1.1.7</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Cacao</span> <span class="note">(<em>Theobroma cacao</em>)</span><span class="zh t-food" lang="zh-Hans">可可</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.1.1.8</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Acai</span> <span class="note">(<em>Euterpe oleracea</em>)</span><span class="zh t-food" lang="zh-Hans">巴西莓</span></span></span></span></li>
 </ul>
 </li>
-<li class="st-ok contrast" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-herbal-teas" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Herbal teas"><span><span class="t-group">Herbal teas</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-ok contrast"><span><span class="t-food">Rooibos</span> <span class="note">(<em>Aspalathus linearis</em>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Chamomile</span> <span class="note">(<em>Matricaria chamomilla</em>)</span></span></li>
+<li class="st-ok contrast numbered" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-herbal-teas" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Herbal teas"><span class="numbered"><span class="num">M.1.2</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-group">Herbal teas</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-group" lang="zh-Hans">花草茶</span></span></span></span><ul class="topics">
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.1.2.1</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Rooibos</span> <span class="note">(<em>Aspalathus linearis</em>)</span><span class="zh t-food" lang="zh-Hans">路易波士茶</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.1.2.2</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Chamomile</span> <span class="note">(<em>Matricaria chamomilla</em>)</span><span class="zh t-food" lang="zh-Hans">洋甘菊茶</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.1.2.3</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Chrysanthemum</span> <span class="note">(<em>Chrysanthemum morifolium</em>)</span><span class="zh t-food" lang="zh-Hans">菊花茶</span></span></span></span></li>
 </ul>
 </li>
-<li class="st-no" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-tyrosine-in-dairy-via-catecholamine-synthesis" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Tyrosine (in dairy) / via catecholamine synthesis"><span><a class="t-chem" href="../molecule-lookup/?q=L-tyrosine&amp;collection=food-intolerances" target="_blank" rel="noopener">Tyrosine</a> <span class="note">(in <span class="t-group">dairy</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via catecholamine synthesis</span><ul class="topics">
-<li class="st-no"><span><span class="t-group">All mammals’ milk, cheese, yoghurt and cream</span></span></li>
-<li class="st-ok contrast"><span><span class="t-group">Plant-based dairy alternatives</span></span></li>
-<li class="st-no supp"><span><a class="t-chem" href="../molecule-lookup/?q=L-tyrosine&amp;collection=food-intolerances" target="_blank" rel="noopener">L-Tyrosine</a> <span class="tag">supplement</span></span></li>
+<li class="st-no numbered" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-tyrosine-in-dairy-via-catecholamine-synthesis" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Tyrosine (in dairy) / via catecholamine synthesis"><span class="numbered"><span class="num">M.1.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=L-tyrosine&amp;collection=food-intolerances" target="_blank" rel="noopener">Tyrosine</a> <span class="note">(in <span class="t-group">dairy</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=L-tyrosine&amp;collection=food-intolerances" target="_blank" rel="noopener">酪氨酸</a><span class="note">（见于<span class="t-group">乳制品</span>）</span></span></span></span></span><span class="desc">via catecholamine synthesis</span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">M.1.3.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-group">All mammals’ milk, cheese, yoghurt and cream</span><span class="zh t-group" lang="zh-Hans">所有哺乳动物的奶、奶酪、酸奶和奶油</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.1.3.2</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-group">Butter</span> <span class="note">(low protein content)</span><span class="zh t-group" lang="zh-Hans">黄油<span class="note">（蛋白质含量低）</span></span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.1.3.3</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-group">Clarified butter</span> <span class="note">(incl. <span class="t-food">ghee</span>)</span><span class="zh t-group" lang="zh-Hans">澄清黄油<span class="note">（含<span class="t-food">印度酥油</span>）</span></span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.1.3.4</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-group">Plant-based milk, cheese, yoghurt and cream</span><span class="zh t-group" lang="zh-Hans">植物奶、植物奶酪、植物酸奶和植物奶油</span></span></span></span></li>
+<li class="st-no supp numbered"><span class="numbered"><span class="num">M.1.3.5</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=L-tyrosine&amp;collection=food-intolerances" target="_blank" rel="noopener">L-Tyrosine</a> <span class="tag">supplement</span><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=L-tyrosine&amp;collection=food-intolerances" target="_blank" rel="noopener">L-酪氨酸</a></span></span></span></span></li>
 </ul>
 </li>
-<li class="st-no" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-nicotine-via-nicotinic-receptors" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Nicotine / via nicotinic receptors"><span><a class="t-chem" href="../molecule-lookup/?q=Nicotine&amp;collection=food-intolerances" target="_blank" rel="noopener">Nicotine</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via nicotinic receptors</span><ul class="topics">
-<li class="st-no"><span><span class="t-food">Tobacco</span> <span class="note">(<em>Nicotiana tabacum</em>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Vapes</span></span></li>
+<li class="st-no numbered" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-nicotine-via-nicotinic-acetylcholine-receptors" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › Nicotine / via nicotinic acetylcholine receptors"><span class="numbered"><span class="num">M.1.4</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=Nicotine&amp;collection=food-intolerances" target="_blank" rel="noopener">Nicotine</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=Nicotine&amp;collection=food-intolerances" target="_blank" rel="noopener">尼古丁</a></span></span></span></span><span class="desc">via nicotinic acetylcholine receptors</span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">M.1.4.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Tobacco</span> <span class="note">(<em>Nicotiana tabacum</em>)</span><span class="zh t-food" lang="zh-Hans">烟草</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.1.4.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Vapes</span><span class="zh t-food" lang="zh-Hans">电子烟</span></span></span></span></li>
 </ul>
 </li>
-<li class="st-no" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-carbolines-incl-harman-norharman-via-mao-inhibition" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › β-Carbolines (incl. harman, norharman) / via MAO inhibition"><span><span class="t-class">β-Carbolines</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=harmane&amp;collection=food-intolerances" target="_blank" rel="noopener">harman</a>, <a class="t-chem" href="../molecule-lookup/?q=norharmane&amp;collection=food-intolerances" target="_blank" rel="noopener">norharman</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via MAO inhibition</span><ul class="topics">
-<li class="st-no"><span><span class="t-food">Tobacco</span> <span class="note">(<em>Nicotiana tabacum</em>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Cacao</span> <span class="note">(<em>Theobroma cacao</em>)</span> <span class="note">(esp. raw)</span></span></li>
+<li class="st-no numbered" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-carbolines-incl-harman-norharman-via-mao-inhibition" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › β-Carbolines (incl. harman, norharman) / via MAO inhibition"><span class="numbered"><span class="num">M.1.5</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-class">β-Carbolines</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=harmane&amp;collection=food-intolerances" target="_blank" rel="noopener">harman</a>, <a class="t-chem" href="../molecule-lookup/?q=norharmane&amp;collection=food-intolerances" target="_blank" rel="noopener">norharman</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">β-咔啉类<span class="note">（含<a class="t-chem" href="../molecule-lookup/?q=harmane&amp;collection=food-intolerances" target="_blank" rel="noopener">哈尔满</a>、<a class="t-chem" href="../molecule-lookup/?q=norharmane&amp;collection=food-intolerances" target="_blank" rel="noopener">去甲哈尔满</a>）</span></span></span></span></span><span class="desc">via MAO inhibition</span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">M.1.5.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Tobacco</span> <span class="note">(<em>Nicotiana tabacum</em>)</span><span class="zh t-food" lang="zh-Hans">烟草</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.1.5.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Cacao</span> <span class="note">(<em>Theobroma cacao</em>)</span> <span class="note">(esp. raw)</span><span class="zh t-food" lang="zh-Hans">可可<span class="note">（尤其是生的）</span></span></span></span></span></li>
 </ul>
 </li>
-<li class="st-no" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-high-glycaemic-carbohydrates-incl-glucose-sucrose" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › High-glycaemic carbohydrates (incl. glucose, sucrose)"><span><span class="t-class">High-glycaemic carbohydrates</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=D-glucose&amp;collection=food-intolerances" target="_blank" rel="noopener">glucose</a>, <a class="t-chem" href="../molecule-lookup/?q=sucrose&amp;collection=food-intolerances" target="_blank" rel="noopener">sucrose</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-some"><span><span class="t-food">Table sugar</span></span></li>
-<li class="st-some"><span><span class="t-group">Sugary foods and drinks</span></span></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="st-no" id="e-opioids-via-opioid-receptors" data-key="Opioids / via μ-opioid receptors"><span><span class="t-pharm">Opioids</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via μ-opioid receptors</span><ul class="topics">
-<li class="st-no" id="e-opioids-via-opioid-receptors-casomorphins-incl-bcm-7-from-a1-type-casein-in-cow-s-dairy" data-key="Opioids / via μ-opioid receptors › β-Casomorphins (incl. BCM-7) (from A1-type β-casein in cow’s dairy)"><span><span class="t-class">β-Casomorphins</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=beta-casomorphin-7&amp;collection=food-intolerances" target="_blank" rel="noopener">BCM-7</a>)</span> <span class="note">(from <span class="t-class">A1-type β-casein</span> in <span class="t-group">cow’s dairy</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><span class="t-group">Cow’s milk, cheese, yoghurt and cream</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Cow’s butter</span> <span class="note">(low casein content)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Clarified cow’s butter/Ghee</span></span></li>
-</ul>
-</li>
-<li class="st-ok contrast" id="e-opioids-via-opioid-receptors-whey-protein" data-key="Opioids / via μ-opioid receptors › Whey protein"><span><span class="t-class">Whey protein</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-ok contrast"><span><span class="t-food">Whey isolate</span></span></li>
-</ul>
-</li>
-<li class="st-ok contrast" id="e-opioids-via-opioid-receptors-milk-fat" data-key="Opioids / via μ-opioid receptors › Milk fat"><span><span class="t-class">Milk fat</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-ok contrast"><span><span class="t-food">Butter</span></span></li>
+<li class="st-no numbered" id="e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-high-glycaemic-carbohydrates-incl-glucose-sucrose" data-key="Stimulants &amp; entactogens / dopaminergic, noradrenergic or serotonergic substances › High-glycaemic carbohydrates (incl. glucose, sucrose)"><span class="numbered"><span class="num">M.1.6</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-class">High-glycaemic carbohydrates</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=D-glucose&amp;collection=food-intolerances" target="_blank" rel="noopener">glucose</a>, <a class="t-chem" href="../molecule-lookup/?q=sucrose&amp;collection=food-intolerances" target="_blank" rel="noopener">sucrose</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">高升糖碳水化合物<span class="note">（含<a class="t-chem" href="../molecule-lookup/?q=D-glucose&amp;collection=food-intolerances" target="_blank" rel="noopener">葡萄糖</a>、<a class="t-chem" href="../molecule-lookup/?q=sucrose&amp;collection=food-intolerances" target="_blank" rel="noopener">蔗糖</a>）</span></span></span></span></span><ul class="topics">
+<li class="st-some numbered"><span class="numbered"><span class="num">M.1.6.1</span><span class="item"><span class="glyph st-some"></span><span class="body"><span class="t-food">Table sugar</span><span class="zh t-food" lang="zh-Hans">白糖</span></span></span></span></li>
+<li class="st-some numbered"><span class="numbered"><span class="num">M.1.6.2</span><span class="item"><span class="glyph st-some"></span><span class="body"><span class="t-group">Sugary foods and drinks</span><span class="zh t-group" lang="zh-Hans">含糖食品和饮料</span></span></span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no" id="e-depressants" data-key="Depressants"><span><span class="t-pharm">Depressants <span class="note">(substances that slow brain activity)</span></span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no" id="e-depressants-glutamate" data-key="Depressants › Glutamate"><span><a class="t-chem" href="../molecule-lookup/?q=L-glutamic%20acid&amp;collection=food-intolerances" target="_blank" rel="noopener">Glutamate</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><a class="t-chem" href="../molecule-lookup/?q=monosodium%20glutamate&amp;collection=food-intolerances" target="_blank" rel="noopener">MSG</a></span></li>
-<li class="st-no"><span><span class="t-food">Miso</span></span></li>
-<li class="st-no"><span><span class="t-food">Fish sauce</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Tofu</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Soy milk</span></span></li>
+<li class="st-no numbered" id="e-opioids-via-opioid-receptors" data-key="Opioids / via μ-opioid receptors"><span class="numbered"><span class="num">M.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-pharm">Opioids</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-pharm" lang="zh-Hans">阿片类物质</span></span></span></span><span class="desc">via μ-opioid receptors</span><ul class="topics">
+<li class="st-no numbered" id="e-opioids-via-opioid-receptors-casomorphins-incl-bcm-7-from-a1-type-casein-in-cow-s-dairy" data-key="Opioids / via μ-opioid receptors › β-Casomorphins (incl. BCM-7) (from A1-type β-casein in cow’s dairy)"><span class="numbered"><span class="num">M.2.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-class">β-Casomorphins</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=beta-casomorphin-7&amp;collection=food-intolerances" target="_blank" rel="noopener">BCM-7</a>)</span> <span class="note">(from <span class="t-class">A1-type β-casein</span> in <span class="t-group">cow’s dairy</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">β-酪啡肽类<span class="note">（含<a class="t-chem" href="../molecule-lookup/?q=beta-casomorphin-7&amp;collection=food-intolerances" target="_blank" rel="noopener">BCM-7</a>）</span><span class="note">（来自<span class="t-group">牛乳制品</span>中的<span class="t-class">A1型β-酪蛋白</span>）</span></span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">M.2.1.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-group">Cow’s milk, cheese, yoghurt and cream</span><span class="zh t-group" lang="zh-Hans">牛奶及其奶酪、酸奶和奶油</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.2.1.2</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-group">Butter</span> <span class="note">(low casein content)</span><span class="zh t-group" lang="zh-Hans">黄油<span class="note">（酪蛋白含量低）</span></span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.2.1.3</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-group">Clarified butter</span> <span class="note">(incl. <span class="t-food">ghee</span>)</span><span class="zh t-group" lang="zh-Hans">澄清黄油<span class="note">（含<span class="t-food">印度酥油</span>）</span></span></span></span></span></li>
 </ul>
 </li>
-<li class="st-no" id="e-depressants-melatonin" data-key="Depressants › Melatonin"><span><a class="t-chem" href="../molecule-lookup/?q=Melatonin&amp;collection=food-intolerances" target="_blank" rel="noopener">Melatonin</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><span class="t-food">Cherry</span> <span class="note">(<em>Prunus avium</em>)</span></span></li>
-<li class="st-no supp"><span><a class="t-chem" href="../molecule-lookup/?q=5-hydroxytryptophan&amp;collection=food-intolerances" target="_blank" rel="noopener">5-HTP</a> <span class="tag">supplement</span></span></li>
+<li class="st-ok contrast numbered" id="e-opioids-via-opioid-receptors-whey-protein" data-key="Opioids / via μ-opioid receptors › Whey protein"><span class="numbered"><span class="num">M.2.2</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-class">Whey protein</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">乳清蛋白</span></span></span></span><ul class="topics">
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.2.2.1</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Whey isolate</span><span class="zh t-food" lang="zh-Hans">分离乳清蛋白</span></span></span></span></li>
 </ul>
 </li>
-<li class="st-no" id="e-depressants-ethanol" data-key="Depressants › Ethanol"><span><a class="t-chem" href="../molecule-lookup/?q=Ethanol&amp;collection=food-intolerances" target="_blank" rel="noopener">Ethanol</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><span class="t-group">Alcoholic drinks</span></span></li>
-<li class="st-no"><span><span class="t-group">Alcoholic dishes and desserts</span></span></li>
-<li class="st-ok contrast"><span><span class="t-group">Alcohol-free beer and wine</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Alcohol in dish that’s cooked off</span></span></li>
-</ul>
-</li>
-<li class="st-no" id="e-depressants-cbd" data-key="Depressants › CBD"><span><a class="t-chem" href="../molecule-lookup/?q=cannabidiol&amp;collection=food-intolerances" target="_blank" rel="noopener">CBD</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no supp"><span><span class="t-food">CBD oils, capsules and gummies</span> <span class="tag">supplement</span></span></li>
-<li class="st-no"><span><span class="t-food">CBD drinks and vapes</span></span></li>
+<li class="st-ok contrast numbered" id="e-opioids-via-opioid-receptors-milk-fat" data-key="Opioids / via μ-opioid receptors › Milk fat"><span class="numbered"><span class="num">M.2.3</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-class">Milk fat</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">乳脂</span></span></span></span><ul class="topics">
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.2.3.1</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-group">Butter</span><span class="zh t-group" lang="zh-Hans">黄油</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.2.3.2</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-group">Clarified butter</span> <span class="note">(incl. <span class="t-food">ghee</span>)</span><span class="zh t-group" lang="zh-Hans">澄清黄油<span class="note">（含<span class="t-food">印度酥油</span>）</span></span></span></span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no" id="e-cannabinoids-via-cb1-receptors" data-key="Cannabinoids / via CB1 receptors"><span><span class="t-pharm">Cannabinoids</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via CB1 receptors</span><ul class="topics">
-<li class="st-no" id="e-cannabinoids-via-cb1-receptors-phytocannabinoids-incl-9-thc" data-key="Cannabinoids / via CB1 receptors › Phytocannabinoids (incl. Δ9-THC)"><span><span class="t-class">Phytocannabinoids</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=dronabinol&amp;collection=food-intolerances" target="_blank" rel="noopener">Δ9-THC</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><span class="t-food">Cannabis</span> <span class="note">(<em>Cannabis sativa</em>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Edibles</span></span></li>
-<li class="st-no"><span><span class="t-food">Cannabis vapes</span></span></li>
+<li class="st-no numbered" id="e-depressants" data-key="Depressants"><span class="numbered"><span class="num">M.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-pharm">Depressants <span class="note">(substances that slow brain activity)</span></span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-pharm" lang="zh-Hans">中枢抑制剂<span class="note">（减缓大脑活动的物质）</span></span></span></span></span><ul class="topics">
+<li class="st-no numbered" id="e-depressants-glutamate" data-key="Depressants › Glutamate"><span class="numbered"><span class="num">M.3.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=L-glutamic%20acid&amp;collection=food-intolerances" target="_blank" rel="noopener">Glutamate</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=L-glutamic%20acid&amp;collection=food-intolerances" target="_blank" rel="noopener">谷氨酸</a></span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">M.3.1.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=monosodium%20glutamate&amp;collection=food-intolerances" target="_blank" rel="noopener">MSG</a><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=monosodium%20glutamate&amp;collection=food-intolerances" target="_blank" rel="noopener">味精</a></span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.3.1.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Miso</span><span class="zh t-food" lang="zh-Hans">味噌</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.3.1.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Fish sauce</span><span class="zh t-food" lang="zh-Hans">鱼露</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.3.1.4</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Tofu</span><span class="zh t-food" lang="zh-Hans">豆腐</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.3.1.5</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Soy milk</span><span class="zh t-food" lang="zh-Hans">豆浆</span></span></span></span></li>
+</ul>
+</li>
+<li class="st-no numbered" id="e-depressants-melatonin" data-key="Depressants › Melatonin"><span class="numbered"><span class="num">M.3.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=Melatonin&amp;collection=food-intolerances" target="_blank" rel="noopener">Melatonin</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=Melatonin&amp;collection=food-intolerances" target="_blank" rel="noopener">褪黑素</a></span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">M.3.2.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Cherry</span> <span class="note">(<em>Prunus avium</em>)</span><span class="zh t-food" lang="zh-Hans">樱桃</span></span></span></span></li>
+<li class="st-no supp numbered"><span class="numbered"><span class="num">M.3.2.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=5-hydroxytryptophan&amp;collection=food-intolerances" target="_blank" rel="noopener">5-HTP</a> <span class="tag">supplement</span><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=5-hydroxytryptophan&amp;collection=food-intolerances" target="_blank" rel="noopener">5-羟色氨酸</a></span></span></span></span></li>
+</ul>
+</li>
+<li class="st-no numbered" id="e-depressants-ethanol" data-key="Depressants › Ethanol"><span class="numbered"><span class="num">M.3.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=Ethanol&amp;collection=food-intolerances" target="_blank" rel="noopener">Ethanol</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=Ethanol&amp;collection=food-intolerances" target="_blank" rel="noopener">乙醇</a></span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">M.3.3.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-group">Alcoholic drinks</span><span class="zh t-group" lang="zh-Hans">酒精饮料</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.3.3.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-group">Alcoholic dishes and desserts</span><span class="zh t-group" lang="zh-Hans">含酒精的菜肴和甜点</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.3.3.3</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-group">Alcohol-free beer and wine</span><span class="zh t-group" lang="zh-Hans">无醇啤酒和葡萄酒</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">M.3.3.4</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Alcohol in dish that’s cooked off</span><span class="zh t-food" lang="zh-Hans">烹饪中已挥发的酒精</span></span></span></span></li>
+</ul>
+</li>
+<li class="st-no numbered" id="e-depressants-cbd" data-key="Depressants › CBD"><span class="numbered"><span class="num">M.3.4</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=cannabidiol&amp;collection=food-intolerances" target="_blank" rel="noopener">CBD</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=cannabidiol&amp;collection=food-intolerances" target="_blank" rel="noopener">大麻二酚</a></span></span></span></span><ul class="topics">
+<li class="st-no supp numbered"><span class="numbered"><span class="num">M.3.4.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">CBD oils, capsules and gummies</span> <span class="tag">supplement</span><span class="zh t-food" lang="zh-Hans">大麻二酚油、胶囊和软糖</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.3.4.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">CBD drinks and vapes</span><span class="zh t-food" lang="zh-Hans">大麻二酚饮料和电子烟</span></span></span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no" id="e-allergens" data-key="Allergens"><span><span class="t-pharm">Allergens</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no" id="e-allergens-tropomyosins-in-crustaceans" data-key="Allergens › Tropomyosins (in crustaceans)"><span><span class="t-class">Tropomyosins</span> <span class="nth">I</span> <span class="note">(in <span class="t-group">crustaceans</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><span class="t-food">Prawn</span> <span class="note">(Penaeidae)</span></span></li>
-<li class="st-no"><span><span class="t-food">Crab</span> <span class="note">(Brachyura)</span></span></li>
-<li class="st-no"><span><span class="t-food">Lobster</span> <span class="note">(<em>Homarus gammarus</em>)</span></span></li>
-</ul>
-</li>
-<li class="st-ok contrast" id="e-allergens-tropomyosins-in-molluscs" data-key="Allergens › Tropomyosins (in molluscs)"><span><span class="t-class">Tropomyosins</span> <span class="nth">II</span> <span class="note">(in <span class="t-group">molluscs</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-ok contrast"><span><span class="t-food">Scallops</span> <span class="note">(Pectinidae)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Squid</span> <span class="note">(<em>Loligo vulgaris</em>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Octopus</span> <span class="note">(<em>Octopus vulgaris</em>)</span></span></li>
-</ul>
-</li>
-<li class="st-no" id="e-allergens-unknown-substances" data-key="Allergens › Unknown substances"><span><span class="t-unknown">Unknown substances</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><span class="t-food">Razor clams</span> <span class="note">(<em>Sinonovacula constricta</em>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Chinese long aubergines</span> <span class="note">(<em>Solanum melongena</em>)</span> <span class="note">(esp. skin-on)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">European aubergines</span> <span class="note">(<em>Solanum melongena</em>)</span></span></li>
+<li class="st-no numbered" id="e-cannabinoids-via-cb1-receptors" data-key="Cannabinoids / via CB1 receptors"><span class="numbered"><span class="num">M.4</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-pharm">Cannabinoids</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-pharm" lang="zh-Hans">大麻素类物质</span></span></span></span><span class="desc">via CB1 receptors</span><ul class="topics">
+<li class="st-no numbered" id="e-cannabinoids-via-cb1-receptors-phytocannabinoids-incl-9-thc" data-key="Cannabinoids / via CB1 receptors › Phytocannabinoids (incl. Δ9-THC)"><span class="numbered"><span class="num">M.4.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-class">Phytocannabinoids</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=dronabinol&amp;collection=food-intolerances" target="_blank" rel="noopener">Δ9-THC</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">植物大麻素<span class="note">（含<a class="t-chem" href="../molecule-lookup/?q=dronabinol&amp;collection=food-intolerances" target="_blank" rel="noopener">Δ9-四氢大麻酚</a>）</span></span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">M.4.1.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Cannabis</span> <span class="note">(<em>Cannabis sativa</em>)</span><span class="zh t-food" lang="zh-Hans">大麻</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.4.1.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Edibles</span><span class="zh t-food" lang="zh-Hans">大麻食品</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">M.4.1.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Cannabis vapes</span><span class="zh t-food" lang="zh-Hans">大麻电子烟</span></span></span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no" id="e-algogens-chemical-via-trpv1-and-trpa1-channels" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels"><span><span class="t-pharm">Algogens <span class="note">(pain-causing agents)</span>, chemical</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via TRPV1 and TRPA1 channels</span><ul class="topics">
-<li class="st-no" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-capsaicin" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Capsaicin"><span><a class="t-chem" href="../molecule-lookup/?q=Capsaicin&amp;collection=food-intolerances" target="_blank" rel="noopener">Capsaicin</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><span class="t-food">Chilli</span> <span class="note">(<em>Capsicum annuum</em>)</span></span></li>
-<li class="st-no"><span><span class="t-group">Curry pastes</span></span></li>
-<li class="st-ok contrast"><span><span class="t-group">Very mild curry</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Korma</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Sweet peppers</span> <span class="note">(<em>Capsicum annuum</em>)</span></span></li>
-<li class="st-some"><span><span class="t-food">Sweet paprika</span> <span class="note">(incl. smoked)</span></span></li>
-<li class="st-no"><span><span class="t-food">Hot paprika</span> <span class="note">(incl. smoked)</span></span></li>
+</ul>
+<h3>Substances and textures that disrupt the senses<span class="zh" lang="zh-Hans">干扰感官的物质与口感</span></h3>
+<ul class="topics">
+<li class="st-no numbered" id="e-allergens" data-key="Allergens"><span class="numbered"><span class="num">S.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-pharm">Allergens</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-pharm" lang="zh-Hans">过敏原</span></span></span></span><ul class="topics">
+<li class="st-no numbered" id="e-allergens-tropomyosins-in-crustaceans" data-key="Allergens › Tropomyosins (in crustaceans)"><span class="numbered"><span class="num">S.1.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-class">Tropomyosins</span> <span class="note">(in <span class="t-group">crustaceans</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">原肌球蛋白<span class="note">（见于<span class="t-group">甲壳类</span>）</span></span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">S.1.1.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Prawn</span> <span class="note">(Penaeidae)</span><span class="zh t-food" lang="zh-Hans">虾</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.1.1.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Crab</span> <span class="note">(Brachyura)</span><span class="zh t-food" lang="zh-Hans">蟹</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.1.1.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Lobster</span> <span class="note">(<em>Homarus gammarus</em>)</span><span class="zh t-food" lang="zh-Hans">龙虾</span></span></span></span></li>
 </ul>
 </li>
-<li class="st-no" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-piperine" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Piperine"><span><a class="t-chem" href="../molecule-lookup/?q=Piperine&amp;collection=food-intolerances" target="_blank" rel="noopener">Piperine</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-some"><span><span class="t-food">Black pepper</span> <span class="note">(<em>Piper nigrum</em>)</span></span></li>
-<li class="st-some"><span><span class="t-food">White pepper</span> <span class="note">(<em>Piper nigrum</em>)</span></span></li>
+<li class="st-no numbered" id="e-allergens-unknown-substance-s-in-clams" data-key="Allergens › Unknown substance(s) (in clams)"><span class="numbered"><span class="num">S.1.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-unknown">Unknown substance(s)</span> <span class="note">(in <span class="t-group">clams</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-unknown" lang="zh-Hans">未知物质<span class="note">（见于<span class="t-group">蛤类</span>）</span></span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">S.1.2.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Razor clams</span> <span class="note">(<em>Sinonovacula constricta</em>)</span><span class="zh t-food" lang="zh-Hans">蛏子</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.1.2.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Surf clams</span> <span class="note">(<em>Spisula solida</em>)</span><span class="zh t-food" lang="zh-Hans">浪蛤</span></span></span></span></li>
 </ul>
 </li>
-<li class="st-no" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-gingerols-incl-6-gingerol" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Gingerols (incl. 6-gingerol)"><span><span class="t-class">Gingerols</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=6-gingerol&amp;collection=food-intolerances" target="_blank" rel="noopener">6-gingerol</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-some"><span><span class="t-food">Ginger</span> <span class="note">(<em>Zingiber officinale</em>)</span></span></li>
+<li class="st-ok contrast numbered" id="e-allergens-other-molluscs-incl-pteriomorphia-cephalopods-and-gastropods" data-key="Allergens › Other molluscs (incl. Pteriomorphia, cephalopods and gastropods)"><span class="numbered"><span class="num">S.1.3</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-group">Other molluscs</span> <span class="note">(incl. <span class="t-group">Pteriomorphia</span>, <span class="t-group">cephalopods</span> and <span class="t-group">gastropods</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-group" lang="zh-Hans">其他软体动物<span class="note">（含<span class="t-group">翼形亚纲</span>、<span class="t-group">头足纲</span>和<span class="t-group">腹足纲</span>）</span></span></span></span></span><ul class="topics">
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.1.3.1</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Scallops</span> <span class="note">(<em>Pecten maximus</em>)</span><span class="zh t-food" lang="zh-Hans">扇贝</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.1.3.2</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Mussels</span> <span class="note">(<em>Mytilus edulis</em>)</span><span class="zh t-food" lang="zh-Hans">贻贝</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.1.3.3</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Squid</span> <span class="note">(<em>Loligo vulgaris</em>)</span><span class="zh t-food" lang="zh-Hans">鱿鱼</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.1.3.4</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Octopus</span> <span class="note">(<em>Octopus vulgaris</em>)</span><span class="zh t-food" lang="zh-Hans">章鱼</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.1.3.5</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Abalone</span> <span class="note">(<em>Haliotis discus</em>)</span><span class="zh t-food" lang="zh-Hans">鲍鱼</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.1.3.6</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Snails</span> <span class="note">(Helicidae)</span><span class="zh t-food" lang="zh-Hans">蜗牛</span></span></span></span></li>
 </ul>
 </li>
-<li class="st-no" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-shogaols-incl-6-shogaol" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Shogaols (incl. 6-shogaol)"><span><span class="t-class">Shogaols</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=6-shogaol&amp;collection=food-intolerances" target="_blank" rel="noopener">6-shogaol</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-some"><span><span class="t-food">Ginger</span> <span class="note">(<em>Zingiber officinale</em>)</span></span></li>
-</ul>
-</li>
-<li class="st-no" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-thiosulfinates-incl-allicin" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Thiosulfinates (incl. allicin)"><span><span class="t-class">Thiosulfinates</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=allicin&amp;collection=food-intolerances" target="_blank" rel="noopener">allicin</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><span class="t-food">Raw onion</span> <span class="note">(<em>Allium cepa</em>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Fully cooked onion</span> <span class="note">(<em>Allium cepa</em>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Raw garlic</span> <span class="note">(<em>Allium sativum</em>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Fully cooked garlic</span> <span class="note">(<em>Allium sativum</em>)</span></span></li>
-</ul>
-</li>
-<li class="st-no" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-propanethial-s-oxide" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Propanethial S-oxide"><span><a class="t-chem" href="../molecule-lookup/?q=Propanethial%20S-oxide&amp;collection=food-intolerances" target="_blank" rel="noopener">Propanethial S-oxide</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><span class="t-food">Raw onion</span> <span class="note">(<em>Allium cepa</em>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Fully cooked onion</span> <span class="note">(<em>Allium cepa</em>)</span></span></li>
-</ul>
-</li>
-<li class="st-no" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-hydroxy-sanshool" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Hydroxy-α-sanshool"><span><a class="t-chem" href="../molecule-lookup/?q=hydroxy-alpha-sanshool&amp;collection=food-intolerances" target="_blank" rel="noopener">Hydroxy-α-sanshool</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-some"><span><span class="t-food">Szechuan pepper</span> <span class="note">(<em>Zanthoxylum bungeanum</em>)</span></span></li>
-</ul>
-</li>
-<li class="st-no" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-allyl-isothiocyanate" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Allyl isothiocyanate"><span><a class="t-chem" href="../molecule-lookup/?q=Allyl%20isothiocyanate&amp;collection=food-intolerances" target="_blank" rel="noopener">Allyl isothiocyanate</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-some"><span><span class="t-food">Mustard</span> <span class="note">(<em>Brassica juncea</em>)</span></span></li>
-<li class="st-some"><span><span class="t-food">Real wasabi</span> <span class="note">(<em>Eutrema japonicum</em>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Wasabi paste</span> <span class="note">(mostly horseradish)</span></span></li>
+<li class="st-no numbered" id="e-allergens-unknown-substance-s" data-key="Allergens › Unknown substance(s)"><span class="numbered"><span class="num">S.1.4</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-unknown">Unknown substance(s)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-unknown" lang="zh-Hans">未知物质</span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">S.1.4.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Chinese long aubergines</span> <span class="note">(<em>Solanum melongena</em>)</span> <span class="note">(esp. skin-on)</span><span class="zh t-food" lang="zh-Hans">中国长茄子<span class="note">（尤其是带皮的）</span></span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.1.4.2</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">European aubergines</span> <span class="note">(<em>Solanum melongena</em>)</span><span class="zh t-food" lang="zh-Hans">欧洲茄子</span></span></span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no" id="e-algogens-physical-via-tiny-scratches-and-punctures-in-the-mouth-and-throat" data-key="Algogens, physical / via tiny scratches and punctures in the mouth and throat"><span><span class="t-pharm">Algogens, physical</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via tiny scratches and punctures in the mouth and throat</span><ul class="topics">
-<li class="st-no" id="e-algogens-physical-via-tiny-scratches-and-punctures-in-the-mouth-and-throat-small-bones-in-fish" data-key="Algogens, physical / via tiny scratches and punctures in the mouth and throat › Small bones (in fish)"><span><span class="t-class">Small bones</span> <span class="note">(in <span class="t-group">fish</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><span class="t-food">Sardines</span> <span class="note">(<em>Sardina pilchardus</em>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Anchovies</span> <span class="note">(<em>Engraulis encrasicolus</em>)</span></span></li>
+<li class="st-no numbered" id="e-algogens-chemical-via-trpv1-and-trpa1-channels" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels"><span class="numbered"><span class="num">S.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-pharm">Algogens <span class="note">(pain-causing agents)</span>, chemical</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-pharm" lang="zh-Hans">化学致痛物</span></span></span></span><span class="desc">via TRPV1 and TRPA1 channels</span><ul class="topics">
+<li class="st-no numbered" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-capsaicin" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Capsaicin"><span class="numbered"><span class="num">S.2.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=Capsaicin&amp;collection=food-intolerances" target="_blank" rel="noopener">Capsaicin</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=Capsaicin&amp;collection=food-intolerances" target="_blank" rel="noopener">辣椒素</a></span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">S.2.1.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Chilli</span> <span class="note">(<em>Capsicum annuum</em>)</span><span class="zh t-food" lang="zh-Hans">辣椒</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.2.1.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-group">Curry pastes</span><span class="zh t-group" lang="zh-Hans">咖喱酱</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.2.1.3</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-group">Very mild curry</span> <span class="note">(incl. <span class="t-food">korma</span>)</span><span class="zh t-group" lang="zh-Hans">极微辣咖喱<span class="note">（含<span class="t-food">科尔马咖喱</span>）</span></span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.2.1.4</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Sweet peppers</span> <span class="note">(<em>Capsicum annuum</em>)</span><span class="zh t-food" lang="zh-Hans">甜椒</span></span></span></span></li>
+<li class="st-some numbered"><span class="numbered"><span class="num">S.2.1.5</span><span class="item"><span class="glyph st-some"></span><span class="body"><span class="t-food">Sweet paprika</span> <span class="note">(incl. <span class="t-food">smoked sweet paprika</span>)</span><span class="zh t-food" lang="zh-Hans">甜红椒粉<span class="note">（含<span class="t-food">烟熏甜红椒粉</span>）</span></span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.2.1.6</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Hot paprika</span><span class="zh t-food" lang="zh-Hans">辣红椒粉</span></span></span></span></li>
+</ul>
+</li>
+<li class="st-no numbered" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-piperine" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Piperine"><span class="numbered"><span class="num">S.2.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=Piperine&amp;collection=food-intolerances" target="_blank" rel="noopener">Piperine</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=Piperine&amp;collection=food-intolerances" target="_blank" rel="noopener">胡椒碱</a></span></span></span></span><ul class="topics">
+<li class="st-some numbered"><span class="numbered"><span class="num">S.2.2.1</span><span class="item"><span class="glyph st-some"></span><span class="body"><span class="t-food">Black pepper</span> <span class="note">(<em>Piper nigrum</em>)</span><span class="zh t-food" lang="zh-Hans">黑胡椒</span></span></span></span></li>
+<li class="st-some numbered"><span class="numbered"><span class="num">S.2.2.2</span><span class="item"><span class="glyph st-some"></span><span class="body"><span class="t-food">White pepper</span> <span class="note">(<em>Piper nigrum</em>)</span><span class="zh t-food" lang="zh-Hans">白胡椒</span></span></span></span></li>
+</ul>
+</li>
+<li class="st-no numbered" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-gingerols-incl-6-gingerol" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Gingerols (incl. 6-gingerol)"><span class="numbered"><span class="num">S.2.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-class">Gingerols</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=6-gingerol&amp;collection=food-intolerances" target="_blank" rel="noopener">6-gingerol</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">姜酚类<span class="note">（含<a class="t-chem" href="../molecule-lookup/?q=6-gingerol&amp;collection=food-intolerances" target="_blank" rel="noopener">6-姜酚</a>）</span></span></span></span></span><ul class="topics">
+<li class="st-some numbered"><span class="numbered"><span class="num">S.2.3.1</span><span class="item"><span class="glyph st-some"></span><span class="body"><span class="t-food">Ginger</span> <span class="note">(<em>Zingiber officinale</em>)</span><span class="zh t-food" lang="zh-Hans">姜</span></span></span></span></li>
+</ul>
+</li>
+<li class="st-no numbered" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-shogaols-incl-6-shogaol" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Shogaols (incl. 6-shogaol)"><span class="numbered"><span class="num">S.2.4</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-class">Shogaols</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=6-shogaol&amp;collection=food-intolerances" target="_blank" rel="noopener">6-shogaol</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">姜烯酚类<span class="note">（含<a class="t-chem" href="../molecule-lookup/?q=6-shogaol&amp;collection=food-intolerances" target="_blank" rel="noopener">6-姜烯酚</a>）</span></span></span></span></span><ul class="topics">
+<li class="st-some numbered"><span class="numbered"><span class="num">S.2.4.1</span><span class="item"><span class="glyph st-some"></span><span class="body"><span class="t-food">Ginger</span> <span class="note">(<em>Zingiber officinale</em>)</span><span class="zh t-food" lang="zh-Hans">姜</span></span></span></span></li>
+</ul>
+</li>
+<li class="st-no numbered" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-thiosulfinates-incl-allicin" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Thiosulfinates (incl. allicin)"><span class="numbered"><span class="num">S.2.5</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-class">Thiosulfinates</span> <span class="note">(incl. <a class="t-chem" href="../molecule-lookup/?q=allicin&amp;collection=food-intolerances" target="_blank" rel="noopener">allicin</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">硫代亚磺酸酯类<span class="note">（含<a class="t-chem" href="../molecule-lookup/?q=allicin&amp;collection=food-intolerances" target="_blank" rel="noopener">大蒜素</a>）</span></span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">S.2.5.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Raw onion</span> <span class="note">(<em>Allium cepa</em>)</span><span class="zh t-food" lang="zh-Hans">生洋葱</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.2.5.2</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Fully cooked onion</span> <span class="note">(<em>Allium cepa</em>)</span><span class="zh t-food" lang="zh-Hans">熟透的洋葱</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.2.5.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Raw garlic</span> <span class="note">(<em>Allium sativum</em>)</span><span class="zh t-food" lang="zh-Hans">生大蒜</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.2.5.4</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Fully cooked garlic</span> <span class="note">(<em>Allium sativum</em>)</span><span class="zh t-food" lang="zh-Hans">熟透的大蒜</span></span></span></span></li>
+</ul>
+</li>
+<li class="st-no numbered" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-propanethial-s-oxide" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Propanethial S-oxide"><span class="numbered"><span class="num">S.2.6</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=Propanethial%20S-oxide&amp;collection=food-intolerances" target="_blank" rel="noopener">Propanethial S-oxide</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=Propanethial%20S-oxide&amp;collection=food-intolerances" target="_blank" rel="noopener">丙硫醛-S-氧化物</a></span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">S.2.6.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Raw onion</span> <span class="note">(<em>Allium cepa</em>)</span><span class="zh t-food" lang="zh-Hans">生洋葱</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.2.6.2</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Fully cooked onion</span> <span class="note">(<em>Allium cepa</em>)</span><span class="zh t-food" lang="zh-Hans">熟透的洋葱</span></span></span></span></li>
+</ul>
+</li>
+<li class="st-no numbered" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-hydroxy-sanshool" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Hydroxy-α-sanshool"><span class="numbered"><span class="num">S.2.7</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=hydroxy-alpha-sanshool&amp;collection=food-intolerances" target="_blank" rel="noopener">Hydroxy-α-sanshool</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=hydroxy-alpha-sanshool&amp;collection=food-intolerances" target="_blank" rel="noopener">羟基-α-山椒素</a></span></span></span></span><ul class="topics">
+<li class="st-some numbered"><span class="numbered"><span class="num">S.2.7.1</span><span class="item"><span class="glyph st-some"></span><span class="body"><span class="t-food">Szechuan pepper</span> <span class="note">(<em>Zanthoxylum bungeanum</em>)</span><span class="zh t-food" lang="zh-Hans">花椒</span></span></span></span></li>
+</ul>
+</li>
+<li class="st-no numbered" id="e-algogens-chemical-via-trpv1-and-trpa1-channels-allyl-isothiocyanate" data-key="Algogens, chemical / via TRPV1 and TRPA1 channels › Allyl isothiocyanate"><span class="numbered"><span class="num">S.2.8</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=Allyl%20isothiocyanate&amp;collection=food-intolerances" target="_blank" rel="noopener">Allyl isothiocyanate</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=Allyl%20isothiocyanate&amp;collection=food-intolerances" target="_blank" rel="noopener">异硫氰酸烯丙酯</a></span></span></span></span><ul class="topics">
+<li class="st-some numbered"><span class="numbered"><span class="num">S.2.8.1</span><span class="item"><span class="glyph st-some"></span><span class="body"><span class="t-food">Mustard</span> <span class="note">(<em>Brassica juncea</em>)</span><span class="zh t-food" lang="zh-Hans">芥末酱</span></span></span></span></li>
+<li class="st-some numbered"><span class="numbered"><span class="num">S.2.8.2</span><span class="item"><span class="glyph st-some"></span><span class="body"><span class="t-food">Real wasabi</span> <span class="note">(<em>Eutrema japonicum</em>)</span><span class="zh t-food" lang="zh-Hans">真山葵</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.2.8.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Wasabi paste</span> <span class="note">(often with added <a class="t-chem" href="../molecule-lookup/?q=allyl%20isothiocyanate&amp;collection=food-intolerances" target="_blank" rel="noopener">allyl isothiocyanate</a>)</span><span class="zh t-food" lang="zh-Hans">青芥辣<span class="note">（常添加<a class="t-chem" href="../molecule-lookup/?q=allyl%20isothiocyanate&amp;collection=food-intolerances" target="_blank" rel="noopener">异硫氰酸烯丙酯</a>）</span></span></span></span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no" id="e-algogens-via-mouth-ulcers" data-key="Algogens / via mouth ulcers"><span><span class="t-pharm">Algogens</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via mouth ulcers</span><ul class="topics">
-<li class="st-no" id="e-algogens-via-mouth-ulcers-unknown-substances" data-key="Algogens / via mouth ulcers › Unknown substances"><span><span class="t-unknown">Unknown substances</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><span class="t-food">Sesame oil</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Sesame seeds</span> <span class="note">(<em>Sesamum indicum</em>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Tahini</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Houmous</span></span></li>
-<li class="st-no"><span><span class="t-food">Chocolate</span></span></li>
-<li class="st-no"><span><span class="t-food">Walnut</span> <span class="note">(<em>Juglans regia</em>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-group">Other nuts</span></span></li>
+<li class="st-no numbered" id="e-algogens-physical-via-scratches-and-punctures-in-the-mouth-and-throat-and-the-ulcers-they-can-leave" data-key="Algogens, physical / via scratches and punctures in the mouth and throat, and the ulcers they can leave"><span class="numbered"><span class="num">S.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-pharm">Algogens, physical</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-pharm" lang="zh-Hans">物理致痛物</span></span></span></span><span class="desc">via scratches and punctures in the mouth and throat, and the ulcers they can leave</span><ul class="topics">
+<li class="st-no numbered" id="e-algogens-physical-via-scratches-and-punctures-in-the-mouth-and-throat-and-the-ulcers-they-can-leave-small-bones-in-fish" data-key="Algogens, physical / via scratches and punctures in the mouth and throat, and the ulcers they can leave › Small bones (in fish)"><span class="numbered"><span class="num">S.3.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-class">Small bones</span> <span class="note">(in <span class="t-group">fish</span>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">小鱼刺<span class="note">（见于<span class="t-group">鱼类</span>）</span></span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">S.3.1.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Sardines</span> <span class="note">(<em>Sardina pilchardus</em>)</span><span class="zh t-food" lang="zh-Hans">沙丁鱼</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.3.1.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Anchovies</span> <span class="note">(<em>Engraulis encrasicolus</em>)</span><span class="zh t-food" lang="zh-Hans">鳀鱼</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.3.1.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Small yellow croaker</span> <span class="note">(<em>Larimichthys polyactis</em>)</span><span class="zh t-food" lang="zh-Hans">小黄鱼</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.3.1.4</span><span class="item"><span class="glyph st-no"></span><span class="body">Most <span class="t-group">freshwater fish</span> <span class="note">(esp. <span class="t-group">carp</span>, incl. <span class="t-food">crucian carp</span> and <span class="t-food">grass carp</span>)</span><span class="zh" lang="zh-Hans">大多数<span class="t-group">河鱼</span><span class="note">（尤其是<span class="t-group">鲤鱼类</span>，含<span class="t-food">鲫鱼</span>和<span class="t-food">草鱼</span>）</span></span></span></span></span></li>
+</ul>
+</li>
+<li class="st-no numbered" id="e-algogens-physical-via-scratches-and-punctures-in-the-mouth-and-throat-and-the-ulcers-they-can-leave-very-hard-textures" data-key="Algogens, physical / via scratches and punctures in the mouth and throat, and the ulcers they can leave › Very hard textures"><span class="numbered"><span class="num">S.3.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-class">Very hard textures</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">极硬的口感</span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">S.3.2.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Crispbread</span><span class="zh t-food" lang="zh-Hans">北欧脆饼</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.3.2.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Stale baguette</span><span class="zh t-food" lang="zh-Hans">放硬的法棍</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.3.2.3</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Crispy rice crust</span><span class="zh t-food" lang="zh-Hans">锅巴</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.3.2.4</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Pretzel snacks</span><span class="zh t-food" lang="zh-Hans">椒盐脆饼</span></span></span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no" id="e-pruritogens-via-histamine-and-protease-activated-receptors" data-key="Pruritogens / via histamine and protease-activated receptors"><span><span class="t-pharm">Pruritogens <span class="note">(itch-causing agents)</span></span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><span class="desc">via histamine and protease-activated receptors</span><ul class="topics">
-<li class="st-no" id="e-pruritogens-via-histamine-and-protease-activated-receptors-histamine" data-key="Pruritogens / via histamine and protease-activated receptors › Histamine"><span><a class="t-chem" href="../molecule-lookup/?q=Histamine&amp;collection=food-intolerances" target="_blank" rel="noopener">Histamine</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><span class="t-food">Smoked salmon</span> <span class="note">(<em>Salmo salar</em>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Fresh salmon</span> <span class="note">(<em>Salmo salar</em>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Spinach</span> <span class="note">(<em>Spinacia oleracea</em>)</span> <span class="note">(esp. root)</span></span></li>
+<li class="st-no numbered" id="e-oral-ulcerogens" data-key="Oral ulcerogens"><span class="numbered"><span class="num">S.4</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-pharm">Oral ulcerogens <span class="note">(ulcer-causing agents)</span></span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-pharm" lang="zh-Hans">口腔致溃疡物</span></span></span></span><ul class="topics">
+<li class="st-no numbered" id="e-oral-ulcerogens-unknown-substance-s" data-key="Oral ulcerogens › Unknown substance(s)"><span class="numbered"><span class="num">S.4.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-unknown">Unknown substance(s)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-unknown" lang="zh-Hans">未知物质</span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">S.4.1.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Sesame oil</span><span class="zh t-food" lang="zh-Hans">芝麻油</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.4.1.2</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Sesame seeds</span> <span class="note">(<em>Sesamum indicum</em>)</span><span class="zh t-food" lang="zh-Hans">芝麻</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.4.1.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Tahini</span><span class="zh t-food" lang="zh-Hans">中东芝麻酱</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.4.1.4</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Houmous</span><span class="zh t-food" lang="zh-Hans">鹰嘴豆泥</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.4.1.5</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Chocolate</span><span class="zh t-food" lang="zh-Hans">巧克力</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.4.1.6</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Walnut</span> <span class="note">(<em>Juglans regia</em>)</span><span class="zh t-food" lang="zh-Hans">核桃</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.4.1.7</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-group">Other nuts</span><span class="zh t-group" lang="zh-Hans">其他坚果</span></span></span></span></li>
 </ul>
 </li>
-<li class="st-no" id="e-pruritogens-via-histamine-and-protease-activated-receptors-proteases-incl-bromelain" data-key="Pruritogens / via histamine and protease-activated receptors › Proteases (incl. bromelain)"><span><span class="t-class">Proteases</span> <span class="note">(incl. <a class="t-chem" href="https://www.uniprot.org/uniprotkb/O23791/entry" target="_blank" rel="noopener">bromelain</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><span class="t-food">Raw pineapple</span> <span class="note">(<em>Ananas comosus</em>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Canned or cooked pineapple</span> <span class="note">(<em>Ananas comosus</em>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Raw papaya</span> <span class="note">(<em>Carica papaya</em>)</span></span></li>
+</ul>
+</li>
+<li class="st-no numbered" id="e-pruritogens-via-histamine-and-protease-activated-receptors" data-key="Pruritogens / via histamine and protease-activated receptors"><span class="numbered"><span class="num">S.5</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-pharm">Pruritogens <span class="note">(itch-causing agents)</span></span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-pharm" lang="zh-Hans">致痒物</span></span></span></span><span class="desc">via histamine and protease-activated receptors</span><ul class="topics">
+<li class="st-no numbered" id="e-pruritogens-via-histamine-and-protease-activated-receptors-histamine" data-key="Pruritogens / via histamine and protease-activated receptors › Histamine"><span class="numbered"><span class="num">S.5.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><a class="t-chem" href="../molecule-lookup/?q=Histamine&amp;collection=food-intolerances" target="_blank" rel="noopener">Histamine</a><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=Histamine&amp;collection=food-intolerances" target="_blank" rel="noopener">组胺</a></span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">S.5.1.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Smoked salmon</span> <span class="note">(<em>Salmo salar</em>)</span><span class="zh t-food" lang="zh-Hans">烟熏三文鱼</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.5.1.2</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Fresh salmon</span> <span class="note">(<em>Salmo salar</em>)</span><span class="zh t-food" lang="zh-Hans">新鲜三文鱼</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.5.1.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Spinach</span> <span class="note">(<em>Spinacia oleracea</em>)</span> <span class="note">(esp. root)</span><span class="zh t-food" lang="zh-Hans">菠菜<span class="note">（尤其是根部）</span></span></span></span></span></li>
+</ul>
+</li>
+<li class="st-no numbered" id="e-pruritogens-via-histamine-and-protease-activated-receptors-proteases-incl-bromelain" data-key="Pruritogens / via histamine and protease-activated receptors › Proteases (incl. bromelain)"><span class="numbered"><span class="num">S.5.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-class">Proteases</span> <span class="note">(incl. <a class="t-chem" href="https://www.uniprot.org/uniprotkb/O23791/entry" target="_blank" rel="noopener">bromelain</a>)</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">蛋白酶<span class="note">（含<a class="t-chem" href="https://www.uniprot.org/uniprotkb/O23791/entry" target="_blank" rel="noopener">菠萝蛋白酶</a>）</span></span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">S.5.2.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Raw pineapple</span> <span class="note">(<em>Ananas comosus</em>)</span><span class="zh t-food" lang="zh-Hans">生菠萝</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.5.2.2</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Canned or cooked pineapple</span> <span class="note">(<em>Ananas comosus</em>)</span><span class="zh t-food" lang="zh-Hans">罐装或煮熟的菠萝</span></span></span></span></li>
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.5.2.3</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Raw papaya</span> <span class="note">(<em>Carica papaya</em>)</span><span class="zh t-food" lang="zh-Hans">生木瓜</span></span></span></span></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="st-no" id="e-aversive-textures" data-key="Aversive textures"><span><span class="t-pharm">Aversive textures</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no" id="e-aversive-textures-dried-out-textures" data-key="Aversive textures › Dried-out textures"><span><span class="t-class">Dried-out textures</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-no"><span><span class="t-group">Overcooked fish</span></span></li>
+<li class="st-no numbered" id="e-aversive-textures" data-key="Aversive textures"><span class="numbered"><span class="num">S.6</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-pharm">Aversive textures</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-pharm" lang="zh-Hans">令人不适的口感</span></span></span></span><ul class="topics">
+<li class="st-no numbered" id="e-aversive-textures-dry-and-tough-textures" data-key="Aversive textures › Dry and tough textures"><span class="numbered"><span class="num">S.6.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-class">Dry and tough textures</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">干硬的口感</span></span></span></span><ul class="topics">
+<li class="st-no numbered"><span class="numbered"><span class="num">S.6.1.1</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-group">Overcooked fish</span><span class="zh t-group" lang="zh-Hans">煮过头的鱼</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.6.1.2</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Jerky</span><span class="zh t-food" lang="zh-Hans">肉干</span></span></span></span></li>
+<li class="st-no numbered"><span class="numbered"><span class="num">S.6.1.3</span><span class="item"><span class="glyph st-no"></span><span class="body"><span class="t-food">Dried squid</span><span class="zh t-food" lang="zh-Hans">鱿鱼丝</span></span></span></span></li>
 </ul>
 </li>
-<li class="st-ok contrast" id="e-aversive-textures-dry-but-crisp-textures" data-key="Aversive textures › Dry but crisp textures"><span><span class="t-class">Dry but crisp textures</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button></span><ul class="topics">
-<li class="st-ok contrast"><span><span class="t-food">Crackers</span></span></li>
+<li class="st-ok contrast numbered" id="e-aversive-textures-dry-but-crisp-textures" data-key="Aversive textures › Dry but crisp textures"><span class="numbered"><span class="num">S.6.2</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-class">Dry but crisp textures</span><button class="fold" type="button" aria-expanded="true" aria-label="Fold"></button><span class="zh t-class" lang="zh-Hans">干脆的口感</span></span></span></span><ul class="topics">
+<li class="st-ok contrast numbered"><span class="numbered"><span class="num">S.6.2.1</span><span class="item"><span class="glyph st-ok"></span><span class="body"><span class="t-food">Crackers</span><span class="zh t-food" lang="zh-Hans">咸饼干</span></span></span></span></li>
 </ul>
 </li>
 </ul>
@@ -521,147 +630,163 @@ ask me.</p>
 <ul class="topics">
 <li class="plain"><span><span class="t-group">Crustaceans</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Prawn</span> <span class="note">(see <a class="see" href="#e-allergens-tropomyosins-in-crustaceans">Allergens › Tropomyosins I</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Crab</span> <span class="note">(see <a class="see" href="#e-allergens-tropomyosins-in-crustaceans">Allergens › Tropomyosins I</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Lobster</span> <span class="note">(see <a class="see" href="#e-allergens-tropomyosins-in-crustaceans">Allergens › Tropomyosins I</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Prawn</span> <span class="note">(see <a class="see" href="#e-allergens-tropomyosins-in-crustaceans">S.1.1 Tropomyosins</a>)</span><span class="zh t-food" lang="zh-Hans">虾</span></span></li>
+<li class="st-no"><span><span class="t-food">Crab</span> <span class="note">(see <a class="see" href="#e-allergens-tropomyosins-in-crustaceans">S.1.1 Tropomyosins</a>)</span><span class="zh t-food" lang="zh-Hans">蟹</span></span></li>
+<li class="st-no"><span><span class="t-food">Lobster</span> <span class="note">(see <a class="see" href="#e-allergens-tropomyosins-in-crustaceans">S.1.1 Tropomyosins</a>)</span><span class="zh t-food" lang="zh-Hans">龙虾</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Fish</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Fish sauce</span> <span class="note">(see <a class="see" href="#e-depressants-glutamate">Depressants › Glutamate</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Sardines</span> <span class="note">(see <a class="see" href="#e-algogens-physical-via-tiny-scratches-and-punctures-in-the-mouth-and-throat-small-bones-in-fish">Algogens, physical › Small bones</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Anchovies</span> <span class="note">(see <a class="see" href="#e-algogens-physical-via-tiny-scratches-and-punctures-in-the-mouth-and-throat-small-bones-in-fish">Algogens, physical › Small bones</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Smoked salmon</span> <span class="note">(see <a class="see" href="#e-pruritogens-via-histamine-and-protease-activated-receptors-histamine">Pruritogens › Histamine</a>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Fresh salmon</span></span></li>
-<li class="st-no"><span><span class="t-group">Overcooked fish</span> <span class="note">(see <a class="see" href="#e-aversive-textures-dried-out-textures">Aversive textures › Dried-out textures</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Fish sauce</span> <span class="note">(see <a class="see" href="#e-depressants-glutamate">M.3.1 Glutamate</a>)</span><span class="zh t-food" lang="zh-Hans">鱼露</span></span></li>
+<li class="st-no"><span><span class="t-food">Sardines</span> <span class="note">(see <a class="see" href="#e-algogens-physical-via-scratches-and-punctures-in-the-mouth-and-throat-and-the-ulcers-they-can-leave-small-bones-in-fish">S.3.1 Small bones</a>)</span><span class="zh t-food" lang="zh-Hans">沙丁鱼</span></span></li>
+<li class="st-no"><span><span class="t-food">Anchovies</span> <span class="note">(see <a class="see" href="#e-algogens-physical-via-scratches-and-punctures-in-the-mouth-and-throat-and-the-ulcers-they-can-leave-small-bones-in-fish">S.3.1 Small bones</a>)</span><span class="zh t-food" lang="zh-Hans">鳀鱼</span></span></li>
+<li class="st-no"><span><span class="t-food">Small yellow croaker</span> <span class="note">(see <a class="see" href="#e-algogens-physical-via-scratches-and-punctures-in-the-mouth-and-throat-and-the-ulcers-they-can-leave-small-bones-in-fish">S.3.1 Small bones</a>)</span><span class="zh t-food" lang="zh-Hans">小黄鱼</span></span></li>
+<li class="st-no"><span>Most <span class="t-group">freshwater fish</span> <span class="note">(see <a class="see" href="#e-algogens-physical-via-scratches-and-punctures-in-the-mouth-and-throat-and-the-ulcers-they-can-leave-small-bones-in-fish">S.3.1 Small bones</a>)</span><span class="zh" lang="zh-Hans">大多数<span class="t-group">河鱼</span></span></span></li>
+<li class="st-no"><span><span class="t-food">Smoked salmon</span> <span class="note">(see <a class="see" href="#e-pruritogens-via-histamine-and-protease-activated-receptors-histamine">S.5.1 Histamine</a>)</span><span class="zh t-food" lang="zh-Hans">烟熏三文鱼</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Fresh salmon</span><span class="zh t-food" lang="zh-Hans">新鲜三文鱼</span></span></li>
+<li class="st-no"><span><span class="t-group">Overcooked fish</span> <span class="note">(see <a class="see" href="#e-aversive-textures-dry-and-tough-textures">S.6.1 Dry and tough textures</a>)</span><span class="zh t-group" lang="zh-Hans">煮过头的鱼</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Soybeans</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Miso</span> <span class="note">(see <a class="see" href="#e-depressants-glutamate">Depressants › Glutamate</a>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Tofu</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Soy milk</span></span></li>
+<li class="st-no"><span><span class="t-food">Miso</span> <span class="note">(see <a class="see" href="#e-depressants-glutamate">M.3.1 Glutamate</a>)</span><span class="zh t-food" lang="zh-Hans">味噌</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Tofu</span><span class="zh t-food" lang="zh-Hans">豆腐</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Soy milk</span><span class="zh t-food" lang="zh-Hans">豆浆</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Dairy</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-group">All mammals’ milk, cheese, yoghurt and cream</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-tyrosine-in-dairy-via-catecholamine-synthesis">Stimulants &amp; entactogens › Tyrosine</a>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-group">Plant-based dairy alternatives</span></span></li>
-<li class="st-no"><span><span class="t-group">Cow’s milk, cheese, yoghurt and cream</span> <span class="note">(see <a class="see" href="#e-opioids-via-opioid-receptors-casomorphins-incl-bcm-7-from-a1-type-casein-in-cow-s-dairy">Opioids › β-Casomorphins</a>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Cow’s butter</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Clarified cow’s butter/Ghee</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Whey isolate</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Butter</span></span></li>
+<li class="st-no"><span><span class="t-group">All mammals’ milk, cheese, yoghurt and cream</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-tyrosine-in-dairy-via-catecholamine-synthesis">M.1.3 Tyrosine</a>)</span><span class="zh t-group" lang="zh-Hans">所有哺乳动物的奶、奶酪、酸奶和奶油</span></span></li>
+<li class="st-ok contrast"><span><span class="t-group">Butter</span><span class="zh t-group" lang="zh-Hans">黄油</span></span></li>
+<li class="st-ok contrast"><span><span class="t-group">Clarified butter</span><span class="zh t-group" lang="zh-Hans">澄清黄油</span></span></li>
+<li class="st-ok contrast"><span><span class="t-group">Plant-based milk, cheese, yoghurt and cream</span><span class="zh t-group" lang="zh-Hans">植物奶、植物奶酪、植物酸奶和植物奶油</span></span></li>
+<li class="st-no"><span><span class="t-group">Cow’s milk, cheese, yoghurt and cream</span> <span class="note">(see <a class="see" href="#e-opioids-via-opioid-receptors-casomorphins-incl-bcm-7-from-a1-type-casein-in-cow-s-dairy">M.2.1 β-Casomorphins</a>)</span><span class="zh t-group" lang="zh-Hans">牛奶及其奶酪、酸奶和奶油</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Whey isolate</span><span class="zh t-food" lang="zh-Hans">分离乳清蛋白</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Nuts</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Walnut</span> <span class="note">(see <a class="see" href="#e-algogens-via-mouth-ulcers">Algogens</a>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-group">Other nuts</span></span></li>
+<li class="st-no"><span><span class="t-food">Walnut</span> <span class="note">(see <a class="see" href="#e-oral-ulcerogens-unknown-substance-s">S.4.1 Unknown substance(s)</a>)</span><span class="zh t-food" lang="zh-Hans">核桃</span></span></li>
+<li class="st-ok contrast"><span><span class="t-group">Other nuts</span><span class="zh t-group" lang="zh-Hans">其他坚果</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Mustard</span></span>
 <ul class="topics">
-<li class="st-some"><span><span class="t-food">Mustard</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-allyl-isothiocyanate">Algogens, chemical › Allyl isothiocyanate</a>)</span></span></li>
+<li class="st-some"><span><span class="t-food">Mustard</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-allyl-isothiocyanate">S.2.8 Allyl isothiocyanate</a>)</span><span class="zh t-food" lang="zh-Hans">芥末酱</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Sesame seeds</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Sesame oil</span> <span class="note">(see <a class="see" href="#e-algogens-via-mouth-ulcers">Algogens</a>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Sesame seeds</span></span></li>
-<li class="st-no"><span><span class="t-food">Tahini</span> <span class="note">(see <a class="see" href="#e-algogens-via-mouth-ulcers">Algogens</a>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Houmous</span></span></li>
+<li class="st-no"><span><span class="t-food">Sesame oil</span> <span class="note">(see <a class="see" href="#e-oral-ulcerogens-unknown-substance-s">S.4.1 Unknown substance(s)</a>)</span><span class="zh t-food" lang="zh-Hans">芝麻油</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Sesame seeds</span><span class="zh t-food" lang="zh-Hans">芝麻</span></span></li>
+<li class="st-no"><span><span class="t-food">Tahini</span> <span class="note">(see <a class="see" href="#e-oral-ulcerogens-unknown-substance-s">S.4.1 Unknown substance(s)</a>)</span><span class="zh t-food" lang="zh-Hans">中东芝麻酱</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Houmous</span><span class="zh t-food" lang="zh-Hans">鹰嘴豆泥</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Molluscs</span></span>
 <ul class="topics">
-<li class="st-ok contrast"><span><span class="t-food">Scallops</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Squid</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Octopus</span></span></li>
-<li class="st-no"><span><span class="t-food">Razor clams</span> <span class="note">(see <a class="see" href="#e-allergens">Allergens</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Razor clams</span> <span class="note">(see <a class="see" href="#e-allergens-unknown-substance-s-in-clams">S.1.2 Unknown substance(s)</a>)</span><span class="zh t-food" lang="zh-Hans">蛏子</span></span></li>
+<li class="st-no"><span><span class="t-food">Surf clams</span> <span class="note">(see <a class="see" href="#e-allergens-unknown-substance-s-in-clams">S.1.2 Unknown substance(s)</a>)</span><span class="zh t-food" lang="zh-Hans">浪蛤</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Scallops</span><span class="zh t-food" lang="zh-Hans">扇贝</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Mussels</span><span class="zh t-food" lang="zh-Hans">贻贝</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Squid</span><span class="zh t-food" lang="zh-Hans">鱿鱼</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Octopus</span><span class="zh t-food" lang="zh-Hans">章鱼</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Abalone</span><span class="zh t-food" lang="zh-Hans">鲍鱼</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Snails</span><span class="zh t-food" lang="zh-Hans">蜗牛</span></span></li>
+<li class="st-no"><span><span class="t-food">Dried squid</span> <span class="note">(see <a class="see" href="#e-aversive-textures-dry-and-tough-textures">S.6.1 Dry and tough textures</a>)</span><span class="zh t-food" lang="zh-Hans">鱿鱼丝</span></span></li>
 </ul></li>
 </ul>
 <h3>Other food types</h3>
 <ul class="topics">
 <li class="plain"><span><span class="t-group">Coffee and tea</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Coffee</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">Stimulants &amp; entactogens › Methylxanthines</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Decaf coffee</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">Stimulants &amp; entactogens › Methylxanthines</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Tea</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">Stimulants &amp; entactogens › Methylxanthines</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Matcha</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">Stimulants &amp; entactogens › Methylxanthines</a>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-group">Herbal teas</span></span></li>
+<li class="st-no"><span><span class="t-food">Coffee</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">M.1.1 Methylxanthines</a>)</span><span class="zh t-food" lang="zh-Hans">咖啡</span></span></li>
+<li class="st-no"><span><span class="t-food">Decaf coffee</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">M.1.1 Methylxanthines</a>)</span><span class="zh t-food" lang="zh-Hans">低因咖啡</span></span></li>
+<li class="st-no"><span><span class="t-food">Tea</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">M.1.1 Methylxanthines</a>)</span><span class="zh t-food" lang="zh-Hans">茶</span></span></li>
+<li class="st-no"><span><span class="t-food">Matcha</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">M.1.1 Methylxanthines</a>)</span><span class="zh t-food" lang="zh-Hans">抹茶</span></span></li>
+<li class="st-ok contrast"><span><span class="t-group">Herbal teas</span><span class="zh t-group" lang="zh-Hans">花草茶</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Soft drinks</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Cola</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">Stimulants &amp; entactogens › Methylxanthines</a>)</span></span></li>
-<li class="st-no"><span><span class="t-group">Energy drinks</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">Stimulants &amp; entactogens › Methylxanthines</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Cola</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">M.1.1 Methylxanthines</a>)</span><span class="zh t-food" lang="zh-Hans">可乐</span></span></li>
+<li class="st-no"><span><span class="t-group">Energy drinks</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">M.1.1 Methylxanthines</a>)</span><span class="zh t-group" lang="zh-Hans">能量饮料</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Chocolate and cacao</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Cacao</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">Stimulants &amp; entactogens › Methylxanthines</a>; <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-carbolines-incl-harman-norharman-via-mao-inhibition">Stimulants &amp; entactogens › β-Carbolines</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Chocolate</span> <span class="note">(see <a class="see" href="#e-algogens-via-mouth-ulcers">Algogens</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Cacao</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">M.1.1 Methylxanthines</a>; <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-carbolines-incl-harman-norharman-via-mao-inhibition">M.1.5 β-Carbolines</a>)</span><span class="zh t-food" lang="zh-Hans">可可</span></span></li>
+<li class="st-no"><span><span class="t-food">Chocolate</span> <span class="note">(see <a class="see" href="#e-oral-ulcerogens-unknown-substance-s">S.4.1 Unknown substance(s)</a>)</span><span class="zh t-food" lang="zh-Hans">巧克力</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Fruit</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Acai</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">Stimulants &amp; entactogens › Methylxanthines</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Cherry</span> <span class="note">(see <a class="see" href="#e-depressants-melatonin">Depressants › Melatonin</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Raw pineapple</span> <span class="note">(see <a class="see" href="#e-pruritogens-via-histamine-and-protease-activated-receptors-proteases-incl-bromelain">Pruritogens › Proteases</a>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Canned or cooked pineapple</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Raw papaya</span></span></li>
+<li class="st-no"><span><span class="t-food">Acai</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-methylxanthines-incl-caffeine-theobromine-via-adenosine-receptors">M.1.1 Methylxanthines</a>)</span><span class="zh t-food" lang="zh-Hans">巴西莓</span></span></li>
+<li class="st-no"><span><span class="t-food">Cherry</span> <span class="note">(see <a class="see" href="#e-depressants-melatonin">M.3.2 Melatonin</a>)</span><span class="zh t-food" lang="zh-Hans">樱桃</span></span></li>
+<li class="st-no"><span><span class="t-food">Raw pineapple</span> <span class="note">(see <a class="see" href="#e-pruritogens-via-histamine-and-protease-activated-receptors-proteases-incl-bromelain">S.5.2 Proteases</a>)</span><span class="zh t-food" lang="zh-Hans">生菠萝</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Canned or cooked pineapple</span><span class="zh t-food" lang="zh-Hans">罐装或煮熟的菠萝</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Raw papaya</span><span class="zh t-food" lang="zh-Hans">生木瓜</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Sugar</span></span>
 <ul class="topics">
-<li class="st-some"><span><span class="t-food">Table sugar</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-high-glycaemic-carbohydrates-incl-glucose-sucrose">Stimulants &amp; entactogens › High-glycaemic carbohydrates</a>)</span></span></li>
-<li class="st-some"><span><span class="t-group">Sugary foods and drinks</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-high-glycaemic-carbohydrates-incl-glucose-sucrose">Stimulants &amp; entactogens › High-glycaemic carbohydrates</a>)</span></span></li>
+<li class="st-some"><span><span class="t-food">Table sugar</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-high-glycaemic-carbohydrates-incl-glucose-sucrose">M.1.6 High-glycaemic carbohydrates</a>)</span><span class="zh t-food" lang="zh-Hans">白糖</span></span></li>
+<li class="st-some"><span><span class="t-group">Sugary foods and drinks</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-high-glycaemic-carbohydrates-incl-glucose-sucrose">M.1.6 High-glycaemic carbohydrates</a>)</span><span class="zh t-group" lang="zh-Hans">含糖食品和饮料</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Alcohol</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-group">Alcoholic drinks</span> <span class="note">(see <a class="see" href="#e-depressants-ethanol">Depressants › Ethanol</a>)</span></span></li>
-<li class="st-no"><span><span class="t-group">Alcoholic dishes and desserts</span> <span class="note">(see <a class="see" href="#e-depressants-ethanol">Depressants › Ethanol</a>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-group">Alcohol-free beer and wine</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Alcohol in dish that’s cooked off</span></span></li>
+<li class="st-no"><span><span class="t-group">Alcoholic drinks</span> <span class="note">(see <a class="see" href="#e-depressants-ethanol">M.3.3 Ethanol</a>)</span><span class="zh t-group" lang="zh-Hans">酒精饮料</span></span></li>
+<li class="st-no"><span><span class="t-group">Alcoholic dishes and desserts</span> <span class="note">(see <a class="see" href="#e-depressants-ethanol">M.3.3 Ethanol</a>)</span><span class="zh t-group" lang="zh-Hans">含酒精的菜肴和甜点</span></span></li>
+<li class="st-ok contrast"><span><span class="t-group">Alcohol-free beer and wine</span><span class="zh t-group" lang="zh-Hans">无醇啤酒和葡萄酒</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Alcohol in dish that’s cooked off</span><span class="zh t-food" lang="zh-Hans">烹饪中已挥发的酒精</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Spices and chillies</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Chilli</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-capsaicin">Algogens, chemical › Capsaicin</a>)</span></span></li>
-<li class="st-no"><span><span class="t-group">Curry pastes</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-capsaicin">Algogens, chemical › Capsaicin</a>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-group">Very mild curry</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Korma</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Sweet peppers</span></span></li>
-<li class="st-some"><span><span class="t-food">Sweet paprika</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-capsaicin">Algogens, chemical › Capsaicin</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Hot paprika</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-capsaicin">Algogens, chemical › Capsaicin</a>)</span></span></li>
-<li class="st-some"><span><span class="t-food">Black pepper</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-piperine">Algogens, chemical › Piperine</a>)</span></span></li>
-<li class="st-some"><span><span class="t-food">White pepper</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-piperine">Algogens, chemical › Piperine</a>)</span></span></li>
-<li class="st-some"><span><span class="t-food">Ginger</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-gingerols-incl-6-gingerol">Algogens, chemical › Gingerols</a>; <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-shogaols-incl-6-shogaol">Algogens, chemical › Shogaols</a>)</span></span></li>
-<li class="st-some"><span><span class="t-food">Szechuan pepper</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-hydroxy-sanshool">Algogens, chemical › Hydroxy-α-sanshool</a>)</span></span></li>
-<li class="st-some"><span><span class="t-food">Real wasabi</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-allyl-isothiocyanate">Algogens, chemical › Allyl isothiocyanate</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Wasabi paste</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-allyl-isothiocyanate">Algogens, chemical › Allyl isothiocyanate</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Chilli</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-capsaicin">S.2.1 Capsaicin</a>)</span><span class="zh t-food" lang="zh-Hans">辣椒</span></span></li>
+<li class="st-no"><span><span class="t-group">Curry pastes</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-capsaicin">S.2.1 Capsaicin</a>)</span><span class="zh t-group" lang="zh-Hans">咖喱酱</span></span></li>
+<li class="st-ok contrast"><span><span class="t-group">Very mild curry</span><span class="zh t-group" lang="zh-Hans">极微辣咖喱</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Sweet peppers</span><span class="zh t-food" lang="zh-Hans">甜椒</span></span></li>
+<li class="st-some"><span><span class="t-food">Sweet paprika</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-capsaicin">S.2.1 Capsaicin</a>)</span><span class="zh t-food" lang="zh-Hans">甜红椒粉</span></span></li>
+<li class="st-no"><span><span class="t-food">Hot paprika</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-capsaicin">S.2.1 Capsaicin</a>)</span><span class="zh t-food" lang="zh-Hans">辣红椒粉</span></span></li>
+<li class="st-some"><span><span class="t-food">Black pepper</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-piperine">S.2.2 Piperine</a>)</span><span class="zh t-food" lang="zh-Hans">黑胡椒</span></span></li>
+<li class="st-some"><span><span class="t-food">White pepper</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-piperine">S.2.2 Piperine</a>)</span><span class="zh t-food" lang="zh-Hans">白胡椒</span></span></li>
+<li class="st-some"><span><span class="t-food">Ginger</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-gingerols-incl-6-gingerol">S.2.3 Gingerols</a>; <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-shogaols-incl-6-shogaol">S.2.4 Shogaols</a>)</span><span class="zh t-food" lang="zh-Hans">姜</span></span></li>
+<li class="st-some"><span><span class="t-food">Szechuan pepper</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-hydroxy-sanshool">S.2.7 Hydroxy-α-sanshool</a>)</span><span class="zh t-food" lang="zh-Hans">花椒</span></span></li>
+<li class="st-some"><span><span class="t-food">Real wasabi</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-allyl-isothiocyanate">S.2.8 Allyl isothiocyanate</a>)</span><span class="zh t-food" lang="zh-Hans">真山葵</span></span></li>
+<li class="st-no"><span><span class="t-food">Wasabi paste</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-allyl-isothiocyanate">S.2.8 Allyl isothiocyanate</a>)</span><span class="zh t-food" lang="zh-Hans">青芥辣</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Onion and garlic</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Raw onion</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-thiosulfinates-incl-allicin">Algogens, chemical › Thiosulfinates</a>; <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-propanethial-s-oxide">Algogens, chemical › Propanethial S-oxide</a>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Fully cooked onion</span></span></li>
-<li class="st-no"><span><span class="t-food">Raw garlic</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-thiosulfinates-incl-allicin">Algogens, chemical › Thiosulfinates</a>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Fully cooked garlic</span></span></li>
+<li class="st-no"><span><span class="t-food">Raw onion</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-thiosulfinates-incl-allicin">S.2.5 Thiosulfinates</a>; <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-propanethial-s-oxide">S.2.6 Propanethial S-oxide</a>)</span><span class="zh t-food" lang="zh-Hans">生洋葱</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Fully cooked onion</span><span class="zh t-food" lang="zh-Hans">熟透的洋葱</span></span></li>
+<li class="st-no"><span><span class="t-food">Raw garlic</span> <span class="note">(see <a class="see" href="#e-algogens-chemical-via-trpv1-and-trpa1-channels-thiosulfinates-incl-allicin">S.2.5 Thiosulfinates</a>)</span><span class="zh t-food" lang="zh-Hans">生大蒜</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Fully cooked garlic</span><span class="zh t-food" lang="zh-Hans">熟透的大蒜</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Vegetables</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Chinese long aubergines</span> <span class="note">(see <a class="see" href="#e-allergens">Allergens</a>)</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">European aubergines</span></span></li>
-<li class="st-ok contrast"><span><span class="t-food">Sweet peppers</span></span></li>
-<li class="st-no"><span><span class="t-food">Spinach</span> <span class="note">(see <a class="see" href="#e-pruritogens-via-histamine-and-protease-activated-receptors-histamine">Pruritogens › Histamine</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Chinese long aubergines</span> <span class="note">(see <a class="see" href="#e-allergens-unknown-substance-s">S.1.4 Unknown substance(s)</a>)</span><span class="zh t-food" lang="zh-Hans">中国长茄子</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">European aubergines</span><span class="zh t-food" lang="zh-Hans">欧洲茄子</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Sweet peppers</span><span class="zh t-food" lang="zh-Hans">甜椒</span></span></li>
+<li class="st-no"><span><span class="t-food">Spinach</span> <span class="note">(see <a class="see" href="#e-pruritogens-via-histamine-and-protease-activated-receptors-histamine">S.5.1 Histamine</a>)</span><span class="zh t-food" lang="zh-Hans">菠菜</span></span></li>
+</ul></li>
+<li class="plain"><span><span class="t-group">Meat</span></span>
+<ul class="topics">
+<li class="st-no"><span><span class="t-food">Jerky</span> <span class="note">(see <a class="see" href="#e-aversive-textures-dry-and-tough-textures">S.6.1 Dry and tough textures</a>)</span><span class="zh t-food" lang="zh-Hans">肉干</span></span></li>
+</ul></li>
+<li class="plain"><span><span class="t-group">Bread and baked goods</span></span>
+<ul class="topics">
+<li class="st-no"><span><span class="t-food">Crispbread</span> <span class="note">(see <a class="see" href="#e-algogens-physical-via-scratches-and-punctures-in-the-mouth-and-throat-and-the-ulcers-they-can-leave-very-hard-textures">S.3.2 Very hard textures</a>)</span><span class="zh t-food" lang="zh-Hans">北欧脆饼</span></span></li>
+<li class="st-no"><span><span class="t-food">Stale baguette</span> <span class="note">(see <a class="see" href="#e-algogens-physical-via-scratches-and-punctures-in-the-mouth-and-throat-and-the-ulcers-they-can-leave-very-hard-textures">S.3.2 Very hard textures</a>)</span><span class="zh t-food" lang="zh-Hans">放硬的法棍</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Pretzel snacks</span><span class="zh t-food" lang="zh-Hans">椒盐脆饼</span></span></li>
+<li class="st-ok contrast"><span><span class="t-food">Crackers</span><span class="zh t-food" lang="zh-Hans">咸饼干</span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Food additives</span></span>
 <ul class="topics">
-<li class="st-no"><span><a class="t-chem" href="../molecule-lookup/?q=monosodium%20glutamate&amp;collection=food-intolerances" target="_blank" rel="noopener">MSG</a> <span class="note">(see <a class="see" href="#e-depressants-glutamate">Depressants › Glutamate</a>)</span></span></li>
+<li class="st-no"><span><a class="t-chem" href="../molecule-lookup/?q=monosodium%20glutamate&amp;collection=food-intolerances" target="_blank" rel="noopener">MSG</a> <span class="note">(see <a class="see" href="#e-depressants-glutamate">M.3.1 Glutamate</a>)</span><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=monosodium%20glutamate&amp;collection=food-intolerances" target="_blank" rel="noopener">味精</a></span></span></li>
 </ul></li>
 <li class="plain"><span><span class="t-group">Tobacco and cannabis</span></span>
 <ul class="topics">
-<li class="st-no"><span><span class="t-food">Tobacco</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-nicotine-via-nicotinic-receptors">Stimulants &amp; entactogens › Nicotine</a>; <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-carbolines-incl-harman-norharman-via-mao-inhibition">Stimulants &amp; entactogens › β-Carbolines</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Vapes</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-nicotine-via-nicotinic-receptors">Stimulants &amp; entactogens › Nicotine</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">CBD drinks and vapes</span> <span class="note">(see <a class="see" href="#e-depressants-cbd">Depressants › CBD</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Cannabis</span> <span class="note">(see <a class="see" href="#e-cannabinoids-via-cb1-receptors-phytocannabinoids-incl-9-thc">Cannabinoids › Phytocannabinoids</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Edibles</span> <span class="note">(see <a class="see" href="#e-cannabinoids-via-cb1-receptors-phytocannabinoids-incl-9-thc">Cannabinoids › Phytocannabinoids</a>)</span></span></li>
-<li class="st-no"><span><span class="t-food">Cannabis vapes</span> <span class="note">(see <a class="see" href="#e-cannabinoids-via-cb1-receptors-phytocannabinoids-incl-9-thc">Cannabinoids › Phytocannabinoids</a>)</span></span></li>
+<li class="st-no"><span><span class="t-food">Tobacco</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-nicotine-via-nicotinic-acetylcholine-receptors">M.1.4 Nicotine</a>; <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-carbolines-incl-harman-norharman-via-mao-inhibition">M.1.5 β-Carbolines</a>)</span><span class="zh t-food" lang="zh-Hans">烟草</span></span></li>
+<li class="st-no"><span><span class="t-food">Vapes</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-nicotine-via-nicotinic-acetylcholine-receptors">M.1.4 Nicotine</a>)</span><span class="zh t-food" lang="zh-Hans">电子烟</span></span></li>
+<li class="st-no"><span><span class="t-food">CBD drinks and vapes</span> <span class="note">(see <a class="see" href="#e-depressants-cbd">M.3.4 CBD</a>)</span><span class="zh t-food" lang="zh-Hans">大麻二酚饮料和电子烟</span></span></li>
+<li class="st-no"><span><span class="t-food">Cannabis</span> <span class="note">(see <a class="see" href="#e-cannabinoids-via-cb1-receptors-phytocannabinoids-incl-9-thc">M.4.1 Phytocannabinoids</a>)</span><span class="zh t-food" lang="zh-Hans">大麻</span></span></li>
+<li class="st-no"><span><span class="t-food">Edibles</span> <span class="note">(see <a class="see" href="#e-cannabinoids-via-cb1-receptors-phytocannabinoids-incl-9-thc">M.4.1 Phytocannabinoids</a>)</span><span class="zh t-food" lang="zh-Hans">大麻食品</span></span></li>
+<li class="st-no"><span><span class="t-food">Cannabis vapes</span> <span class="note">(see <a class="see" href="#e-cannabinoids-via-cb1-receptors-phytocannabinoids-incl-9-thc">M.4.1 Phytocannabinoids</a>)</span><span class="zh t-food" lang="zh-Hans">大麻电子烟</span></span></li>
 </ul></li>
 <li class="plain supp"><span><span class="t-group">Supplements</span></span>
 <ul class="topics">
-<li class="st-no supp"><span><a class="t-chem" href="../molecule-lookup/?q=L-tyrosine&amp;collection=food-intolerances" target="_blank" rel="noopener">L-Tyrosine</a> <span class="tag">supplement</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-tyrosine-in-dairy-via-catecholamine-synthesis">Stimulants &amp; entactogens › Tyrosine</a>)</span></span></li>
-<li class="st-no supp"><span><a class="t-chem" href="../molecule-lookup/?q=5-hydroxytryptophan&amp;collection=food-intolerances" target="_blank" rel="noopener">5-HTP</a> <span class="tag">supplement</span> <span class="note">(see <a class="see" href="#e-depressants-melatonin">Depressants › Melatonin</a>)</span></span></li>
-<li class="st-no supp"><span><span class="t-food">CBD oils, capsules and gummies</span> <span class="tag">supplement</span> <span class="note">(see <a class="see" href="#e-depressants-cbd">Depressants › CBD</a>)</span></span></li>
+<li class="st-no supp"><span><a class="t-chem" href="../molecule-lookup/?q=L-tyrosine&amp;collection=food-intolerances" target="_blank" rel="noopener">L-Tyrosine</a> <span class="tag">supplement</span> <span class="note">(see <a class="see" href="#e-stimulants-entactogens-dopaminergic-noradrenergic-or-serotonergic-substances-tyrosine-in-dairy-via-catecholamine-synthesis">M.1.3 Tyrosine</a>)</span><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=L-tyrosine&amp;collection=food-intolerances" target="_blank" rel="noopener">L-酪氨酸</a></span></span></li>
+<li class="st-no supp"><span><a class="t-chem" href="../molecule-lookup/?q=5-hydroxytryptophan&amp;collection=food-intolerances" target="_blank" rel="noopener">5-HTP</a> <span class="tag">supplement</span> <span class="note">(see <a class="see" href="#e-depressants-melatonin">M.3.2 Melatonin</a>)</span><span class="zh t-chem" lang="zh-Hans"><a class="t-chem" href="../molecule-lookup/?q=5-hydroxytryptophan&amp;collection=food-intolerances" target="_blank" rel="noopener">5-羟色氨酸</a></span></span></li>
+<li class="st-no supp"><span><span class="t-food">CBD oils, capsules and gummies</span> <span class="tag">supplement</span> <span class="note">(see <a class="see" href="#e-depressants-cbd">M.3.4 CBD</a>)</span><span class="zh t-food" lang="zh-Hans">大麻二酚油、胶囊和软糖</span></span></li>
 </ul></li>
 </ul>
 
@@ -669,10 +794,10 @@ ask me.</p>
 <script>
   // The content arrives already marked up (render.py): each entry's
   // can-eat circle and each word's type colour, and the key. All that is
-  // left is to fold entries, and to open the foreword and the key. The
-  // two lists start closed; their descriptions say what each offers.
-  // page-nav.js collapses every section on DOMContentLoaded; its listener
-  // is registered after this one, so wait a tick, then open them.
+  // left is to fold entries, and to open sections: the foreword and the
+  // key on a first visit, then whatever was open last (see SECTIONS AND
+  // SCROLL below). The two lists start closed; their descriptions say
+  // what each offers.
   // Folding an entry: its chevron, or a click on its name. Everything
   // starts open; a text selection is not a click. Folds are remembered
   // in this browser (localStorage), by each entry's data-key — its name
@@ -702,23 +827,25 @@ ask me.</p>
     el.classList.add('flash');
   });
 
-  // "Include supplements": on unless this browser said otherwise.
-  (function () {
-    var STORE = 'food-intolerances:supplements';
-    var box = document.querySelector('.container .supp-toggle input');
+  // "Include supplements" and "Show Chinese": each on unless this
+  // browser said otherwise; off adds a class to the container.
+  [['.supp-toggle', 'food-intolerances:supplements', 'no-supp'],
+   ['.zh-toggle', 'food-intolerances:chinese', 'no-zh']
+  ].forEach(function (t) {
+    var box = document.querySelector('.container ' + t[0] + ' input');
     var root = document.querySelector('.container');
     if (!box) return;
     function apply(on) {
       box.checked = on;
-      root.classList.toggle('no-supp', !on);
+      root.classList.toggle(t[2], !on);
     }
-    try { apply(localStorage.getItem(STORE) !== '0'); } catch (e) {}
+    try { apply(localStorage.getItem(t[1]) !== '0'); } catch (e) {}
     box.addEventListener('change', function () {
       apply(box.checked);
-      try { localStorage.setItem(STORE, box.checked ? '1' : '0'); }
+      try { localStorage.setItem(t[1], box.checked ? '1' : '0'); }
       catch (e) { /* private mode: lasts this visit */ }
     });
-  })();
+  });
   (function () {
     var STORE = 'food-intolerances:folded';
     var foldables = document.querySelectorAll('.container li[data-key]');
@@ -770,15 +897,202 @@ ask me.</p>
       save();
     });
   })();
-  document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(function () {
-      document.querySelectorAll('.container > h2').forEach(function (h) {
-        var t = h.textContent.trim();
-        if (/^(Foreword|Key)$/.test(t) &&
-            h.getAttribute('aria-expanded') !== 'true') h.click();
+  // STICKY HEADINGS (see the CSS): each stuck heading sits below the
+  // ones it is inside, so its `top` is their heights added up. Measured,
+  // and again whenever one changes size (a resize, a font arriving).
+  (function () {
+    var root = document.querySelector('.container');
+    function owner(el) {            // the section title above el
+      var top = el.closest('.container > ul') || el;
+      var h = top.previousElementSibling;
+      while (h && h.tagName !== 'H2') h = h.previousElementSibling;
+      return h;
+    }
+    function heading3(el) {         // section 4's h3 above el, if any
+      var top = el.closest('.container > ul') || el;
+      var h = top.previousElementSibling;
+      while (h && h.tagName !== 'H2' && h.tagName !== 'H3') {
+        h = h.previousElementSibling;
+      }
+      return h && h.tagName === 'H3' ? h : null;
+    }
+    var heads = root.querySelectorAll(
+      '.container > h3, .container li[data-key] > span:first-child, ' +
+      '.container li.plain > span:first-child');
+    // The numbers of one list share the widest one's width, so the
+    // circles after them line up (3.9 beside 3.10). Measured, not
+    // guessed: a dot is narrower than a digit.
+    // A section split into groups (section 3) has one list per group;
+    // its top-level lists are measured as one, so the circles line up
+    // across the subheadings too.
+    var lists = root.querySelectorAll('.container ul');
+    function widen() {
+      var sets = new Map();
+      lists.forEach(function (ul) {
+        var k = ul.parentElement === root ? owner(ul) : ul;
+        if (!sets.has(k)) sets.set(k, []);
+        sets.get(k).push(ul);
       });
-    }, 0);
-  });
+      sets.forEach(function (uls) {
+        var nums = [];
+        uls.forEach(function (ul) {
+          nums = nums.concat(Array.prototype.slice.call(
+            ul.querySelectorAll(':scope > li > span > .num')));
+        });
+        if (!nums.length) return;
+        var w = 0;
+        nums.forEach(function (n) {
+          n.style.minWidth = '';
+          w = Math.max(w, n.getBoundingClientRect().width);
+        });
+        if (!w) return;             // hidden (folded): measured when shown
+        nums.forEach(function (n) { n.style.minWidth = w + 'px'; });
+        // Where the names start, for the grey description lines.
+        var li = nums[0].closest('li');
+        var body = li.querySelector(':scope > span .body');
+        var x = (body.getBoundingClientRect().left
+                 - li.getBoundingClientRect().left) + 'px';
+        uls.forEach(function (ul) { ul.style.setProperty('--name-x', x); });
+      });
+    }
+    function place() {
+      widen();
+      heads.forEach(function (el) {
+        var above = [owner(el)];
+        if (el.tagName !== 'H3') above.push(heading3(el));
+        for (var li = el.parentElement.parentElement.closest('li'); li;
+             li = li.parentElement.closest('li')) {
+          above.push(li.querySelector(':scope > span:first-child'));
+        }
+        var y = 0;
+        above.forEach(function (h) { if (h) y += h.offsetHeight; });
+        el.style.top = y + 'px';
+      });
+    }
+    // A section title lets go as soon as the next one reaches it: the
+    // titles share one parent, so without this the next would slide over
+    // it rather than push it off.
+    var h2s = root.querySelectorAll('.container > h2');
+    // A subheading does the same once the next subheading or section
+    // title reaches it — else section 3's last one would sit under
+    // section 4's title. Measured from where it sticks, not where it is,
+    // since a let-go one jumps back to its place in the page.
+    var h3s = root.querySelectorAll('.container > h3');
+    var queued = false;
+    function past() {
+      queued = false;
+      for (var i = 0; i < h2s.length; i++) {
+        var next = h2s[i + 1];
+        var gone = !!next && next.getBoundingClientRect().top <
+                   h2s[i].offsetHeight;
+        h2s[i].classList.toggle('fi-past', gone);
+      }
+      h3s.forEach(function (h) {
+        var next = h.nextElementSibling;
+        while (next && next.tagName !== 'H2' && next.tagName !== 'H3') {
+          next = next.nextElementSibling;
+        }
+        var bottom = (parseFloat(h.style.top) || 0) + h.offsetHeight;
+        h.classList.toggle('fi-past',
+          !!next && next.getBoundingClientRect().top < bottom);
+      });
+    }
+    window.addEventListener('scroll', function () {
+      if (!queued) { queued = true; requestAnimationFrame(past); }
+    }, { passive: true });
+    var sizes = new ResizeObserver(function () { place(); past(); });
+    h2s.forEach(function (h) { sizes.observe(h); });
+    heads.forEach(function (h) { sizes.observe(h); });
+    // A fold or a section opening shows lists that were hidden, and a
+    // web font arriving changes every width.
+    document.addEventListener('click', function () {
+      setTimeout(function () { place(); past(); }, 0);
+    });
+    if (document.fonts) document.fonts.ready.then(place);
+    place();
+    past();
+  })();
+  // SECTIONS AND SCROLL survive a refresh. Which sections are open is
+  // remembered in this browser, like the folds (by title; a renamed
+  // section falls back to closed). The first visit opens the Foreword
+  // and the Key. The scroll position is kept per tab and put back on a
+  // reload or Back/Forward, after the sections and folds are in place —
+  // the browser's own restore runs before page-nav.js closes everything,
+  // so it lands in the wrong place.
+  (function () {
+    var OPEN = 'food-intolerances:open-sections';
+    var SCROLL = 'food-intolerances:scroll';
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    var nav = (performance.getEntriesByType &&
+               performance.getEntriesByType('navigation')[0]) || {};
+    var returning = nav.type === 'reload' || nav.type === 'back_forward';
+
+    function heads() {
+      return document.querySelectorAll('.container > h2');
+    }
+    function saveOpen() {
+      var open = [];
+      heads().forEach(function (h) {
+        if (h.getAttribute('aria-expanded') === 'true') {
+          open.push(h.textContent.trim());
+        }
+      });
+      try { localStorage.setItem(OPEN, JSON.stringify(open)); }
+      catch (e) { /* private mode: lasts this visit */ }
+    }
+    var scrolled = false;          // the reader moved before we restored
+    var ours = 0;                  // until then, scroll events are our jump
+    function saveScroll() {
+      try { sessionStorage.setItem(SCROLL, String(window.scrollY)); }
+      catch (e) {}
+    }
+    var pending;
+    window.addEventListener('scroll', function () {
+      if (performance.now() > ours) scrolled = true;
+      clearTimeout(pending);
+      pending = setTimeout(saveScroll, 150);
+    }, { passive: true });
+    window.addEventListener('pagehide', saveScroll);
+
+    function restoreScroll() {
+      if (!returning || scrolled) return;
+      var y = null;
+      try { y = sessionStorage.getItem(SCROLL); } catch (e) {}
+      if (y === null) return;
+      ours = performance.now() + 200;
+      window.scrollTo(0, Number(y));
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      // page-nav.js closes every section on DOMContentLoaded; its
+      // listener is registered after this one, so wait a tick.
+      setTimeout(function () {
+        var open = null;
+        try { open = JSON.parse(localStorage.getItem(OPEN)); }
+        catch (e) {}
+        if (!Array.isArray(open)) open = ['Foreword', 'Key'];
+        heads().forEach(function (h) {
+          var want = open.indexOf(h.textContent.trim()) >= 0;
+          if (want !== (h.getAttribute('aria-expanded') === 'true')) {
+            h.click();
+          }
+        });
+        // From here on every open/close — a title, Expand all, a "see"
+        // jump — is saved as it happens.
+        var watch = new MutationObserver(saveOpen);
+        heads().forEach(function (h) {
+          watch.observe(h, { attributes: true,
+                             attributeFilter: ['aria-expanded'] });
+        });
+        scrolled = false;
+        restoreScroll();
+      }, 0);
+    });
+    // Once more at load, in case late layout moved the page under us.
+    window.addEventListener('load', function () {
+      setTimeout(restoreScroll, 0);
+    });
+  })();
 </script>
 <script src="../../../../界面 UI/page-widgets/version-check.js" defer></script>
 </body>

@@ -17,7 +17,7 @@
 // asks `label(key)` for its text.
 //
 // An interface's identity glyph is said once, in 引擎 Engines/identities/
-// identities.env. Save to file's 💾 is also the Digital Inventory's face;
+// identities.env. Save to file's 💾 is also the Digital Estate's face;
 // here it means "save", not that app, and says so on its line
 // (`not-identity`, the identities check's mark for a coincidence — user
 // decision 2026-10-24: "you can reuse 💾 if it's more suitable").
@@ -74,4 +74,24 @@ export function paintControls(root = document) {
   root.querySelectorAll('[data-control]').forEach((b) => {
     b.textContent = label(b.dataset.control, b.dataset.controlMore || '');
   });
+}
+
+/** Folds that REMEMBER whether they were open (a display preference, in
+ *  this browser), under `key`: each `details[data-fold]` in `folds()` is
+ *  set as it was left, and saved as it changes. Healing Trajectory's
+ *  `rememberFolds`, lifted onto the shelf (2026-11-08) for every page
+ *  that folds. Call it after the page draws its folds. */
+export function rememberFolds(key, folds) {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(key) || '{}') || {}; }
+  catch (e) { saved = {}; }
+  for (const d of folds()) {
+    const id = d.dataset.fold;
+    if (!id) continue;
+    if (Object.prototype.hasOwnProperty.call(saved, id)) d.open = !!saved[id];
+    d.addEventListener('toggle', () => {
+      saved[id] = d.open;
+      try { localStorage.setItem(key, JSON.stringify(saved)); } catch (e) {}
+    });
+  }
 }

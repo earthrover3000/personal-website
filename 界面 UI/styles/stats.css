@@ -4,7 +4,7 @@
    refresh). Markup vocabulary it styles: .stats-table (+ .section-bar /
    .others / .agg / .group-divider / .totals rows, .num cells, th .th-label /
    .th-qual), .view-toggle radios, .group-toggle, .section-heading,
-   .touched-date/-block/-ago triplets, .line-history-svg, .ledger-table,
+   .touched-date/-block/-ago triplets, .line-history-svg,
    .series-row / .chart-scope (one project's history), .site-log-rings. */
 
 /* ---- Stats-page theme tokens ----
@@ -54,6 +54,17 @@ body:has(#group-categories:not(:checked)) .stats-table tbody tr:not(.section-bar
   border-top: 1px solid var(--border);
   border-bottom: none;
   padding-top: 0.7rem;
+}
+/* A note under a table: .head-meta's look, but not its pull up under a
+   page title (-0.5rem), which laid it over the table's last line (user
+   report 2026-11-08). */
+.stats-table + .head-meta { margin-top: 0.75rem; }
+/* A row after the Total (Workshop Stats' Raw Code, outside it) is still
+   a row of the table: ruled above, and below as the table's last line
+   (user decision 2026-11-08). */
+.stats-table tfoot .totals ~ tr td { border-top: 1px solid var(--border); }
+.stats-table tfoot .totals ~ tr:last-child td {
+  border-bottom: 1px solid var(--border);
 }
 /* Sortable column headers — JS attaches click handlers and toggles
    .sort-asc / .sort-desc to draw the active indicator. Each header
@@ -330,8 +341,10 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
    name — the same colour its curve is drawn in. */
 .stats-table tr.series-row { cursor: pointer; }
 .stats-table tr.series-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.stats-table tbody tr.series-selected { background: var(--surface); }
-.stats-table tbody tr.series-selected td:first-child {
+/* The footer's rows too — Total and, on Workshop Stats, Raw Code — in the
+   colours of their lines (user decision 2026-11-08). */
+.stats-table :is(tbody, tfoot) tr.series-selected { background: var(--surface); }
+.stats-table :is(tbody, tfoot) tr.series-selected td:first-child {
   color: var(--series-colour, var(--accent));
   box-shadow: inset 2px 0 0 var(--series-colour, var(--accent));
 }
@@ -391,34 +404,10 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   width: 0.7rem; height: 0.18rem; border-radius: 1px; flex: none;
   background: transparent;
 }
-/* The readout's per-line key carries the same swatch, and so does each
-   line's column head in the Table view while several lines show. */
-.chart-readout .ch-swatch,
-.ledger-table .ch-swatch {
+/* The readout's per-line key carries the same swatch. */
+.chart-readout .ch-swatch {
   display: inline-block; width: 0.6rem; height: 0.18rem; border-radius: 1px;
   margin-right: 0.3rem; vertical-align: middle;
-}
-
-/* ── Ledger table (the chart's Table view) ────────────────────────────────
-   Built at runtime by stats-table.js from the chart's own data-chart-points
-   and swapped in for .chart-hover-wrap when the Chart/Table radio says so.
-   One row per x-axis period, newest first. Wears the .stats-table skin; the
-   rules here are only what differs from the project outline above. */
-.ledger-table { margin-top: 0.5rem; }
-/* No section bars, so no indent under them: back to the base cell padding.
-   (The body:has(#group-categories) rule above lands on the same value.) */
-.stats-table.ledger-table tbody tr:not(.section-bar) td:first-child { padding-left: 0.8rem; }
-/* Each series' headers wear its colour, as the chart legend and the series
-   checkboxes do, so a column reads as "that curve, at each close". */
-.ledger-table th.col-lines .th-label { color: var(--accent); }
-.ledger-table th.col-words .th-label { color: var(--chart-words); }
-/* The period still running has no close yet; its row says "so far" where the
-   others carry their last day, and its figures are provisional. */
-.ledger-table .ledger-sofar { color: var(--muted); font-style: italic; }
-.ledger-table td.delta { color: var(--muted); }
-/* Several lines at once: each line's change under its value, one cell. */
-.ledger-table .ledger-change {
-  display: block; color: var(--muted); font-size: 0.85em;
 }
 
 /* A cell's second line: what a row's name means, under the name (Workshop
@@ -433,6 +422,42 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
 .stats-table .col-group-start { border-left: 1px solid var(--border); }
 /* The header row is --border grey itself: there the rule is a gap. */
 .stats-table th.col-group-start { border-left-color: var(--bg); }
+/* Workshop Stats' Parts: the block columns' switch, a header row of its
+   own over them (user decision 2026-11-08) — the chart's year switch
+   (.year-nav) centred across the columns it steps. */
+.stats-table .blk-nav-row th { padding-top: 0.45rem; padding-bottom: 0.1rem; }
+.stats-table .blk-nav { justify-content: center; font-weight: normal; }
+/* …and Lines | Size above it shows one group of columns at a time (user
+   decision 2026-11-08): g-l the lines ones, g-s the bytes ones. */
+#code-outline:not(.show-size) .g-s,
+#code-outline.show-size .g-l { display: none; }
+/* As wide as its columns, not the page: spare width would be shared out
+   by content, and move the block columns as the figures change. */
+#code-outline { width: auto; }
+/* Each block heading's list of every figure its column can show: no
+   height, no ink, only width — so the columns are sized to the widest from
+   the first paint (build_code_stats). */
+#code-outline .blk-sizer {
+  display: block; height: 0; overflow: hidden; visibility: hidden;
+  font-weight: normal;
+}
+#code-outline .blk-sizer > span { display: block; white-space: nowrap; }
+#code-outline .blk-sizer > .b { font-weight: 600; }
+/* Figures at the body cells' size (docs.css td), not the heading's. */
+#code-outline .blk-sizer > .fig { font-size: 0.9rem; }
+#code-outline .blk-sizer > .fig.sub { font-size: calc(0.9rem * 0.85); }
+/* Every row's figures share its first line, the part's name's, whether a
+   second line sits under them or not (user decisions 2026-11-08). */
+#code-outline td { vertical-align: top; }
+/* When the columns would run past the page, a part's description wraps,
+   so the Part column gives way rather than every column shrinking. */
+#code-outline td:first-child .cell-sub { white-space: normal; }
+/* Five block columns (user decision 2026-11-08) fit the page in Size too
+   with a little less padding beside each. */
+#code-outline :is(td, th)[class*="blk-"] {
+  padding-left: 0.3rem; padding-right: 0.3rem;
+}
+.parts-toggle { margin: 0.5rem 0; }
 /* A part's short form ahead of its name (Workshop Stats: `atl · Lifespan
    Atlas`): monospace, so every name after it starts at one edge. */
 .stats-table .part-key {
@@ -477,7 +502,9 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 12px 16px;
+  /* 8px a side (16 until 2026-11-05, user decision): the drawing's own
+     margins already keep the labels off the border. */
+  padding: 12px 8px;
 }
 /* NO FLASH (user decision 2026-10-19): the server draws the whole
    history, and stats-table.js then narrows it to the year. Until the
@@ -549,31 +576,104 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
 .chart-readout .ch-when { color: var(--muted); }
 .chart-readout .ch-field { display: inline-flex; align-items: baseline; gap: 0.4rem; }
 .chart-readout .ch-when, .chart-readout .ch-val { font-variant-numeric: tabular-nums; }
+/* Logarithmic's `e^` before each exponent, grey (user decision 2026-11-05). */
+.chart-readout .ch-e { color: var(--muted); }
 .chart-readout .ch-f-lines .ch-key { color: var(--accent); }
 .chart-readout .ch-f-words .ch-key { color: var(--chart-words); }
-/* Two-row variant (the line-history chart): line 1 is the snapshot's counts,
-   line 2 the change over the 24 hours before it. A grid rather than the flex
-   default because flex cannot column-align across rows — and the alignment is
-   the whole point: each delta sits in the same column as the count it modifies,
-   so line 2 carries no labels of its own. .ch-field collapses to `contents` so
-   its key and value become grid items in their own right; the widget sets
-   grid-template-columns to match the visible series (see renderReadout).
+/* Row-per-series variant (the line-history chart; user decision 2026-11-05):
+   a heading row — the snapshot's moment, and `24h` over the change column —
+   then one row per visible series: key, count, exponent (Logarithmic only),
+   change over the 24 hours before it. A grid rather than the flex default
+   because flex cannot column-align across rows, and the alignment is the
+   point: the counts share an edge, the changes share another. .ch-field
+   collapses to `contents` so its cells become grid items in their own right;
+   the widget sets grid-template-columns to match (see renderReadout).
    justify-content keeps the auto tracks at content width instead of stretching
    them across the box. The single-line consumers (site-log-rings) never take
    this class and keep the flex layout above. */
 .chart-readout.ch-grid {
   display: grid;
   justify-content: start;
-  column-gap: 0.45rem;
+  /* As tight as the Noticeboard widget's 0.4rem (user decision 2026-11-05):
+     the pinned widths already keep the figures apart. */
+  column-gap: 0.4rem;
   row-gap: 0.15rem;
 }
 .chart-readout.ch-grid .ch-field { display: contents; }
-/* Key padding + column-gap reproduce the 1.1rem the flex layout put between
-   whole fields, while the gap alone keeps each key close to its own value. */
-.chart-readout.ch-grid .ch-key { padding-left: 0.65rem; }
+/* The moment spans every column but the changes', headed `24h` and, on a
+   snapshots chart, `today` (stats-table.js sets .ch-today). */
+.chart-readout.ch-grid .ch-head { grid-column: 1 / -2; }
+.chart-readout.ch-grid.ch-today .ch-head { grid-column: 1 / -3; }
+/* Logarithmic's multiplier, on a line of its own under each change
+   heading — so neither heading sets its column's width (2026-11-08). */
+.chart-readout.ch-grid .ch-mult { grid-column: -2 / -1; justify-self: end;
+                                  margin-top: -0.2rem; font-size: 0.85em; }
+.chart-readout.ch-grid.ch-today .ch-mult-24 { grid-column: -3 / -2; }
+.chart-readout.ch-grid .ch-since { justify-self: end; }
 /* Right-aligned against the tabular-nums figures: 114,387 and +412 are
    different widths, and it is their last digits that should share an edge. */
 .chart-readout.ch-grid .ch-val { justify-self: end; }
+/* A part's three-letter code as its key, its name on a line of its own
+   beneath — past the swatch, small, grey and tight under it, as the
+   Noticeboard's Workshop Stats widget sets them (user decision 2026-11-05).
+   It starts in the key's column so a long name (Digital Infrastructure)
+   stays inside the count columns' width. */
+.chart-readout .ch-code { font-weight: 600; }
+.chart-readout.ch-grid .ch-name {
+  grid-column: 1 / -2;
+  white-space: nowrap;
+  padding-left: 0.9rem;   /* the swatch and its margin */
+  margin-top: -0.2rem;
+  font-size: 0.85em;
+  line-height: 1.1;
+  color: var(--muted);
+}
+/* The rule above the totals line, across every column. */
+.chart-readout.ch-grid .ch-rule {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--border);
+  margin: 0.1rem 0;
+}
+/* The share, under the change, right-aligned so the figures line up. */
+.chart-readout.ch-grid .ch-name-share {
+  grid-column: -2 / -1;
+  padding-left: 0;
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
+}
+/* Beside the graph, INSIDE the content column (user decision 2026-11-05):
+   the graph narrows to leave the readout a column on its right, so graph
+   and readout together are as wide as the rest of the page; the graph is
+   drawn at its own width (stats-table.js fitWidth), not scaled, so its text
+   and height stay as they were.
+   The widget sets .ch-side while the column is at least 35rem wide — below
+   that (a phone) the readout goes back underneath. The readout's column is
+   as wide as its content, held at the widest it has been (a min-width the
+   widget raises), so the graph narrows once and never jumps back. The
+   readout's top lines up with the box's. */
+.chart-hover-wrap.ch-side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "pills nav" "chart readout";
+  column-gap: 0.75rem;
+  align-items: start;
+}
+/* Beside the graph, the bars split (user decision 2026-11-08): the pills
+   over the graph alone, wrapping inside its width; the year, then the
+   picker, over the readout, flush right like it. */
+.chart-hover-wrap.ch-side > .chart-controls { grid-area: pills; }
+.chart-hover-wrap.ch-side > .line-history-svg { grid-area: chart; }
+.chart-hover-wrap.ch-side > .chart-readout { grid-area: readout; }
+.chart-hover-wrap.ch-side > .chart-nav-row {
+  grid-area: nav;
+  flex-direction: column; align-items: flex-end; gap: 0.4rem;
+}
+.chart-hover-wrap.ch-side > .chart-nav-row .chart-scope { margin-left: 0; }
+.chart-hover-wrap.ch-side .chart-readout.ch-grid {
+  margin-top: 0.5rem;     /* .line-history-svg's own */
+  padding: 0;
+  justify-content: end;   /* flush with the column's right edge */
+}
 
 .touched-date, .touched-block, .touched-ago { min-width: 6em; }
 .touched-date { display: inline-block; }
