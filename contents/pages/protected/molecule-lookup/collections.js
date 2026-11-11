@@ -644,7 +644,7 @@ var COLLECTIONS = [
   "single": true,
   "groups": [
    {
-    "title": "Stimulants & entactogens — dopaminergic, noradrenergic or serotonergic substances",
+    "title": "Stimulants & entactogens — via raising dopamine, noradrenaline or serotonin levels",
     "items": [
      [
       "caffeine",
@@ -763,12 +763,17 @@ var COLLECTIONS = [
       "Propanethial S-oxide: Raw onion"
      ],
      [
+      "Allyl isothiocyanate",
+      "Allyl isothiocyanate: Mustard products, Real wasabi, Wasabi paste; Allyl isothiocyanate › Wasabi paste"
+     ]
+    ]
+   },
+   {
+    "title": "Paraesthesiogens — via KCNK channels",
+    "items": [
+     [
       "hydroxy-alpha-sanshool",
       "Hydroxy-α-sanshool: Szechuan pepper"
-     ],
-     [
-      "Allyl isothiocyanate",
-      "Allyl isothiocyanate: Mustard, Real wasabi, Wasabi paste; Allyl isothiocyanate › Wasabi paste"
      ]
     ]
    },
@@ -794,7 +799,7 @@ var COLLECTIONS = [
     ]
    },
    {
-    "title": "Pruritogens — via histamine and protease-activated receptors",
+    "title": "Pruritogens — via H1 and PAR2 receptors",
     "items": [
      [
       "Histamine",
@@ -812,7 +817,7 @@ var COLLECTIONS = [
     ]
    },
    {
-    "title": "Flatulogens — via gas in the stomach and intestines",
+    "title": "Flatulogens",
     "items": [
      [
       "Carbon dioxide",
