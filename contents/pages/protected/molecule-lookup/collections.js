@@ -655,8 +655,20 @@ var COLLECTIONS = [
       "Methylxanthines: Coffee, Decaf coffee, Tea, Matcha, Cola, Energy drinks, Cacao, Acai"
      ],
      [
+      "phenethylamine",
+      "Phenethylamines: All mammals’ milk, cheese, yoghurt and cream"
+     ],
+     [
+      "tyramine",
+      "Phenethylamines: All mammals’ milk, cheese, yoghurt and cream"
+     ],
+     [
       "L-tyrosine",
-      "Tyrosine: All mammals’ milk, cheese, yoghurt and cream; Tyrosine › L-Tyrosine (supplement)"
+      "Phenethylamines: All mammals’ milk, cheese, yoghurt and cream; Phenethylamines › L-Tyrosine (supplement)"
+     ],
+     [
+      "5-hydroxytryptophan",
+      "Tryptamines › 5-HTP (supplement); Melatonin › 5-HTP (supplement)"
      ],
      [
       "Nicotine",
@@ -705,10 +717,6 @@ var COLLECTIONS = [
       "Melatonin: Cherry"
      ],
      [
-      "5-hydroxytryptophan",
-      "Melatonin › 5-HTP (supplement)"
-     ],
-     [
       "Ethanol",
       "Ethanol: Alcoholic drinks, Alcoholic dishes and desserts"
      ],
@@ -728,7 +736,7 @@ var COLLECTIONS = [
     ]
    },
    {
-    "title": "Algogens, chemical — via TRPV1 and TRPA1 channels",
+    "title": "Algogens — via TRPV1 and TRPA1 channels",
     "items": [
      [
       "Capsaicin",
@@ -760,7 +768,28 @@ var COLLECTIONS = [
      ],
      [
       "Allyl isothiocyanate",
-      "Allyl isothiocyanate: Mustard, Real wasabi, Wasabi paste"
+      "Allyl isothiocyanate: Mustard, Real wasabi, Wasabi paste; Allyl isothiocyanate › Wasabi paste"
+     ]
+    ]
+   },
+   {
+    "title": "Frigorigens — via TRPM8 channel",
+    "items": [
+     [
+      "Menthol",
+      "Menthol: Mint, Mint-flavoured sweets, Mint-flavoured chewing gum"
+     ],
+     [
+      "Eucalyptol",
+      "Eucalyptol: Eucalyptus sweets"
+     ],
+     [
+      "N-ethyl-p-menthane-3-carboxamide",
+      "Synthetic frigorigens: Mint-flavoured chewing gum"
+     ],
+     [
+      "2-isopropyl-N,2,3-trimethylbutyramide",
+      "Synthetic frigorigens: Mint-flavoured chewing gum"
      ]
     ]
    },
@@ -770,6 +799,24 @@ var COLLECTIONS = [
      [
       "Histamine",
       "Histamine: Smoked salmon, Spinach"
+     ]
+    ]
+   },
+   {
+    "title": "Astringents — via binding salivary proteins",
+    "items": [
+     [
+      "procyanidin B2",
+      "Tannins: Apple skin, Tea, Walnut"
+     ]
+    ]
+   },
+   {
+    "title": "Flatulogens — via gas in the stomach and intestines",
+    "items": [
+     [
+      "Carbon dioxide",
+      "Carbon dioxide: Carbonated drinks"
      ]
     ]
    }

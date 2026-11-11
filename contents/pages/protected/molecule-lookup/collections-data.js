@@ -28,6 +28,20 @@ var COLLECTION_DATA = {
   "comp": [],
   "wd": "ok"
  },
+ "2-isopropyl-n,2,3-trimethylbutyramide": {
+  "smiles": "CC(C)C(C)(C(C)C)C(=O)NC",
+  "name": "Methyl diisopropyl propionamide",
+  "iupac": "N,2,3-trimethyl-2-propan-2-ylbutanamide",
+  "key": "RWAXQWRDVUOOGG-UHFFFAOYSA-N",
+  "zh": "WS-23",
+  "links": {
+   "enwiki": "https://en.wikipedia.org/wiki/WS-23",
+   "zhwiki": "https://zh.wikipedia.org/wiki/WS-23",
+   "wikidata": "https://www.wikidata.org/wiki/Q27089231"
+  },
+  "comp": [],
+  "wd": "ok"
+ },
  "4-aminobutanoic acid": {
   "smiles": "C(CC(=O)O)CN",
   "name": "Gamma-Aminobutyric Acid",
@@ -536,6 +550,20 @@ var COLLECTION_DATA = {
   ],
   "wd": "none"
  },
+ "carbon dioxide": {
+  "smiles": "C(=O)=O",
+  "name": "Carbon Dioxide",
+  "iupac": "carbon dioxide",
+  "key": "CURLTUGMZLYLDI-UHFFFAOYSA-N",
+  "zh": "二氧化碳",
+  "links": {
+   "enwiki": "https://en.wikipedia.org/wiki/Carbon_dioxide",
+   "zhwiki": "https://zh.wikipedia.org/wiki/%E4%BA%8C%E6%B0%A7%E5%8C%96%E7%A2%B3",
+   "wikidata": "https://www.wikidata.org/wiki/Q1997"
+  },
+  "comp": [],
+  "wd": "ok"
+ },
  "carminic acid": {
   "smiles": "CC1=C2C(=CC(=C1C(=O)O)O)C(=O)C3=C(C2=O)C(=C(C(=C3O)O)[C@H]4[C@@H]([C@H]([C@@H]([C@H](O4)CO)O)O)O)O",
   "name": "Carminic Acid",
@@ -878,6 +906,20 @@ var COLLECTION_DATA = {
    "enwiki": "https://en.wikipedia.org/wiki/Ethanol",
    "zhwiki": "https://zh.wikipedia.org/wiki/%E4%B9%99%E9%86%87",
    "wikidata": "https://www.wikidata.org/wiki/Q153"
+  },
+  "comp": [],
+  "wd": "ok"
+ },
+ "eucalyptol": {
+  "smiles": "CC1(C2CCC(O1)(CC2)C)C",
+  "name": "1,8-Cineole",
+  "iupac": "1,3,3-trimethyl-2-oxabicyclo[2.2.2]octane",
+  "key": "WEEGYLXZBRQIMU-UHFFFAOYSA-N",
+  "zh": "桉叶油醇",
+  "links": {
+   "enwiki": "https://en.wikipedia.org/wiki/Eucalyptol",
+   "zhwiki": "https://zh.wikipedia.org/wiki/%E6%A1%89%E5%8F%B6%E6%B2%B9%E9%86%87",
+   "wikidata": "https://www.wikidata.org/wiki/Q161572"
   },
   "comp": [],
   "wd": "ok"
@@ -1352,6 +1394,18 @@ var COLLECTION_DATA = {
   "comp": [],
   "wd": "ok"
  },
+ "menthol": {
+  "smiles": "CC1CCC(C(C1)O)C(C)C",
+  "name": "Menthol",
+  "iupac": "5-methyl-2-propan-2-ylcyclohexan-1-ol",
+  "key": "NOOLISFMXDJSKH-UHFFFAOYSA-N",
+  "zh": "",
+  "links": {
+   "wikidata": "https://www.wikidata.org/wiki/Q27109870"
+  },
+  "comp": [],
+  "wd": "ok"
+ },
  "methanesulfonic acid": {
   "smiles": "CS(=O)(=O)O",
   "name": "Methanesulfonic Acid",
@@ -1464,6 +1518,18 @@ var COLLECTION_DATA = {
    "enwiki": "https://en.wikipedia.org/wiki/Mucic_acid",
    "zhwiki": "https://zh.wikipedia.org/wiki/%E5%8D%8A%E4%B9%B3%E7%B3%96%E4%BA%8C%E9%85%B8",
    "wikidata": "https://www.wikidata.org/wiki/Q424916"
+  },
+  "comp": [],
+  "wd": "ok"
+ },
+ "n-ethyl-p-menthane-3-carboxamide": {
+  "smiles": "CCNC(=O)C1CC(CCC1C(C)C)C",
+  "name": "Cyclohexanecarboxamide, N-ethyl-5-methyl-2-(1-methylethyl)-",
+  "iupac": "N-ethyl-5-methyl-2-propan-2-ylcyclohexane-1-carboxamide",
+  "key": "VUNOFAIHSALQQH-UHFFFAOYSA-N",
+  "zh": "",
+  "links": {
+   "wikidata": "https://www.wikidata.org/wiki/Q27089232"
   },
   "comp": [],
   "wd": "ok"
@@ -1634,6 +1700,20 @@ var COLLECTION_DATA = {
   ],
   "wd": "ok"
  },
+ "phenethylamine": {
+  "smiles": "C1=CC=C(C=C1)CCN",
+  "name": "Phenethylamine",
+  "iupac": "2-phenylethanamine",
+  "key": "BHHGXPLMPWCGHP-UHFFFAOYSA-N",
+  "zh": "苯乙胺",
+  "links": {
+   "enwiki": "https://en.wikipedia.org/wiki/Phenethylamine",
+   "zhwiki": "https://zh.wikipedia.org/wiki/%E8%8B%AF%E4%B9%99%E8%83%BA",
+   "wikidata": "https://www.wikidata.org/wiki/Q407411"
+  },
+  "comp": [],
+  "wd": "ok"
+ },
  "phenylalanine": {
   "smiles": "C1=CC=C(C=C1)C[C@@H](C(=O)O)N",
   "name": "L-Phenylalanine",
@@ -1736,6 +1816,19 @@ var COLLECTION_DATA = {
    "WIKYUJGCLQQFNW-UHFFFAOYSA-N",
    "AFAXGSQYZLGZPG-UHFFFAOYSA-N"
   ],
+  "wd": "ok"
+ },
+ "procyanidin b2": {
+  "smiles": "C1[C@H]([C@H](OC2=C1C(=CC(=C2[C@@H]3[C@H]([C@H](OC4=CC(=CC(=C34)O)O)C5=CC(=C(C=C5)O)O)O)O)O)C6=CC(=C(C=C6)O)O)O",
+  "name": "Procyanidin B2",
+  "iupac": "(2R,3R)-2-(3,4-dihydroxyphenyl)-8-[(2R,3R,4R)-2-(3,4-dihydroxyphenyl)-3,5,7-trihydroxy-3,4-dihydro-2H-chromen-4-yl]-3,4-dihydro-2H-chromene-3,5,7-triol",
+  "key": "XFZJEEAOWLFHDH-NFJBMHMQSA-N",
+  "zh": "",
+  "links": {
+   "enwiki": "https://en.wikipedia.org/wiki/Procyanidin_B2",
+   "wikidata": "https://www.wikidata.org/wiki/Q7247552"
+  },
+  "comp": [],
   "wd": "ok"
  },
  "proline": {
@@ -2355,6 +2448,20 @@ var COLLECTION_DATA = {
    "enwiki": "https://en.wikipedia.org/wiki/Tryptophan",
    "zhwiki": "https://zh.wikipedia.org/wiki/%E8%89%B2%E6%B0%A8%E9%85%B8",
    "wikidata": "https://www.wikidata.org/wiki/Q181003"
+  },
+  "comp": [],
+  "wd": "ok"
+ },
+ "tyramine": {
+  "smiles": "C1=CC(=CC=C1CCN)O",
+  "name": "Tyramine",
+  "iupac": "4-(2-aminoethyl)phenol",
+  "key": "DZGWFCGJZKJUFP-UHFFFAOYSA-N",
+  "zh": "酪胺",
+  "links": {
+   "enwiki": "https://en.wikipedia.org/wiki/Tyramine",
+   "zhwiki": "https://zh.wikipedia.org/wiki/%E9%85%AA%E8%83%BA",
+   "wikidata": "https://www.wikidata.org/wiki/Q165930"
   },
   "comp": [],
   "wd": "ok"
