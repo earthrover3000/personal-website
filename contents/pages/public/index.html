@@ -217,6 +217,16 @@ body {
     overflow-y: visible; margin-top: 1rem; }
 }
 
+/* HALVES IN A PAGE (user decision 2026-11-11): any block split into the
+   index pages' two equal halves (--halves-gap), under the page's head —
+   unlike a split page, the head stays full width. One column at 600px
+   and under. */
+.halves { display: flex; gap: var(--halves-gap); align-items: flex-start; }
+.halves > * { flex: 1; min-width: 0; }
+@media (max-width: 600px) {
+  .halves { flex-direction: column; gap: 0; }
+}
+
 /* (`.back-link`, a link pinned to the container's top-right corner, lived
    here until 2026-10-19 — no page used it any more. The way up from a page
    now sits at the right end of the trail line: `.crumb-line` /
@@ -668,6 +678,13 @@ li { margin: var(--row-gap) 0; }
   transition: background 0.15s;
 }
 .row a:hover { background: var(--surface); text-decoration: underline; }
+/* COMPACT ROWS (user decision 2026-11-11): a long reference list — every
+   page of a saved website, numbered — set smaller and tighter so it reads
+   at a glance; the captions above it are unchanged. Opt-in per list
+   (`ul.compact`), so every other index renders as before. */
+.row ul.compact > li:not(.row-group) { margin: 0; }
+.row ul.compact > li > a { font-size: 0.95rem; line-height: 1.35;
+                           padding: 0.15rem 0.8rem; }
 /* A SUB-ROW sits under the row above it — a project inside that row's
    folder (the Planning Room's PC Setup Companion under System Environment,
    user decision 2026-10-19; the Digital Inventory too until it became a
@@ -1552,7 +1569,7 @@ a.app-card:hover {
 <div class="container">
 <div class="crumb-line"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Personal Website</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav><span class="head-controls"><button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">25,998 lines · 14,404 words · 907 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-11-11" class="relative-time relative-time-coarse">2026-11-11</time></p>
+<p class="head-meta"><a href="site-stats/">26,037 lines · 14,404 words · 907 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-11-12" class="relative-time relative-time-coarse">2026-11-12</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">

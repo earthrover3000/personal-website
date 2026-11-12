@@ -20,6 +20,13 @@ li { margin: var(--row-gap) 0; }
   transition: background 0.15s;
 }
 .row a:hover { background: var(--surface); text-decoration: underline; }
+/* COMPACT ROWS (user decision 2026-11-11): a long reference list — every
+   page of a saved website, numbered — set smaller and tighter so it reads
+   at a glance; the captions above it are unchanged. Opt-in per list
+   (`ul.compact`), so every other index renders as before. */
+.row ul.compact > li:not(.row-group) { margin: 0; }
+.row ul.compact > li > a { font-size: 0.95rem; line-height: 1.35;
+                           padding: 0.15rem 0.8rem; }
 /* A SUB-ROW sits under the row above it — a project inside that row's
    folder (the Planning Room's PC Setup Companion under System Environment,
    user decision 2026-10-19; the Digital Inventory too until it became a

@@ -145,6 +145,16 @@ body {
     overflow-y: visible; margin-top: 1rem; }
 }
 
+/* HALVES IN A PAGE (user decision 2026-11-11): any block split into the
+   index pages' two equal halves (--halves-gap), under the page's head —
+   unlike a split page, the head stays full width. One column at 600px
+   and under. */
+.halves { display: flex; gap: var(--halves-gap); align-items: flex-start; }
+.halves > * { flex: 1; min-width: 0; }
+@media (max-width: 600px) {
+  .halves { flex-direction: column; gap: 0; }
+}
+
 /* (`.back-link`, a link pinned to the container's top-right corner, lived
    here until 2026-10-19 — no page used it any more. The way up from a page
    now sits at the right end of the trail line: `.crumb-line` /

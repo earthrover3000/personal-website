@@ -24,6 +24,10 @@
        copy of that project's style SSOT (colours/weights + roadStyle). -->
   <script src="../../../../界面 UI/map-widgets/roadmap-viewer.js"></script>
   <script src="road-palette.js"></script>
+  <!-- Colour-it-in polygon map (Dublin Areas section) — SSOT in
+       界面 UI/map-widgets/, beside roadmap-viewer.js; base tiles via
+       map-basemap.js like every other map here. -->
+  <script src="../../../../界面 UI/map-widgets/area-colourer.js"></script>
   <!-- Shared city reference data — single source of truth in
        引擎 Engines/map-projection/cities.js (the maps-projections Great Circle
        Mapper loads the same file). Exposes window.URBANISM_DATA = { gawcList, livedList }. -->
@@ -114,6 +118,12 @@
     The motorway network of the core 长三角 triangle — Shanghai, eastern Suzhou and eastern Jiaxing, enclosed by the Yangtze main channel, the Qiantang/Hangzhou Bay water lines and Lake Tai. All 高速 expressways alike in red, with trunk-grade 快速路 and expressway-grade 国道 as thin context; hover a way for its number.
   </p>
   <div id="yrd-map"></div>
+
+  <h2 id="dublin-areas">Dublin Areas</h2>
+  <p class="lede">
+    A shading map of Dublin's city centre, cut into blocks. The centre here is between the canals: the Royal Canal to the north and the Grand Canal to the south, closed on the west by Suir Road, the South Circular Road at Kilmainham and the railway through the Phoenix Park Tunnel (the GSWR North Wall Branch), and on the east by the Liffey. Each block is a piece left when that area is cut along its streets, surface rail and water, and is named by the streets around it. Three levels: main roads only (tertiary and above), then adding unclassified streets, then residential ones too; named car-free streets — Grafton, Henry, Capel and the rest — divide at every level. Click a block to shade it, and again to clear it; your shading stays in this browser, and can be exported or saved as an SVG.
+  </p>
+  <div id="dub-map"></div>
 
   <h2>Commuter Railway Explorer</h2>
   <p class="lede">
@@ -339,6 +349,29 @@
         exportName: 'yrd-motorways.png',
         exportLong: 3200, exportWeightScale: 1.6,
         exportSort: function (a, b) { return rank(a.properties) - rank(b.properties); }
+      });
+    });
+
+    // ---- 4. Dublin Areas ----
+    // Polygons, not roads, so area-colourer.js rather than the roadmap
+    // viewer; only the lazy loader is shared.
+    createRoadmapViewer.lazy('dublin-areas', ['dublin-areas-data.js'], function () {
+      createAreaColourer({
+        mount: '#dub-map',
+        storageKey: 'dublin-areas',
+        exportName: 'dublin',
+        // One layer per street-cutting level; each keeps its own shading.
+        layers: [
+          { key: 'tertiary', label: 'Main roads', fc: DUBLIN_AREAS.tertiary,
+            weight: 1.2,
+            hint: 'Cut by tertiary roads and above. Hover a block for the streets around it.' },
+          { key: 'unclassified', label: '+ Unclassified', fc: DUBLIN_AREAS.unclassified,
+            weight: 1,
+            hint: 'Also cut by unclassified streets: minor streets lined with shops, offices or industry rather than homes.' },
+          { key: 'residential', label: '+ Residential', fc: DUBLIN_AREAS.residential,
+            weight: 0.8,
+            hint: 'Also cut by residential streets: roughly one city block each.' }
+        ]
       });
     });
   </script>

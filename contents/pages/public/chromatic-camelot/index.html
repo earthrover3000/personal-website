@@ -215,6 +215,16 @@ body {
     overflow-y: visible; margin-top: 1rem; }
 }
 
+/* HALVES IN A PAGE (user decision 2026-11-11): any block split into the
+   index pages' two equal halves (--halves-gap), under the page's head —
+   unlike a split page, the head stays full width. One column at 600px
+   and under. */
+.halves { display: flex; gap: var(--halves-gap); align-items: flex-start; }
+.halves > * { flex: 1; min-width: 0; }
+@media (max-width: 600px) {
+  .halves { flex-direction: column; gap: 0; }
+}
+
 /* (`.back-link`, a link pinned to the container's top-right corner, lived
    here until 2026-10-19 — no page used it any more. The way up from a page
    now sits at the right end of the trail line: `.crumb-line` /
@@ -666,6 +676,13 @@ li { margin: var(--row-gap) 0; }
   transition: background 0.15s;
 }
 .row a:hover { background: var(--surface); text-decoration: underline; }
+/* COMPACT ROWS (user decision 2026-11-11): a long reference list — every
+   page of a saved website, numbered — set smaller and tighter so it reads
+   at a glance; the captions above it are unchanged. Opt-in per list
+   (`ul.compact`), so every other index renders as before. */
+.row ul.compact > li:not(.row-group) { margin: 0; }
+.row ul.compact > li > a { font-size: 0.95rem; line-height: 1.35;
+                           padding: 0.15rem 0.8rem; }
 /* A SUB-ROW sits under the row above it — a project inside that row's
    folder (the Planning Room's PC Setup Companion under System Environment,
    user decision 2026-10-19; the Digital Inventory too until it became a
