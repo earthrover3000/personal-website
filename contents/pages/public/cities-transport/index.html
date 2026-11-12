@@ -121,7 +121,7 @@
 
   <h2 id="dublin-areas">Dublin Areas</h2>
   <p class="lede">
-    A shading map of Dublin's city centre, cut into blocks. The centre here is between the canals: the Royal Canal to the north and the Grand Canal to the south, closed on the west by Suir Road, the South Circular Road at Kilmainham and the railway through the Phoenix Park Tunnel (the GSWR North Wall Branch), and on the east by the Liffey. Each block is a piece left when that area is cut along its streets, surface rail and water, and is named by the streets around it. Three levels: main roads only (tertiary and above), then adding unclassified streets, then residential ones too; named car-free streets — Grafton, Henry, Capel and the rest — divide at every level. Click a block to shade it, and again to clear it; your shading stays in this browser, and can be exported or saved as an SVG.
+    A shading map of Dublin's city centre, made of the census's Small Areas — the Central Statistics Office's smallest unit, each drawn to hold roughly 50–200 homes, so they are small where people live densely and large around institutions, offices and docks. The centre here is the 564 Small Areas between the canals, from Heuston and Kilmainham in the west to Grand Canal Dock and Spencer Dock in the east, each on its official boundary; <strong>Split by land use</strong> also cuts each area where OpenStreetMap's land use changes, so housing is no longer joined to a park, hospital or office district, and <strong>Split by main roads</strong> cuts each area along the main roads crossing it. Click an area to shade it, and again to clear it; your shading stays in this browser, and can be exported or saved as an SVG.
   </p>
   <div id="dub-map"></div>
 
@@ -356,21 +356,52 @@
     // Polygons, not roads, so area-colourer.js rather than the roadmap
     // viewer; only the lazy loader is shared.
     createRoadmapViewer.lazy('dublin-areas', ['dublin-areas-data.js'], function () {
+      // "117 of 564 areas split, 734 pieces in all" — counted from the data
+      // (split pieces carry their area's code + '-letter'), so it stays
+      // right whenever the converter is re-run.
+      function splitCount(fc) {
+        var split = {};
+        fc.features.forEach(function (f) {
+          var id = f.properties.id.slice(1), dash = id.indexOf('-');
+          if (dash > 0) split[id.slice(0, dash)] = true;
+        });
+        return Object.keys(split).length + ' of ' +
+          DUBLIN_AREAS.small_areas.features.length + ' areas split, ' +
+          fc.features.length + ' pieces in all.';
+      }
+      // Pieces of one split Small Area share its code before the '-letter':
+      // that groups them for the \u25c0 \u25b6 walk through split areas.
+      function splitOf(p) {
+        var id = p.id.slice(1), dash = id.indexOf('-');
+        return dash > 0 ? id.slice(0, dash) : null;
+      }
       createAreaColourer({
         mount: '#dub-map',
         storageKey: 'dublin-areas',
         exportName: 'dublin',
-        // One layer per street-cutting level; each keeps its own shading.
+        credits: false,                   // user decision 2026-11-12
         layers: [
-          { key: 'tertiary', label: 'Main roads', fc: DUBLIN_AREAS.tertiary,
-            weight: 1.2,
-            hint: 'Cut by tertiary roads and above. Hover a block for the streets around it.' },
-          { key: 'unclassified', label: '+ Unclassified', fc: DUBLIN_AREAS.unclassified,
-            weight: 1,
-            hint: 'Also cut by unclassified streets: minor streets lined with shops, offices or industry rather than homes.' },
-          { key: 'residential', label: '+ Residential', fc: DUBLIN_AREAS.residential,
+          { key: 'small_areas', label: 'CSO Small Areas', fc: DUBLIN_AREAS.small_areas,
             weight: 0.8,
-            hint: 'Also cut by residential streets: roughly one city block each.' }
+            // Copy the bare census code (ids are 's' + SA_PUB2022).
+            copy: function (p) { return p.id.slice(1); } },
+          // The same areas cut where OSM's land use changes (user request
+          // 2026-11-12): a park, hospital or office district separates from
+          // the housing it was joined to. Pieces keep their area's code + a
+          // letter; unsplit areas keep the bare code.
+          { key: 'by_use', label: 'Split by land use', fc: DUBLIN_AREAS.by_use,
+            weight: 0.8,
+            hint: splitCount(DUBLIN_AREAS.by_use),
+            group: splitOf,
+            detail: function (p) { return p.use === 'unmapped' ? 'land use not mapped' : p.use; },
+            copy: function (p) { return p.id.slice(1); } },
+          // The same areas cut along the main roads crossing them (OSM
+          // tertiary and above, no tunnels; user request 2026-11-12).
+          { key: 'by_roads', label: 'Split by main roads', fc: DUBLIN_AREAS.by_roads,
+            weight: 0.8,
+            hint: splitCount(DUBLIN_AREAS.by_roads),
+            group: splitOf,
+            copy: function (p) { return p.id.slice(1); } }
         ]
       });
     });

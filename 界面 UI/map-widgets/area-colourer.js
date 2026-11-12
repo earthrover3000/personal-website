@@ -25,11 +25,21 @@
 //     view: [53.345, -6.262, 14.5],       // optional centre + zoom;
 //                                         //   omitted → fit layer 1
 //     exportName: 'dublin',               // → dublin-<layer>.svg
+//     credits: false,                     // optional: show no credits
 //     layers: [
 //       { key: 'blocks', label: 'Street blocks', fc: DUBLIN_AREAS.blocks,
 //         weight: 0.5, hint: '…',
 //         labels: false,                  // permanent name labels
-//         detail: function (p) { return ''; } }   // hover extra
+//         detail: function (p) { return ''; },    // hover extra
+//         credit: 'Boundaries © …',        // non-OSM data: shown in the
+//                                          //   map's attribution and SVG
+//         group: function (p) { return null; },    // optional: areas
+//                                          //   sharing a key form a group;
+//                                          //   ◀ ▶ steps through groups of
+//                                          //   2+ (e.g. a split Small Area)
+//         copy: function (p) { return p.name; } }  // the text "Copy"
+//                                          //   and the C key put on the
+//                                          //   clipboard (default: name)
 //     ]
 //   });
 //
@@ -74,7 +84,15 @@
       '.ac-seg button + button { border-left:1px solid var(--border); }' +
       '.ac-seg button.ac-on { background:var(--accent); color:var(--bg); }' +
       '.ac-hint { color:var(--muted); font-size:0.85rem;' +
-      '  margin:0 0 0.6rem; }' +
+      '  margin:0 0 0.6rem; display:flex; flex-wrap:wrap;' +
+      '  align-items:center; gap:0.3rem 1rem; }' +
+      '.ac-nav { display:inline-flex; align-items:center; gap:0.35rem;' +
+      '  color:var(--text); }' +
+      '.ac-nav .ac-btn { padding:0.05rem 0.55rem; line-height:1.4; }' +
+      '.ac-keys { display:inline-flex; align-items:center; gap:0.3rem;' +
+      '  margin-left:0.6rem; color:var(--muted); cursor:pointer; }' +
+      '.ac-nav-n { min-width:5.5em; text-align:center;' +
+      '  font-variant-numeric:tabular-nums; }' +
       '.ac-n { color:var(--muted); }' +
       '.ac-btn { font:inherit; font-size:0.85rem; padding:0.25rem 0.7rem;' +
       '  border:1px solid var(--border); border-radius:6px;' +
@@ -92,6 +110,13 @@
       '  padding:0.25rem 0.6rem; font-size:0.85rem; pointer-events:none;' +
       '  display:none; }' +
       '.ac-hover em { color:var(--muted); font-style:normal; }' +
+      '.ac-pick { display:flex; flex-wrap:wrap; align-items:center;' +
+      '  gap:0.4rem 0.8rem; margin:0 0 0.6rem; font-size:0.9rem;' +
+      '  min-height:1.9rem; }' +
+      '.ac-pick .ac-tip { color:var(--muted); }' +
+      '.ac-pick code { font-size:0.95rem; padding:0.1rem 0.4rem;' +
+      '  border:1px solid var(--border); border-radius:4px;' +
+      '  background:var(--surface); user-select:all; }' +
       '.leaflet-tooltip.ac-label { background:transparent; border:0;' +
       '  box-shadow:none; padding:0; font-weight:600; font-size:11px;' +
       '  color:#1d2329; text-shadow:0 0 3px #fff, 0 0 3px #fff; }' +
@@ -109,6 +134,7 @@
     var byKey = {};
     layers.forEach(function (l) { byKey[l.key] = l; });
     var anyLabels = layers.some(function (l) { return l.labels; });
+    var anyHint = layers.some(function (l) { return l.hint || l.group; });
     var KEY = 'area-colourer:' + config.storageKey;
 
     // ---- State ---------------------------------------------------------
@@ -138,7 +164,6 @@
       (layers.length > 1
         ? '<div class="ac-bar"><span class="ac-seg ac-layers"></span>' +
           '</div>' : '') +
-      '<p class="ac-hint"></p>' +
       '<div class="ac-bar">' +
       '  <span class="ac-n"></span>' +
       '  <button type="button" class="ac-btn ac-clear">Clear</button>' +
@@ -149,6 +174,10 @@
       '  <label>Shade <input type="range" class="ac-op" min="15"' +
       '    max="100"></label>' +
       '</div>' +
+      '<div class="ac-pick"></div>' +
+      // The count and ◀ ▶ line sits right above the map (user request).
+      '<p class="ac-hint"><span class="ac-hint-text"></span>' +
+      '<span class="ac-nav"></span></p>' +
       '<div class="ac-wrap"><div class="ac-map"></div>' +
       '  <div class="ac-hover"></div></div>' +
       '<div class="ac-bar" style="margin-top:0.6rem">' +
@@ -162,16 +191,26 @@
     var mapEl = q('.ac-map'), hover = q('.ac-hover');
     mapEl.style.height = (config.height || 520) + 'px';
 
-    var map = L.map(mapEl, { preferCanvas: true, zoomSnap: 0.25 });
+    // Leaflet pans with the arrow keys; that is switched off while the
+    // "Arrow keys" box is ticked, when ← → step through groups instead.
+    // config.credits === false (the page owner's choice) drops every credit:
+    // the attribution box, the tile credit, layer credits, the SVG footer.
+    var credits = config.credits !== false;
+    var map = L.map(mapEl, { preferCanvas: true, zoomSnap: 0.25,
+                             attributionControl: credits });
     if (config.view) {
       map.setView([config.view[0], config.view[1]], config.view[2]);
     }
     var tiles = null, geo = null, fillColour = shade(root);
+    var shownCredit = null;
 
     function setBase(on) {
       state.base = on;
-      if (on && !tiles) tiles = MAP_BASEMAP.addTo(map);
+      if (on && !tiles) {
+        tiles = MAP_BASEMAP.addTo(map, credits ? {} : { attribution: false });
+      }
       if (!on && tiles) { map.removeLayer(tiles); tiles = null; }
+      if (!credits) return;
       // Without tiles the OSM-derived shapes still need their credit.
       map.attributionControl.setPrefix(on ? false :
         '<a href="https://leafletjs.com">Leaflet</a> | ' +
@@ -197,6 +236,143 @@
         : { weight: (l.weight || 1) * 2.5,
             fillColor: isDark() ? '#9aa3ad' : '#6b7280',
             fillOpacity: 0.3 };
+    }
+
+    // ---- Copying an area's reference (user request 2026-11-12) ---------
+    // The last clicked area sits in a bar above the map with a Copy
+    // button; C over an area copies it without clicking. The site is also
+    // served over plain http on the LAN, where navigator.clipboard does
+    // not exist — hence the execCommand fallback.
+    var hovered = null, pickTip = 'Click an area, or press C while ' +
+      'hovering one, to copy its code.';
+    function copyText(l, p) {
+      return l.copy ? l.copy(p) : p.name;
+    }
+    function toClipboard(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+      }
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0;left:-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      ta.remove();
+      return ok ? Promise.resolve() : Promise.reject(new Error('copy'));
+    }
+    function flash(btn, text) {
+      var was = btn.textContent;
+      btn.textContent = text;
+      setTimeout(function () { btn.textContent = was; }, 1500);
+    }
+    function showPick(l, p) { showPickText(p.name, copyText(l, p)); }
+    function showPickText(name, text) {
+      var bar = q('.ac-pick');
+      bar.innerHTML = '<span>' + esc(name) + '</span><code>' +
+        esc(text) + '</code><button type="button" class="ac-btn">Copy' +
+        '</button><span class="ac-tip">or press C over any area</span>';
+      var btn = bar.querySelector('button');
+      btn.onclick = function () {
+        toClipboard(text).then(function () { flash(btn, 'Copied'); },
+                               function () { flash(btn, 'Select it'); });
+      };
+    }
+    document.addEventListener('keydown', function (e) {
+      if (state.arrows && !e.ctrlKey && !e.metaKey && !e.altKey &&
+          (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        var t0 = e.target;
+        if (t0 && (t0.tagName === 'INPUT' || t0.tagName === 'TEXTAREA'))
+          return;
+        var l0 = byKey[state.layer];
+        if (!groupsOf(l0).length) return;
+        e.preventDefault();
+        step(e.key === 'ArrowRight' ? 1 : -1);
+        return;
+      }
+      if (!hovered || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key !== 'c' && e.key !== 'C') return;
+      var t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' ||
+                t.isContentEditable)) return;
+      var text = copyText(hovered.l, hovered.p), shown = hovered.p;
+      showPick(hovered.l, hovered.p);
+      toClipboard(text).then(function () {
+        hover.innerHTML = '<strong>' + esc(shown.name) + '</strong>' +
+          ' <em>· copied</em>';
+      });
+    });
+
+    // ---- Stepping through groups (user request 2026-11-12) ------------
+    // ◀ n / N ▶ in the hint line (and ← → while its "Arrow keys" box is
+    // ticked, user request) walks every group of 2+ areas, looping: the
+    // group is outlined, its pieces lettered, the map fitted to it and
+    // its key put in the copy bar.
+    var navAt = {}, focus = null;
+    function setArrows(on) {
+      state.arrows = on;
+      if (map.keyboard) map.keyboard[on ? 'disable' : 'enable']();
+    }
+    function groupsOf(l) {
+      if (!l.group) return [];
+      if (l._groups) return l._groups;
+      var byG = {};
+      l.fc.features.forEach(function (f) {
+        var k = l.group(f.properties);
+        if (k != null) (byG[k] = byG[k] || []).push(f);
+      });
+      l._groups = Object.keys(byG).sort().filter(function (k) {
+        return byG[k].length > 1;
+      }).map(function (k) { return { key: k, feats: byG[k] }; });
+      return l._groups;
+    }
+    function clearFocus() {
+      if (focus) { map.removeLayer(focus); focus = null; }
+    }
+    function renderNav() {
+      var l = byKey[state.layer], gs = groupsOf(l), nav = q('.ac-nav');
+      if (!gs.length) { nav.innerHTML = ''; return; }
+      var at = navAt[l.key];
+      nav.innerHTML = '<button type="button" class="ac-btn ac-prev" ' +
+        'title="Previous (\u2190)">\u25c0</button><span class="ac-nav-n">' +
+        (at == null ? '\u2013' : at + 1) + ' / ' + gs.length +
+        '</span><button type="button" class="ac-btn ac-next" ' +
+        'title="Next (\u2192)">\u25b6</button><label class="ac-keys">' +
+        '<input type="checkbox"' + (state.arrows ? ' checked' : '') +
+        '> Arrow keys</label>';
+      nav.querySelector('.ac-prev').onclick = function () { step(-1); };
+      nav.querySelector('.ac-next').onclick = function () { step(1); };
+      nav.querySelector('.ac-keys input').onchange = function (e) {
+        setArrows(e.target.checked);
+        save();
+      };
+    }
+    function step(d) {
+      var l = byKey[state.layer], gs = groupsOf(l), n = gs.length;
+      if (!n) return;
+      var at = navAt[l.key];
+      at = at == null ? (d > 0 ? 0 : n - 1) : ((at + d) % n + n) % n;
+      navAt[l.key] = at;
+      var g = gs[at];
+      clearFocus();
+      focus = L.geoJSON({ type: 'FeatureCollection', features: g.feats }, {
+        interactive: false,
+        style: function () {
+          return { color: isDark() ? '#ffd166' : '#c2185b', weight: 3.5,
+                   opacity: 1, fill: false };
+        },
+        onEachFeature: function (f, layer) {
+          var id = String(l.copy ? l.copy(f.properties) : f.properties.id);
+          var dash = id.lastIndexOf('-');
+          layer.bindTooltip(esc(dash > 0 ? id.slice(dash + 1) : id),
+            { permanent: true, direction: 'center',
+              className: 'ac-label' });
+        }
+      }).addTo(map);
+      map.fitBounds(focus.getBounds(), { padding: [70, 70], maxZoom: 17 });
+      showPickText((l.groupName || 'Small Area') + ' ' + g.key, g.key);
+      renderNav();
     }
 
     function count() {
@@ -225,6 +401,7 @@
             layer.setStyle(hoverStyle(f));     // pointer is still on it
             save();
             count();
+            showPick(l, p);
           });
           layer.on('mouseover', function () {
             var d = l.detail ? l.detail(p) : '';
@@ -232,14 +409,32 @@
               (d ? ' <em>· ' + esc(d) + '</em>' : '');
             hover.style.display = 'block';
             layer.setStyle(hoverStyle(f));
+            hovered = { l: l, p: p };
           });
           layer.on('mouseout', function () {
             hover.style.display = 'none';
+            hovered = null;
             geo.resetStyle(layer);
           });
         }
       }).addTo(map);
-      q('.ac-hint').textContent = l.hint || '';
+      q('.ac-hint-text').textContent = l.hint || '\u00a0'; // same height
+      clearFocus();
+      renderNav();
+      // If any layer has a hint, the line keeps its room on every layer
+      // (empty but present), so switching layers never shifts the map
+      // (user request 2026-11-12); with no hints anywhere it collapses.
+      q('.ac-hint').style.display = anyHint ? '' : 'none';
+      q('.ac-hint').style.visibility =
+        l.hint || groupsOf(l).length ? 'visible' : 'hidden';
+      // Per-layer data credit (e.g. CSO boundaries) beside the OSM one.
+      if (credits) {
+        if (shownCredit) {
+          map.attributionControl.removeAttribution(shownCredit);
+        }
+        shownCredit = l.credit || null;
+        if (shownCredit) map.attributionControl.addAttribution(shownCredit);
+      }
       renderSegs();
       count();
     }
@@ -369,9 +564,13 @@
           '" fill-rule="evenodd"><title>' + esc(f.properties.name) +
           '</title></path>');
       });
-      out.push('<text x="' + W + '" y="' + (H + 40) + '" font-size' +
-        '="11" text-anchor="end" fill="#888">Boundaries © OpenStreetMap ' +
-        'contributors</text></svg>');
+      if (credits) {
+        out.push('<text x="' + W + '" y="' + (H + 40) + '" font-size' +
+          '="11" text-anchor="end" fill="#888">' +
+          esc(l.credit || 'Boundaries © OpenStreetMap contributors') +
+          '</text>');
+      }
+      out.push('</svg>');
       download(stem + '-' + state.layer + '.svg', out.join(''),
                'image/svg+xml');
     };
@@ -384,7 +583,10 @@
       var mq = matchMedia('(prefers-color-scheme: dark)');
       if (mq.addEventListener) mq.addEventListener('change', draw);
     }
+    q('.ac-pick').innerHTML = '<span class="ac-tip">' + pickTip +
+      '</span>';
     setBase(state.base);
+    setArrows(!!state.arrows);
     // No config.view: open fitted to the first layer's areas.
     if (!config.view) {
       map.fitBounds(L.geoJSON(layers[0].fc).getBounds(),
