@@ -29,7 +29,7 @@ li { margin: var(--row-gap) 0; }
                            padding: 0.15rem 0.8rem; }
 /* A SUB-ROW sits under the row above it — a project inside that row's
    folder (the Planning Room's PC Setup Companion under System Environment,
-   user decision 2026-10-19; the Digital Inventory too until it became a
+   user decision 2026-10-19; the Digital Estate too until it became a
    top-level folder, 2026-10-31). Opt-in per entry (`sub`),
    so every other page renders as before. */
 .row li.sub-row > a:not(.row-folder):not(.row-open) { padding-left: 2rem; }

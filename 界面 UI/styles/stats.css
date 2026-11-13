@@ -528,9 +528,10 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
 /* Today — the you-are-here guide at now, behind the series. The hover
    guide's dash rhythm, so the two read as one family of time markers, and
    the atlas's anchor red (base.css --anchor-red) so it is never mistaken
-   for the grey hover guide or the faint solid boundary lines. Visible
-   because the x-axis runs past now to the end of the current blocks; this
-   is where the data stops and the projection starts. */
+   for the grey hover guide or the faint solid boundary lines. Drawn only
+   when the newest point is more than 24 hours old (stats-table.js
+   placeToday, user decision 2026-11-13): fresh data ends where the series
+   does, so the line now says "no data since the series ends". */
 .today-layer .today-line {
   stroke: var(--anchor-red);
   stroke-opacity: 0.7;
