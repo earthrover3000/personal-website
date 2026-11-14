@@ -45,8 +45,13 @@
    toggle off) there are no headers, so drop the indent back to the base cell
    padding (0.8rem, from docs.css). The roadmap has no #group-categories
    toggle, so it always stays indented. */
-.stats-table tbody tr:not(.section-bar) td:first-child { padding-left: 1.75rem; }
-body:has(#group-categories:not(:checked)) .stats-table tbody tr:not(.section-bar) td:first-child { padding-left: 0.8rem; }
+/* A part row kept in the footer, below the Total it is not counted in
+   (Workshop Stats' Raw Code, `tr.part-row`), is indented like the parts
+   above it (user decision 2026-11-14). */
+.stats-table tbody tr:not(.section-bar) td:first-child,
+.stats-table tfoot tr.part-row td:first-child { padding-left: 1.75rem; }
+body:has(#group-categories:not(:checked)) .stats-table tbody tr:not(.section-bar) td:first-child,
+body:has(#group-categories:not(:checked)) .stats-table tfoot tr.part-row td:first-child { padding-left: 0.8rem; }
 .stats-table tbody tr:hover { background: var(--surface); }
 .stats-table tfoot .totals td {
   font-weight: 600;
