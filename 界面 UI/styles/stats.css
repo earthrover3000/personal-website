@@ -219,10 +219,10 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   color: var(--accent);
   border-color: var(--accent);
 }
-/* Chart controls row: the Chart/Table view, Linear/Logarithmic scale,
-   Lines/Words series, x-axis unit and Snapshots/Days resolution toggles,
-   sitting on one line directly above the chart (which supplies its own top
-   margin). Wraps on narrow viewports. */
+/* Chart controls: two rows directly above the chart (which supplies its
+   own top margin) — what is shown and over which stretch, then how the
+   y-axis measures it (.ctl-break, below). Each row wraps on narrow
+   viewports. */
 .chart-controls {
   display: flex;
   flex-wrap: wrap;
@@ -231,6 +231,13 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   margin: 0.5rem 0 0;
 }
 .chart-controls .view-toggle { margin: 0; }
+/* The break between the bar's two rows (source_stats.chart
+   render_controls): what is shown, then how the y-axis measures it. A
+   full-width, zero-height flex item. */
+.chart-controls .ctl-break {
+  flex-basis: 100%; height: 0;
+  margin-bottom: -0.4rem;     /* one row gap between the rows, not two */
+}
 /* Tighter pills, so all thirteen fit one line in the column. */
 .chart-controls { gap: 0.4rem 0.8rem; }
 .chart-controls .view-toggle,
@@ -415,6 +422,11 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
 .stats-table .cell-sub {
   display: block; color: var(--muted); font-size: 0.85em; font-weight: normal;
 }
+/* A second line kept until asked for: shown while its cell is hovered
+   (Workshop Stats' current-block rate, user decision 2026-11-13). Hidden,
+   not removed, so the row keeps its height and nothing moves. */
+.stats-table .cell-peek { visibility: hidden; }
+.stats-table td:hover .cell-peek { visibility: visible; }
 /* …and its header's qualifier sits flush right over a number column. */
 .stats-table th.num .th-qual { text-align: right; }
 /* A vertical rule where one group of columns ends and the next begins

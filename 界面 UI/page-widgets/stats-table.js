@@ -521,6 +521,18 @@ whenSettled(function () {
       // axis is linear and runs to at most 100%; the scale radios go inert.
       let shareKeys = [];
       try { shareKeys = JSON.parse(svg.dataset.chartShare || '[]'); } catch (e) { shareKeys = []; }
+      // ── Own | With libraries (user decision 2026-11-13) ─────────────────
+      // Where the chart publishes data-chart-libs (source_stats.chart
+      // `libs`: Workshop Stats' app and site parts), each such part's line
+      // can be drawn as its footprint — its own lines plus the Libraries
+      // code it reaches — instead. Share still works (user decision
+      // 2026-11-14): a footprint's share of the real Total, as the Parts
+      // table's grey line gives it. Footprints overlap wherever two parts
+      // share a module, so those shares need not add up to 100%.
+      let libsSteps = {};
+      try { libsSteps = JSON.parse(svg.dataset.chartLibs || '{}'); } catch (e) { libsSteps = {}; }
+      const libsOn = () => Object.keys(libsSteps).length > 0
+        && isOn('libs-with');
       const shareOn = () => shareKeys.length > 0 && isOn('measure-share');
 
       // ── Point resolution: every snapshot, or one point per day ───────────
@@ -625,22 +637,38 @@ whenSettled(function () {
       // fallback only).
       let winEndMs = 0;
       // ── Year | Zoom (user decision 2026-10-30) ──────────────────────────
-      // Zoom shows the previous block and the current blocks — the start of
-      // the block before them to the end of the window the axis already
-      // closes on — and fits the linear axis to what that shows, floor and
-      // all (measure). The window is the marks engine's, so it waits for it
-      // (below); without blocks (data vault unmounted) the last
-      // ZOOM_FALLBACK_DAYS. Every chart opens on Year.
+      // Zoom shows TWO BLOCKS and fits the linear axis to what they show,
+      // floor and all (measure). It opens on the last two blocks the axis
+      // closes on — the current block and the one before it, or, past the
+      // recorded blocks, today's slot and the projected one after it — and
+      // the year arrows step it a block at a time, the width never changing
+      // (user decisions 2026-11-14): back to the block holding the first
+      // reading, forward to where it opened. The blocks are the marks
+      // engine's, so they wait for it (below); without blocks (data vault
+      // unmounted) the window is ZOOM_FALLBACK_DAYS, stepped by as much.
+      // Every chart opens on Year; Year and Zoom keep their own positions.
       let zoomWin = null;                    // {startMs, endMs}
+      let zoomBlocks = [];                   // [{startMs, endMs, label}]
+      let zoomPos = -1;                      // zoomBlocks index of the pair's first
+      let zoomBack = 0;                      // fallback windows stepped back
       const zoomOn = () => isOn('span-zoom');
       const ZOOM_FALLBACK_DAYS = 120;
       let syncSpanNav = () => {};            // the year arrows, once built
+      const setZoomPair = () => {
+        const a = zoomBlocks[zoomPos], b = zoomBlocks[zoomPos + 1] || a;
+        zoomWin = { startMs: a.startMs, endMs: b.endMs };
+      };
+      const canZoomBack = () => zoomBlocks.length
+        ? zoomPos > 0 : dates.length > 0 && domainMinMs > +dates[0];
+      const canZoomOn = () => zoomBlocks.length
+        ? zoomPos < zoomBlocks.length - 2 : zoomBack > 0;
       function setDomain() {
         if (zoomOn()) {
           if (zoomWin) {
             domainMinMs = zoomWin.startMs; domainMaxMs = zoomWin.endMs;
           } else {
-            domainMaxMs = Math.max(dataEndMs, +now);
+            domainMaxMs = Math.max(dataEndMs, +now)
+              - zoomBack * ZOOM_FALLBACK_DAYS * DAY_MS;
             domainMinMs = domainMaxMs - ZOOM_FALLBACK_DAYS * DAY_MS;
           }
           return;
@@ -1241,14 +1269,21 @@ whenSettled(function () {
         const current = marks.currentBlocks(blockCtx);
         const win = marks.currentBlocksWindow(blockCtx);
         if (win) winEndMs = win.endMs;
-        // Zoom's window: the block before the current ones, through them.
+        // Zoom's blocks: from the one holding the first reading to the last
+        // the axis closes on, each labelled as the axis labels it ("21",
+        // "*23"). It opens on the last two.
         if (win && current.length) {
-          const first = current[0].startMs;
-          const below = (blockCtx.blockMs || []).filter(b => b < first);
-          let prev = below.length ? Math.max(...below) : -Infinity;
-          if (blockCtx.synthesized)
-            prev = Math.max(prev, first - blockCtx.avgLen * DAY_MS);
-          zoomWin = { startMs: isFinite(prev) ? prev : first, endMs: win.endMs };
+          const from = Math.min(dates.length ? +dates[0] : Infinity,
+                                current[0].startMs);
+          zoomBlocks = marks.getBlockMarksInRange(from, win.endMs - 1,
+                                                  blockCtx)
+            .filter(b => b.startMs < win.endMs)
+            .map(b => ({ startMs: b.startMs, endMs: b.endMs,
+                         label: marks.formatBlockText(b.label) }));
+          if (zoomBlocks.length) {
+            zoomPos = Math.max(0, zoomBlocks.length - 2);
+            setZoomPair();
+          }
           if (zoomOn()) applySpan();
         }
         if (!yr && winEndMs > domainMaxMs) {
@@ -1978,17 +2013,31 @@ whenSettled(function () {
         for (const key of Object.keys(series)) {
           expanded[key] = { total: expand(series[key].lines), words: expand(series[key].words) };
         }
+        // Each footprint part's line With libraries, against the same raw
+        // snapshots; `countsOf` is a part's count in whichever is on.
+        const withLibs = {};
+        for (const key of Object.keys(libsSteps)) {
+          if (expanded[key]) withLibs[key] = expand(libsSteps[key]);
+        }
+        const countsOf = key => libsOn() && withLibs[key]
+          ? withLibs[key] : expanded[key].total;
         // Each shared part's percentage of the totals at every raw snapshot:
         // null where the part has no reading or the totals none yet (a
         // merged chart's Total starts once every part is recorded).
         const shareSet = new Set(shareKeys.filter(k => expanded[k]));
-        const shares = {};
-        shareSet.forEach(key => {
-          shares[key] = expanded[key].total.map((v, i) => {
-            const t = all.total[i];
-            return v == null || !t ? null : 100 * v / t;
-          });
+        const percent = vals => vals.map((v, i) => {
+          const t = all.total[i];
+          return v == null || !t ? null : 100 * v / t;
         });
+        const shares = {}, libsShares = {};
+        shareSet.forEach(key => {
+          shares[key] = percent(expanded[key].total);
+          if (withLibs[key]) libsShares[key] = percent(withLibs[key]);
+        });
+        // A part's share in whichever count is on: its footprint's, With
+        // libraries, still against the real Total.
+        const shareOf = key => libsOn() && libsShares[key]
+          ? libsShares[key] : shares[key];
         // A project's axes are sized by niceMax (measure(), above) — a finer
         // ladder than the totals' 1-2-5.
 
@@ -2033,8 +2082,8 @@ whenSettled(function () {
         // any other since 2026-10-18 (user decision), so a project can be
         // drawn against the whole. [''] alone is the default chart.
         let chosen = [''];
-        const valuesOf = key => shareOn() && shares[key] ? shares[key]
-          : key === '' ? all.total : expanded[key].total;
+        const valuesOf = key => shareOn() && shares[key] ? shareOf(key)
+          : key === '' ? all.total : countsOf(key);
         // The lines actually drawn. Counts: the choice. Share: the shared
         // parts in it — the totals would be a flat 100% and a part outside
         // the total has no share — or, when it names none, every shared
@@ -2102,7 +2151,7 @@ whenSettled(function () {
         function show(key) {
           const s = expanded[key];
           shown = s ? key : '';
-          const t = pick(s ? s.total : all.total);
+          const t = pick(s ? countsOf(key) : all.total);
           const w = pick(s ? s.words : all.words);
           points.forEach((p, i) => { p.total = t[i]; p.words = w[i]; });
           scoped = !!s;
@@ -2142,6 +2191,7 @@ whenSettled(function () {
             const k = 'o' + n;
             const vals = pick(valuesOf(key));
             points.forEach((p, i) => { p[k] = vals[i]; });
+            // With libraries, `vals` are the footprint: its share follows.
             const share = !shareOn() && shareSet.has(key) ? 's' + n : '';
             if (share) points.forEach((p, i) => {
               p[share] = vals[i] == null || !grand[i] ? null
@@ -2365,6 +2415,15 @@ whenSettled(function () {
         syncScaleRadios();
         if (shareOn()) reapply();
       }
+      // Own ⇄ With libraries: the same choice again, each footprint part
+      // redrawn as its footprint, in Counts or Share alike. Applied on
+      // load too, for a Back that restores it.
+      if (Object.keys(libsSteps).length) {
+        ctlGroup('chart-libs').forEach(radio => {
+          radio.addEventListener('change', () => reapply());
+        });
+        if (libsOn()) reapply();
+      }
 
       // ── Year navigation: ‹ 2026 › ─────────────────────────────────────
       // Steps `years`; each arrow greys out at the first/last year with data.
@@ -2405,17 +2464,24 @@ whenSettled(function () {
           refreshAxis();
           syncSpanNav();
         }
-        // Zoomed, the arrows stand aside (they step years) and the label
-        // says the window; back on Year, the year again.
+        // Zoomed, the arrows step the two-block window and the label names
+        // it ("Blocks 21 to 22"); back on Year, the year again.
         const yearLabel = () => label.innerHTML;
         let savedLabel = '';
         syncSpanNav = () => {
           const z = zoomOn();
-          prevBtn.disabled = z || yearIdx <= 0;
-          nextBtn.disabled = z || yearIdx >= years.length - 1;
+          prevBtn.disabled = z ? !canZoomBack() : yearIdx <= 0;
+          nextBtn.disabled = z ? !canZoomOn() : yearIdx >= years.length - 1;
+          prevBtn.setAttribute('aria-label',
+            z ? 'Previous block' : 'Previous year');
+          nextBtn.setAttribute('aria-label', z ? 'Next block' : 'Next year');
           if (z) {
             if (!savedLabel) savedLabel = yearLabel();
-            label.innerHTML = '<span class="year-name">Zoom</span>'
+            const a = zoomBlocks[zoomPos];
+            const b = zoomBlocks[zoomPos + 1];
+            const name = a && b ? `Blocks ${a.label} to ${b.label}`
+              : a ? `Block ${a.label}` : 'Zoom';
+            label.innerHTML = `<span class="year-name">${name}</span>`
               + `<span class="year-span">${isoOf(domainMinMs)} – `
               + `${isoOf(domainMaxMs - DAY_MS)}</span>`;
           } else if (savedLabel) {
@@ -2427,8 +2493,15 @@ whenSettled(function () {
           const i = yearIdx + d;
           if (i >= 0 && i < years.length) { yearIdx = i; applyYear(); }
         };
-        prevBtn.addEventListener('click', () => stepYear(-1));
-        nextBtn.addEventListener('click', () => stepYear(1));
+        const stepZoom = d => {
+          if (d < 0 ? !canZoomBack() : !canZoomOn()) return;
+          if (zoomBlocks.length) { zoomPos += d; setZoomPair(); }
+          else zoomBack -= d;
+          applySpan();
+        };
+        const stepSpan = d => (zoomOn() ? stepZoom(d) : stepYear(d));
+        prevBtn.addEventListener('click', () => stepSpan(-1));
+        nextBtn.addEventListener('click', () => stepSpan(1));
         applyYear();
         // The year on screen, by name, for the alternates switch: two
         // charts may not start in the same year, so the index won't do.
