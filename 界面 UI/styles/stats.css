@@ -16,16 +16,6 @@
    accent three times over — which is how the roadmap's Today wash came to be
    tuned for the light theme alone. */
 :root {
-  /* The past→future boundary on the roadmap timeline, keyed to the
-     event-manifold / life-clock "now" marker (ANCHOR_MARKER_COLOR #E53935).
-     SAME red both ways; the STRENGTH differs because the ground does. A 14%
-     wash lightens to an obvious pink on #f5f5f5 but barely lifts #0f0f0f —
-     measured, −21.0 luminance in light against only +11.0 in dark, half the
-     presence. 28% restores it (+22.1) and keeps the row quieter than the
-     version bar above it (+31.0), which is the hierarchy light already had. */
-  --roadmap-today-wash: light-dark(
-      color-mix(in srgb, #E53935 14%, transparent),
-      color-mix(in srgb, #E53935 28%, transparent));
   /* The line-history chart's WORDS series (lines ride var(--accent)). One
      value for both themes — a warm tan that holds up on either ground. */
   --chart-words: #d4a574;
@@ -728,9 +718,9 @@ body:has(#view-ago:checked) .touched-ago { display: inline-block; }
 .roadmap-defining td:first-child { border-left: 3px solid var(--accent); }
 .roadmap-defining:hover td { background: color-mix(in srgb, var(--accent) 16%, transparent); }
 /* Today line — the past→future boundary (roadmap timeline only; the What's New
-   face is shipped-only and emits no Today row). Red wash, per-theme strength;
-   see --roadmap-today-wash at the top of this file for why the two differ. */
-.roadmap-today td { background: var(--roadmap-today-wash); font-weight: 600; }
+   face is shipped-only and emits no Today row). Red wash, per-theme strength:
+   base.css --today-wash, which says why the two differ. */
+.roadmap-today td { background: var(--today-wash); font-weight: 600; }
 
 /* ---- Site Log rings (page-widgets/site-log-rings.js) ----
    The widget BUILDS the wheel and this file DRESSES it. Until 2026-09-06 the

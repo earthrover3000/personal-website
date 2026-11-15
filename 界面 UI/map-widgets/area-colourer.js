@@ -240,27 +240,19 @@
 
     // ---- Copying an area's reference (user request 2026-11-12) ---------
     // The last clicked area sits in a bar above the map with a Copy
-    // button; C over an area copies it without clicking. The site is also
-    // served over plain http on the LAN, where navigator.clipboard does
-    // not exist — hence the execCommand fallback.
+    // button; C over an area copies it without clicking. The copy is
+    // window.copyText (page-widgets/copy-text.js, which the page loads
+    // first): the site is also served over plain http on the LAN, where
+    // navigator.clipboard does not exist.
     var hovered = null, pickTip = 'Click an area, or press C while ' +
       'hovering one, to copy its code.';
     function copyText(l, p) {
       return l.copy ? l.copy(p) : p.name;
     }
     function toClipboard(text) {
-      if (navigator.clipboard && window.isSecureContext) {
-        return navigator.clipboard.writeText(text);
-      }
-      var ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.cssText = 'position:fixed;opacity:0;left:-9999px';
-      document.body.appendChild(ta);
-      ta.select();
-      var ok = false;
-      try { ok = document.execCommand('copy'); } catch (e) {}
-      ta.remove();
-      return ok ? Promise.resolve() : Promise.reject(new Error('copy'));
+      return window.copyText(text).then(function (ok) {
+        if (!ok) throw new Error('copy');
+      });
     }
     function flash(btn, text) {
       var was = btn.textContent;

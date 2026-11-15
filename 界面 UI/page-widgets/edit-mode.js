@@ -3,8 +3,9 @@
 // 2026-10-24: share the editing layer, keep each app's data its own).
 // First caller: 临终规划 Death Plan's lists.
 //
-// WHAT THE USER SEES. A page reads clean. "✏ Edit" (docs.css `#edit-btn`,
-// in the fixed `#toolbar` at the bottom right, as on the plan pages) turns
+// WHAT THE USER SEES. A page reads clean. "✏ Edit" (index_page's
+// EDIT_BUTTON, first in the page's `.controls-row` under its status line —
+// one place on every edited page, user decision 2026-11-15) turns
 // it to "✏ Editing…": the page's text becomes editable IN PLACE — same
 // font, same size, same spot, a faint dashed outline marking each field —
 // and the editing controls (delete, add) appear. Enter commits a one-line
@@ -20,7 +21,9 @@
 //
 //     <link rel="stylesheet" href="…/界面 UI/styles/docs.css">
 //     <div class="container"> … </div>
-//     <div id="toolbar"><button id="edit-btn" hidden>✏ Edit</button></div>
+//     <div class="controls-row">                 (index_page EDIT_BUTTON)
+//       <button id="edit-btn" data-control="edit" hidden>Edit</button>
+//     </div>
 //
 //     import { editToggle, isEditing, editable, editableRegion,
 //              stopEditing, confirmInline, keepEditFocus, openPopover,
