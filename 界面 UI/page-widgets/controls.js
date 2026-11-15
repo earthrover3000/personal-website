@@ -76,6 +76,88 @@ export function paintControls(root = document) {
   });
 }
 
+/** THE HEADING FOLD — the plan pages' (docs.css "Collapsible sections"):
+ *  a chevron hanging in the margin left of a heading opens and shuts the
+ *  `details.section-collapse` right after it, whose <summary> stays,
+ *  hidden, for find-in-page. The pages outside the plan pages fold this
+ *  way too (user decision 2026-11-14: Intentions, Gatherings and the
+ *  Death Plan each drew a fold of their own, until base.css's
+ *  `details.fold` turned theirs into boxes). plan-chrome.js keeps its own
+ *  wiring for the plan pages, whose page headings fold flat siblings.
+ *
+ *      <h2 class="section-title">${CHEVRON}Title</h2>
+ *      <details class="section-collapse" open><summary></summary>…</details>
+ *
+ *  `wireChevrons()` once, and `syncChevrons()` after a page draws its
+ *  folds (a fold opened before it was in the document told no listener). */
+export const CHEVRON = '<button type="button" class="section-chevron" '
+  + 'aria-expanded="true" aria-label="Hide" title="Hide"></button>';
+const FOLD_BOX = 'details.section-collapse';
+
+function paintChevron(btn, open) {
+  btn.setAttribute('aria-expanded', String(open));
+  btn.title = open ? 'Hide' : 'Show';
+  btn.setAttribute('aria-label', btn.title);
+}
+
+/** The fold a chevron opens: the box right after its heading. */
+export function chevronFold(btn) {
+  const d = btn.parentElement && btn.parentElement.nextElementSibling;
+  return d && d.matches(FOLD_BOX) ? d : null;
+}
+
+/** A heading's chevron, as an element. */
+export function chevron() {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'section-chevron';
+  paintChevron(b, true);
+  return b;
+}
+
+/** The box a heading folds, `open` or shut, holding `body`. */
+export function foldBox(open, ...body) {
+  const d = document.createElement('details');
+  d.className = 'section-collapse';
+  d.open = !!open;
+  d.append(document.createElement('summary'), ...body);
+  return d;
+}
+
+const chevronOf = (d) => {
+  const head = d.previousElementSibling;
+  return head && head.querySelector(':scope > .section-chevron');
+};
+
+/** Each chevron under `root` says whether its fold is open. */
+export function syncChevrons(root = document) {
+  root.querySelectorAll(FOLD_BOX).forEach((d) => {
+    const btn = chevronOf(d);
+    if (btn) paintChevron(btn, d.open);
+  });
+}
+
+let chevronsWired = false;
+/** One delegated listener for every chevron on the page, now and later
+ *  (idempotent). */
+export function wireChevrons() {
+  if (chevronsWired) return;
+  chevronsWired = true;
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest && e.target.closest('.section-chevron');
+    const d = btn && chevronFold(btn);
+    if (!d) return;
+    e.preventDefault();
+    d.open = !d.open;
+  });
+  document.addEventListener('toggle', (e) => {
+    const d = e.target;
+    if (!d.matches || !d.matches(FOLD_BOX)) return;
+    const btn = chevronOf(d);
+    if (btn) paintChevron(btn, d.open);
+  }, true);
+}
+
 /** Folds that REMEMBER whether they were open (a display preference, in
  *  this browser), under `key`: each `details[data-fold]` in `folds()` is
  *  set as it was left, and saved as it changes. Healing Trajectory's

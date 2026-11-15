@@ -276,7 +276,7 @@ var EUROPEAN_NUMBERS = [
   ["E421", "Mannitol", "C([C@H]([C@H]([C@@H]([C@@H](CO)O)O)O)O)O", "POL-FAD-IMPORT-3145", "FBPFZTCFMRRESA-KVTDHHQDSA-N"],
   ["E422", "Glycerol", "C(C(CO)O)O", "POL-FAD-IMPORT-3146", "PEDCQBHIVMGVHV-UHFFFAOYSA-N"],
   ["E423", "Octenyl succinic acid modified gum arabic", "", "POL-FAD-IMPORT-3337", ""],
-  ["E424", "curdlan", "", "", ""],
+  ["E424", "Curdlan", "", "POL-FAD-IMPORT-3370", ""],
   ["E425", "Konjac", "", "POL-FAD-IMPORT-3147", ""],
   ["E425(i)", "konjac gum", "", "", ""],
   ["E425(ii)", "konjac glucomannan", "", "", ""],

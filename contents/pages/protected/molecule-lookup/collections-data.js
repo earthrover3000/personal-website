@@ -915,7 +915,7 @@ var COLLECTION_DATA = {
   "name": "1,8-Cineole",
   "iupac": "1,3,3-trimethyl-2-oxabicyclo[2.2.2]octane",
   "key": "WEEGYLXZBRQIMU-UHFFFAOYSA-N",
-  "zh": "桉叶油醇",
+  "zh": "桉树脑",
   "links": {
    "enwiki": "https://en.wikipedia.org/wiki/Eucalyptol",
    "zhwiki": "https://zh.wikipedia.org/wiki/%E6%A1%89%E5%8F%B6%E6%B2%B9%E9%86%87",
