@@ -31,6 +31,9 @@ export const CONTROLS = {
   lock:       { glyph: '🔒', text: 'Lock' },
   unlock:     { glyph: '🔓', text: 'Unlock' },
   passphrase: { glyph: '🔑', text: 'Change passphrase' },
+  // The browser key (临终规划 Death Plan's browser-key.js, 2026-11-15).
+  browserKey: { glyph: '🗝️', text: 'Set up browser key' },
+  browserKeyOn: { glyph: '🗝️', text: 'Browser key ✓' },
   // One button, two words (`wireFoldAll`; user decision 2026-10-25).
   expandAll:  { glyph: '🔽', text: 'Expand all' },
   collapseAll: { glyph: '🔼', text: 'Collapse all' },

@@ -552,6 +552,11 @@ a.plan-legend-label:hover { color: var(--text); text-decoration: underline; }
   border-right-width: 1.5px; border-bottom-width: 1.5px; }
 /* A block value (a note, a description) is as wide as its text, so the
    closing corner lands after the text, not at the far edge. */
+/* Sealed with the BROWSER key (ENB, `.sealed-b`): the same brackets in its
+   own colour (base.css --sealed-b-mark), so which key holds a value shows. */
+.sealed-value.sealed-b:not(:empty)::before,
+.sealed-value.sealed-b:not(:empty)::after {
+  border-color: var(--sealed-b-mark); }
 div.sealed-value { width: fit-content; max-width: 100%;
   box-sizing: border-box; }
 /* LOCKED, A VALUE IS A BAR 「FIELD」 (user decision 2026-10-25: the
@@ -576,6 +581,21 @@ div.sealed-value { width: fit-content; max-width: 100%;
   color: color-mix(in srgb, var(--text) 75%, transparent);
   background: color-mix(in srgb, var(--muted) 16%, transparent); }
 div.sealed-value > .sealed-bar { min-width: 14.5em; }
+/* A BAR'S BRACKETS SIT ON THE BAR'S OWN CORNERS (user decision
+   2026-11-15: "make sure the corner quotes always start in the corner,
+   even if the grey field is large"). Around words the brackets hang on
+   the line's corners, which is where the words are; a bar is smaller than
+   the line and centred in it, so in a big heading or a tall table row the
+   brackets floated off it. Holding a bar, the value's box shrinks to hug
+   it — a flex box, exactly the bar's height, a hair of padding — and the brackets
+   take that box's very corners. Never taller than the line it sits in,
+   so a locked row is no taller than an open one. */
+span.sealed-value:has(> .sealed-bar) { display: inline-flex;
+  padding: 0.14em 0.32em; vertical-align: middle; }
+div.sealed-value:has(> .sealed-bar) { display: flex;
+  padding: 0.14em 0.32em; }
+.sealed-value:has(> .sealed-bar)::before { left: 0; top: 0; }
+.sealed-value:has(> .sealed-bar)::after { right: 0; bottom: 0; }
 /* The floating panel (edit-mode.js `openPopover`): over the page, never in
    it, so opening it pushes nothing. */
 .edit-popover { position: absolute; z-index: 50; min-width: 16rem;
