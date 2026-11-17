@@ -895,6 +895,12 @@ whenSettled(function () {
       // columns and the log scale all serve every line with no second code
       // path. Empty = the single-series chart, exactly as before.
       let overlayKeys = [], overlayPaths = [], overlayDots = [], overlayInfo = [];
+      // EVERY LINE IN THE READOUT (user decision 2026-11-17): each series
+      // the chart has, drawn or not, under a key of its own in `points`
+      // (r0, r1, …), in the table's order. `drawn` says which are on the
+      // graph; the rest read in grey, and a click on a row ticks it. Empty
+      // on a chart with no series, which keeps its single Lines row.
+      let roRows = [], roHideOff = false;
       // Nothing ticked in the picker (user decision 2026-10-24): an empty
       // frame, in Counts and Share alike.
       let emptyChart = false;
@@ -1844,7 +1850,7 @@ whenSettled(function () {
         const unit = (plain ? 9999 : 10 - 10 ** -decimals) * unitScale;
         const wide = [`−${fmtNum(unit, decimals)}`, DASH];
         if (shareKeys.length) wide.push('−99.9 pt');
-        for (const key of ['total', 'words', ...overlayKeys]) {
+        for (const key of ['total', 'words', ...roRows.map(r => r.k)]) {
           colW[key] = {
             count: width([longest(points.map(q => fmtCount(q[key]))),
                           longest(points.map(q => lnText(q[key]))), DASH]),
@@ -1885,7 +1891,11 @@ whenSettled(function () {
         // A projection is a guess: whole lines, whole lines a day (user
         // decision 2026-11-16); a share keeps its place.
         const whole = v => shareOn() ? v : Math.round(v);
-        const p = proj ? { [proj.k]: whole(proj.v) } : points[i];
+        // A projection is the All projects line's: its row's key, where
+        // every line has a row.
+        const totRow = roRows.find(r => r.key === '');
+        const pk = !proj ? null : totRow ? totRow.k : proj.k;
+        const p = proj ? { [pk]: whole(proj.v) } : points[i];
         const ln = lnOn();
         // A part's share on its name line: whole percent, always — 0.3%
         // reads 0% (user decision 2026-11-05). Its own cell in the change's
@@ -1894,25 +1904,37 @@ whenSettled(function () {
         // decisions 2026-11-05).
         const fmtShare = v => v == null ? ''
           : `<span class="ch-pct">${Math.round(v)}%</span>`;
-        // [css class, key html, series key, name line beneath or '']
+        // [css class, key html, series key, name line beneath or '',
+        //  roRows index — what a click on the row ticks]
         const rows = [];
-        if (linesOn() && overlayKeys.length) {
-          overlayKeys.forEach((k, n) => {
-            const o = overlayInfo[n];
-            const sw = `<span class="ch-swatch" style="background:${o.color}"></span>`;
-            rows.push(o.code
-              ? ['ch-f-overlay', `${sw}<span class="ch-code">${o.code}</span>`,
-                 k, o.key === '' ? '' : [o.label, fmtShare(p[o.share])]]
-              : ['ch-f-overlay', sw + o.label, k, '']);
+        if (roRows.length) {
+          const parts = [], tot = [], foot = [];
+          roRows.forEach((r, n) => {
+            const on = linesOn() && r.drawn;
+            // The bar's Hide unticked (user decision 2026-11-17).
+            if (!on && roHideOff) return;
+            const sw = '<span class="ch-swatch"'
+              + (on ? ` style="background:${r.color}"` : '') + '></span>';
+            (r.key === '' ? tot : r.foot ? foot : parts).push([
+              on ? 'ch-f-line' : 'ch-f-line ch-off',
+              r.code ? `${sw}<span class="ch-code">${r.code}</span>`
+                : sw + r.label,
+              r.k, r.code && r.key !== ''
+                ? [r.label, fmtShare(p[r.share])] : '',
+              n]);
           });
-          // The totals last, under a grey rule, as the Noticeboard widget
-          // has them (user decision 2026-11-05) — but only beneath parts.
-          const t = overlayInfo.findIndex(o => o.key === '');
-          if (t >= 0 && rows.length > 1) {
-            const [tot] = rows.splice(t, 1);
-            rows.push(['rule'], tot);
+          // The totals after the parts, under a grey rule, as the
+          // Noticeboard widget has them (user decision 2026-11-05) — the
+          // rule only beneath parts. A row the table keeps in its footer
+          // below the Total (Workshop Stats' Raw Code, outside the total)
+          // follows it here too (user decision 2026-11-17).
+          rows.push(...parts);
+          if (parts.length && tot.length + foot.length) rows.push(['rule']);
+          rows.push(...tot, ...foot);
+          if (wordsOn() && !overlayKeys.length) {
+            rows.push(['ch-f-words', 'Words', 'words']);
           }
-        } else if (!overlayKeys.length) {
+        } else {
           if (linesOn()) rows.push(['ch-f-lines', seriesName, 'total']);
           if (wordsOn()) rows.push(['ch-f-words', 'Words', 'words']);
         }
@@ -1929,14 +1951,15 @@ whenSettled(function () {
           (ln ? `<span class="ch-e ch-mult ch-mult-24">${LN_MULT}</span>`
             + (two ? `<span class="ch-e ch-mult">${LN_MULT}</span>` : '')
             : '');
-        for (const [cls, label, k, name] of rows) {
+        for (const [cls, label, k, name, ro] of rows) {
           if (cls === 'rule') { html += '<span class="ch-rule"></span>'; continue; }
-          const d = proj ? (k === proj.k ? whole(proj.rate) : null)
+          const d = proj ? (k === pk ? whole(proj.rate) : null)
             : deltaAt(i, k);
           const lnD = !proj ? lnDeltaText(i, k)
             : d === null || !(p[k] - d > 0) ? DASH
             : '+' + Math.round(1000 * (Math.log(p[k]) - Math.log(p[k] - d)));
-          html += `<span class="ch-field ${cls}">` +
+          html += `<span class="ch-field ${cls}"`
+            + (ro === undefined ? '' : ` data-ro="${ro}"`) + '>' +
             `<span class="ch-key">${label}</span>` +
             `<span class="ch-val">${ln ? lnHtml(p[k]) : fmtCount(p[k])}` +
             '</span>' +
@@ -2257,19 +2280,20 @@ whenSettled(function () {
         const rows = Array.from(document.querySelectorAll('tr[data-series]'))
           .filter(r => r.dataset.series === '' || series[r.dataset.series]);
         const rowOf = key => rows.find(r => r.dataset.series === key);
-        // The picker: the same choice from beside the chart, so comparing
-        // projects is not a scroll back up to the table for each. A
-        // MULTI-SELECT since 2026-10-18 (user decision): tick several and
-        // they are drawn together (the overlay above); one alone is the
-        // single-series chart as before; none is the totals. Each ticked
-        // project wears the colour of its line, so the list is the legend.
-        const picker = document.createElement('details');
-        picker.className = 'chart-scope chart-multi';
-        const summary = document.createElement('summary');
-        summary.setAttribute('aria-label', 'Which projects to chart');
-        const panel = document.createElement('div');
-        panel.className = 'chart-multi__panel';
-        picker.append(summary, panel);
+        // The choice from beside the chart, so comparing projects is not a
+        // scroll back up to the table for each. A MULTI-SELECT since
+        // 2026-10-18 (user decision): tick several and they are drawn
+        // together (the overlay above); one alone is the single-series
+        // chart as before; none is an empty frame. THE READOUT IS THE
+        // PICKER since 2026-11-17 (user decision): it lists every line, a
+        // ticked one in its colour, and a click on a row ticks it — so
+        // the drop-down list that did this (2026-10-18) is gone, and only
+        // its All / None stay, in this bar, with Hide unticked beside
+        // them.
+        const picker = document.createElement('div');
+        picker.className = 'chart-bulk';
+        picker.setAttribute('role', 'group');
+        picker.setAttribute('aria-label', 'Which lines to chart');
         // ONE FIXED COLOUR PER LINE (user decision 2026-10-18): a line's
         // colour belongs to its series, not to the order it was ticked in,
         // so a project wears the same colour alone and beside others. The
@@ -2447,6 +2471,36 @@ whenSettled(function () {
             return Array.isArray(v) ? v : null;
           } catch (e) { return null; }
         };
+        // Every line's values for the readout (roRows, above): each series
+        // the table lists, in its order, then any it does not (a chart
+        // with no table), the Total among them. In the measure on screen:
+        // under Share a line with no share reads as dashes. A part's share
+        // of the Total rides beside it, as the overlay's does.
+        function fillReadout(drawn) {
+          const order = [...rows.map(r => r.dataset.series),
+                         '', ...Object.keys(series)];
+          const keys = [...new Set(order)]
+            .filter(k => k === '' || (expanded[k] && listed(k)));
+          const grand = pick(all.total);
+          roRows = keys.map((key, n) => {
+            const k = 'r' + n;
+            const vals = shareOn() && !shareSet.has(key) ? null
+              : pick(valuesOf(key));
+            const share = !shareOn() && key !== '' && shareSet.has(key)
+              ? 'rs' + n : '';
+            points.forEach((q, i) => {
+              q[k] = vals ? vals[i] : null;
+              if (share) {
+                q[share] = vals[i] == null || !grand[i] ? null
+                  : 100 * vals[i] / grand[i];
+              }
+            });
+            const row = key === '' ? null : rowOf(key);
+            return { k, key, share, label: labelOf(key), code: codeOf(key),
+                     color: colourOf(key), drawn: drawn.includes(key),
+                     foot: !!(row && row.closest('tfoot')) };
+          });
+        }
         function setChosen(keys) {
           chosen = keys.filter(k => k === '' || (expanded[k] && listed(k)));
           saveChoice();
@@ -2455,6 +2509,7 @@ whenSettled(function () {
           // a reset). The page still opens on the totals.
           const drawn = drawnKeys();
           emptyChart = !drawn.length;
+          fillReadout(drawn);
           if (emptyChart) {
             clearOverlay();
             shown = '';
@@ -2477,19 +2532,6 @@ whenSettled(function () {
         }
         function syncChoice() {
           const drawn = drawnKeys();
-          summary.textContent = !drawn.length ? 'No lines ▾'
-            : drawn.length === 1 ? labelOf(drawn[0]) + ' ▾'
-            : `${drawn.length} lines ▾`;
-          picker.classList.toggle('scoped', !(drawn.length === 1 && drawn[0] === ''));
-          panel.querySelectorAll('input[type=checkbox]').forEach(cb => {
-            const key = cb.dataset.key;
-            const n = drawn.indexOf(key);
-            cb.checked = n >= 0;
-            // Under Share only the shared parts can be ticked.
-            cb.disabled = shareOn() && !shareSet.has(key);
-            const sw = cb.parentElement.querySelector('.chart-multi__swatch');
-            if (sw) sw.style.background = n >= 0 ? colourOf(key) : 'transparent';
-          });
           rows.forEach(r => {
             const n = drawn.indexOf(r.dataset.series);
             // Every drawn line's row lights, the Total's alone too (user
@@ -2527,54 +2569,58 @@ whenSettled(function () {
           return !r || !r.dataset.unlist
             || document.documentElement.hasAttribute('data-show-' + r.dataset.unlist);
         };
-        // All / None (user request 2026-10-24), above the list. All ticks
-        // every project — not the totals, which would flatten them against
-        // the whole; tick that row too to draw it. Where the chart names the
-        // parts that make up its Total (data-chart-share), All is those, in
-        // Counts as in Share: Workshop Stats' Raw Code, outside the Total,
-        // stays unticked (user decision 2026-11-08). None empties the
-        // chart, ready for the lines you tick next.
-        const bulk = (label, keys) => {
+        // All / None (user request 2026-10-24). All ticks every project —
+        // not the totals, which would flatten them against the whole; tick
+        // that row too to draw it. Where the chart names the parts that make
+        // up its Total (data-chart-share), All is those, in Counts as in
+        // Share: Workshop Stats' Raw Code, outside the Total, stays
+        // unticked (user decision 2026-11-08). None empties the chart,
+        // ready for the lines you tick next.
+        const bulk = (label, onClick) => {
           const b = document.createElement('button');
           b.type = 'button';
-          b.className = 'chart-multi__bulk-btn';
+          b.className = 'chart-bulk__btn';
           b.textContent = label;
-          b.addEventListener('click', () => setChosen(keys()));
+          b.addEventListener('click', onClick);
           return b;
         };
-        function fillPicker() {
-          panel.textContent = '';
-          const bulkRow = document.createElement('div');
-          bulkRow.className = 'chart-multi__bulk';
-          bulkRow.append(
-            bulk('All', () => shareSet.size ? sharedParts()
-              : Object.keys(series).filter(listed)),
-            bulk('None', () => []));
-          panel.appendChild(bulkRow);
-          const option = (key, label) => {
-            const l = document.createElement('label');
-            l.className = 'chart-multi__option';
-            const cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.dataset.key = key;
-            cb.addEventListener('change', () => toggle(key));
-            const sw = document.createElement('span');
-            sw.className = 'chart-multi__swatch';
-            l.append(cb, sw, document.createTextNode(label));
-            panel.appendChild(l);
-          };
-          option('', labelOf(''));
-          Object.keys(series).filter(listed).forEach(key => option(key, labelOf(key)));
-          if (chosen.some(k => !listed(k))) setChosen(chosen); else syncChoice();
-        }
-        fillPicker();
-        window.addEventListener('storage', fillPicker);
-        window.addEventListener('pageshow', e => { if (e.persisted) fillPicker(); });
-        // A click anywhere else folds the list away.
-        document.addEventListener('click', e => {
-          if (picker.open && !picker.contains(e.target)) picker.open = false;
+        // Hide unticked (user decision 2026-11-17): the readout down to the
+        // lines drawn, for the reader who has chosen. Kept per page in this
+        // tab, as the choice is.
+        const hideKey = `chart-hide-off:${location.pathname}`;
+        try { roHideOff = sessionStorage.getItem(hideKey) === 'on'; }
+        catch (e) { /* storage off */ }
+        const hideBtn = bulk('', () => {
+          roHideOff = !roHideOff;
+          try { sessionStorage.setItem(hideKey, roHideOff ? 'on' : 'off'); }
+          catch (e) { /* storage off: the switch just doesn't persist */ }
+          syncHide();
+          refreshCrosshair();
         });
+        const syncHide = () => {
+          hideBtn.textContent = roHideOff ? 'Show unticked' : 'Hide unticked';
+          hideBtn.setAttribute('aria-pressed', String(roHideOff));
+        };
+        syncHide();
+        picker.append(
+          bulk('All', () => setChosen(shareSet.size ? sharedParts()
+            : Object.keys(series).filter(listed))),
+          bulk('None', () => setChosen([])),
+          hideBtn);
+        // A row that left (or came back with) its Settings switch: the
+        // choice re-applied re-reads which lines there are.
+        const relist = () => setChosen(chosen);
+        window.addEventListener('storage', relist);
+        window.addEventListener('pageshow', e => { if (e.persisted) relist(); });
         navRowEl().appendChild(picker);
+        // A click on a readout row ticks its line, as the table's row does.
+        // The end of a drag across its text is a selection, not a click.
+        readout.addEventListener('click', e => {
+          const f = e.target.closest('[data-ro]');
+          if (!f || String(window.getSelection())) return;
+          const r = roRows[+f.dataset.ro];
+          if (r) toggle(r.key);
+        });
 
         const calm = window.matchMedia('(prefers-reduced-motion: reduce)');
         rows.forEach(r => {
@@ -2609,8 +2655,9 @@ whenSettled(function () {
         // A resolution change rebuilds `points` on the totals; re-apply the
         // choice so the view, not the selection, is what changed.
         reapply = () => setChosen(chosen);
-        const saved = savedChoice();
-        if (saved) setChosen(saved);
+        // The first draw: the choice this tab kept for the page, or the
+        // totals — through setChosen either way, which fills the readout.
+        setChosen(savedChoice() || chosen);
         svg.chartApi.getChoice = () => chosen.slice();
         svg.chartApi.setChoice = keys => setChosen(keys);
       }
