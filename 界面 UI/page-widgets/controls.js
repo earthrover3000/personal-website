@@ -1,12 +1,13 @@
-// controls.js — every button in a page's CONTROLS ROW, said once (user
+// controls.js — every button in a page's CONTROLS LINE, said once (user
 // decisions 2026-10-24: "give every button in the controls line an emoji to
 // the left of text … and of course make it SSOT").
 //
-// The row (base.css `.controls-row`) is the plan pages', the site map's and
-// 临终规划 Death Plan's: Edit, Save (a draft) or Save to file
-// (a download), Add, and the lock's
-// Unlock / Lock / Change passphrase. Each one's emoji and words live HERE
-// and nowhere else. Markup a Python builder writes names the control and
+// The line (index_page `controls_line` writes it, base.css `.controls-row`
+// draws it) is every interface page's: the plan pages', the site map's,
+// 临终规划 Death Plan's, the Master Plan's Projects page's and the
+// rest — Edit, Save (a draft) or Save to file (a download), Add, the
+// folds, the lock's Unlock / Lock / Change passphrase, and a page's own.
+// Each one's emoji and words live HERE and nowhere else. Markup a Python builder writes names the control and
 // leaves the words to this file —
 //
 //     <button id="edit-btn" data-control="edit">Edit</button>
@@ -37,6 +38,16 @@ export const CONTROLS = {
   // One button, two words (`wireFoldAll`; user decision 2026-10-25).
   expandAll:  { glyph: '🔽', text: 'Expand all' },
   collapseAll: { glyph: '🔼', text: 'Collapse all' },
+  // The Master Plan's Projects page (user decision 2026-11-15): the
+  // middle depth — every heading open, every project shut — and its
+  // yellow top picks on a shut category's heading.
+  expandProjects: { glyph: '📂', text: 'Expand projects' },
+  showPicks:  { glyph: '🟡', text: 'Show picks' },
+  hidePicks:  { glyph: '🟡', text: 'Hide picks' },
+  // Sync with Todoist now, not at the next 5-minute tick (board_feed
+  // `/todoist-reload`, user decision 2026-11-15).
+  reloadTodoist: { glyph: '🔄', text: 'Reload Todoist' },
+  reloadingTodoist: { glyph: '🔄', text: 'Reloading…' },
 };
 
 /** The label of control `key` — "✏️ Edit"; `more` follows its words
@@ -55,7 +66,11 @@ export function label(key, more = '') {
  *  page has no folds. Each fold's own toggle event fires as it changes, so
  *  a page that remembers its folds remembers these too. Returns `sync`:
  *  call it after the page redraws its folds. */
-export function wireFoldAll(button, folds) {
+//
+// `apply(open)`, when given, does the opening and shutting instead — for
+// a page that remembers its folds by click (the Master Plan's Projects
+// page, whose Archive is drawn later and follows the last press).
+export function wireFoldAll(button, folds, { apply = null } = {}) {
   const sync = () => {
     const all = folds();
     button.hidden = !all.length;
@@ -64,7 +79,8 @@ export function wireFoldAll(button, folds) {
   };
   button.addEventListener('click', () => {
     const open = folds().some((d) => !d.open);
-    for (const d of folds()) d.open = open;
+    if (apply) apply(open);
+    else for (const d of folds()) d.open = open;
     sync();
   });
   // A fold opened or closed by hand changes which word is right.
@@ -179,4 +195,32 @@ export function rememberFolds(key, folds) {
       try { localStorage.setItem(key, JSON.stringify(saved)); } catch (e) {}
     });
   }
+}
+
+/** A REFRESH COMES BACK TO THE SAME PLACE (user decision 2026-11-15:
+ *  "refresh in the same page position"). The browser's own restore fails
+ *  on a page drawn after a fetch — at load the page is still short — so
+ *  the position is kept here: saved per `key` in sessionStorage as the
+ *  page scrolls, and put back by the function this returns, which the
+ *  page calls once its content is drawn. Call keepScroll once, early. */
+export function keepScroll(key) {
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  let t = null;
+  const save = () => {
+    try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); }
+    catch (e) { /* private window */ }
+  };
+  window.addEventListener('scroll', () => {
+    clearTimeout(t);
+    t = setTimeout(save, 150);
+  }, { passive: true });
+  window.addEventListener('pagehide', save);
+  let done = false;
+  return () => {
+    if (done) return;              // only the first draw; later redraws stay put
+    done = true;
+    let y = 0;
+    try { y = Number(sessionStorage.getItem(key)) || 0; } catch (e) { y = 0; }
+    if (y) window.scrollTo(0, y);
+  };
 }

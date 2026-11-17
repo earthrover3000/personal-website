@@ -1,0 +1,42 @@
+/* email.css — THE EMAIL BOX's look (user decision 2026-11-16: "the email
+   style in the styles"), for the shelf's page-widgets/email-box.js, which
+   draws it: the header lines (From, To, Cc, Subject), each with its copy
+   button at the right end, then the body; a [slot] still to fill in amber,
+   a recipient's own words in the accent. Lifted from 疗愈轨迹 Healing
+   Trajectory, its first user. A page without that app's --accent-soft and
+   --here tokens gets a pale accent mix and amber. */
+
+/* A line of the email with its copy button at the right end. */
+.mail .line { display: flex; align-items: baseline;
+  justify-content: space-between; gap: 0.8rem; }
+.mail .line > span { min-width: 0; overflow-wrap: anywhere; }
+.mail .line > span.cps { flex: none; display: inline-flex; gap: 0.3rem; }
+/* A copy button held back by an unfilled [placeholder], waiting for the
+   second click: the placeholder's colour. */
+.mail .cp[data-armed="1"] { border-color: var(--here, #b8862b);
+  background: var(--here-soft, #f6efe0); color: var(--here, #b8862b); }
+/* A header line: the label in a fixed column, the value beside it, so a
+   value that wraps lines up after the colon — and every value starts at
+   the same place. */
+.mail .hv { display: flex; gap: 0.4rem; min-width: 0; }
+.mail .hv > .k { flex: none; width: 3.6rem; }
+.mail .hv > b { min-width: 0; overflow-wrap: anywhere; }
+.mail .cp { flex: none; font: inherit; font-size: 0.78rem;
+  cursor: pointer; padding: 0.05rem 0.55rem; border-radius: 4px;
+  border: 1px solid var(--accent); background: var(--accent-soft, color-mix(in srgb, var(--accent) 15%, var(--surface)));
+  color: var(--text); }
+/* The email is set small and tight so a whole one fits in the pane
+   without scrolling (user decision 2026-11-08). */
+.mail { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.7rem 0.9rem;
+  font-size: 0.82rem; line-height: 1.45; }
+.mail p { margin: 0 0 0.5rem; }
+.mail p:last-child { margin-bottom: 0; }
+.mail .subj { font-size: 0.75rem; color: var(--muted); margin: 0 0 0.1rem; }
+.mail .subj b { color: var(--text); font-weight: 500; }
+.mail .subj:last-of-type { padding-bottom: 0.4rem; margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border); }
+.mail .fill { background: var(--here-soft, #f6efe0); color: var(--here, #b8862b);
+  border-radius: 4px; padding: 0 0.3rem; font-size: 0.9em; }
+.mail .swap { background: var(--accent-soft, color-mix(in srgb, var(--accent) 15%, var(--surface))); color: var(--accent);
+  border-radius: 4px; padding: 0 0.3rem; }

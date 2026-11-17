@@ -10,14 +10,19 @@ export declare function markerSubPath(pts: MarkerPoint[]): string;
 export declare function markerEdge(
   project: MarkerProject, fa: number, ya: number, fb: number, yb: number,
   n: number, skipFirst: boolean): MarkerPoint[];
-export declare function markerBumpPts(
+export type HatState = "now" | "day";
+export declare const HAT_STATES: { readonly NOW: "now"; readonly DAY: "day" };
+export declare function markerHatRearPts(
   project: MarkerProject, f0: number, dayFrac: number, ringWidth: number,
-  bumpSamples: number, overhangDays: number): MarkerPoint[];
+  samples: number, overhangDays: number, state?: HatState): MarkerPoint[];
+export declare function markerHatPts(
+  project: MarkerProject, f0: number, dayFrac: number, ringWidth: number,
+  samples: number, overhangDays: number, state?: HatState): MarkerPoint[];
 export declare function markerCellSubpaths(
   project: MarkerProject, f0: number, dayFrac: number, ringWidth: number,
   S: number): string;
 export declare function eventMarkerPath(opts: {
   startFrac: number; dayFrac: number; ringWidth: number;
   project: MarkerProject; bumpSamples?: number; edgeSamples?: number;
-  hatOverhangDays?: number;
+  hatOverhangDays?: number; state?: HatState;
 }): string;

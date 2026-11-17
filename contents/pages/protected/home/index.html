@@ -84,10 +84,11 @@
                      is not a page control: it follows the system
      h1              the title — the interface's name
      .head-meta      one muted line: counts, status, progress
-     .controls-row   one row of buttons acting on the content, each an
-                     emoji and a word (page-widgets/controls.js says the
-                     shared ones); the open one of a pair is outlined in
-                     the accent
+     .controls-row   the CONTROLS LINE: one row of buttons acting on the
+                     content, each an emoji and a word (page-widgets/
+                     controls.js says the shared ones); the one whose state
+                     is on — the open one of a pair, the depth a page is
+                     at — is outlined in the accent (`.active`)
      .filter         the search row, when there is a list to narrow
      details.fold    a section that opens and shuts
      .container.split  two halves, the right one a pinned pane
@@ -455,10 +456,39 @@ body:not(.with-sidebar) > :is(.sidebar, .sidebar-toggle, .sidebar-backdrop) {
 .controls-row #edit-btn {
   color: var(--text); background: var(--surface);
   border: 1px solid var(--border); }
-.controls-row #edit-btn.active { border-color: var(--accent);
-  color: var(--accent); }
+.controls-row #edit-btn.active, .controls-row > button.button.active {
+  border-color: var(--accent); color: var(--accent); }
 .controls-row .lock-controls { display: inline-flex; gap: 0.5rem; }
 .controls-row .lock-controls:empty { display: none; }
+
+/* ONE SWITCH STYLE: PILLS (user decisions 2026-11-16: "pills … SSOT",
+   then "a single style"): every row of choices with one on — a filter, a
+   view switch, a pick of names, AND a tab row (index_page `tabs_bar`,
+   `.tabs`, its on tab `.on`) — is drawn as these rounded pills, lifted
+   from 疗愈轨迹 Healing Trajectory's chips. There is no underlined tab row
+   any more: a page that switches whole panels uses the same pills.
+   Markup either way:
+     <div class="chips" role="radiogroup">
+       <button type="button" role="radio" aria-checked="true">Date</button>
+       <button type="button" role="radio" aria-checked="false">Days ago</button>
+     </div>
+   The pill that is on wears the accent; a pill for something archived is
+   dashed and muted (`.arch`). A page without --accent-soft gets a pale mix
+   of the accent. */
+.chips, .tabs { display: flex; flex-wrap: wrap; gap: 0.35rem;
+  margin: 0.5rem 0; }
+.tabs { margin: 0 0 var(--head-end, 1rem); }   /* a tab row ends the head */
+.chips button, .tabs button { font: inherit; font-size: 0.88rem;
+  cursor: pointer; padding: 0.15rem 0.7rem; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); }
+.chips button[aria-checked="true"], .tabs button.on,
+.tabs button[aria-selected="true"] {
+  background: var(--accent-soft, color-mix(in srgb, var(--accent) 15%, var(--surface)));
+  border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.tabs button.on { cursor: default; }
+.chips button[hidden], .tabs button[hidden] { display: none; }
+.chips button.arch { border-style: dashed; color: var(--muted); }
 
 /* ---- Head-region typography ---- */
 h1 {

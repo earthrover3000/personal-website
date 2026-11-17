@@ -278,6 +278,10 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   color: var(--chart-words);
   border-color: var(--chart-words);
 }
+.series-toggle input[id^="projection-on"]:checked + label {
+  color: var(--accent);
+  border-color: var(--accent);
+}
 .series-toggle input[type="checkbox"]:disabled + label {
   opacity: 0.4;
   cursor: not-allowed;
@@ -438,9 +442,21 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
    decision 2026-11-08): g-l the lines ones, g-s the bytes ones. */
 #code-outline:not(.show-size) .g-s,
 #code-outline.show-size .g-l { display: none; }
-/* As wide as its columns, not the page: spare width would be shared out
-   by content, and move the block columns as the figures change. */
-#code-outline { width: auto; }
+/* The page's width, the spare shared equally by the five block columns
+   (user decision 2026-11-15; as wide as its columns until then): every
+   other column is held to its content (width: 1px, nowrap), so the spare
+   falls to the block ones alone, and they share it equally because their
+   sizers give them one content width. */
+#code-outline { width: 100%; }
+#code-outline tr > :is(th, td):not([colspan]):not([class*="blk-"]) {
+  width: 1px;
+}
+/* The two number columns after Part are as wide in Lines as in Size
+   (build_code_stats' sizers, user decision 2026-11-15): a little less
+   padding beside them keeps the table inside the page. */
+#code-outline tr > :is(th, td).num:not([colspan]):not([class*="blk-"]) {
+  padding-left: 0.5rem; padding-right: 0.5rem;
+}
 /* Each block heading's list of every figure its column can show: no
    height, no ink, only width — so the columns are sized to the widest from
    the first paint (build_code_stats). */
@@ -456,9 +472,9 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
 /* Every row's figures share its first line, the part's name's, whether a
    second line sits under them or not (user decisions 2026-11-08). */
 #code-outline td { vertical-align: top; }
-/* When the columns would run past the page, a part's description wraps,
-   so the Part column gives way rather than every column shrinking. */
-#code-outline td:first-child .cell-sub { white-space: normal; }
+/* A part's description stays on one line: the Part column is held to its
+   content (above), and a wrapping line would make that its longest word. */
+#code-outline td:first-child .cell-sub { white-space: nowrap; }
 /* Five block columns (user decision 2026-11-08) fit the page in Size too
    with a little less padding beside each. */
 #code-outline :is(td, th)[class*="blk-"] {
@@ -512,6 +528,60 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   /* 8px a side (16 until 2026-11-05, user decision): the drawing's own
      margins already keep the labels off the border. */
   padding: 12px 8px;
+}
+/* Workshop Stats' Daily lines (user decisions 2026-11-16): the histogram
+   in the line chart's frame, its bars the accent's, a column lit under
+   the pointer, which its <title> names. */
+.day-histogram {
+  /* Its max-width is the drawing's own (build_code_stats, inline). */
+  display: block; width: 100%; margin-top: 0.5rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 8px; box-sizing: border-box;
+}
+.day-histogram .day-hit { fill: transparent; }
+/* Touching bars parted by a hairline of the plot's own surface (user
+   decision 2026-11-16), so neighbours of one height still read as two;
+   crisp, so the line is one even pixel, not an anti-aliased seam. */
+.day-histogram .day-bar {
+  fill: var(--accent, #7c9ef5); shape-rendering: crispEdges;
+  stroke: var(--surface); stroke-width: 1px;
+}
+/* Lighter than the hairlines between bars (user decision 2026-11-16): a
+   tint across the bar, not a gap in it. */
+.day-histogram .day-cut {
+  stroke: var(--surface); stroke-width: 1px; stroke-opacity: 0.45;
+  shape-rendering: crispEdges;
+}
+.day-histogram .day-col.on .day-hit { fill: currentColor; fill-opacity: 0.05; }
+.day-wrap.pinned .day-col.on .day-hit { fill-opacity: 0.1; }
+.day-wrap + script + .head-meta { margin-top: 0.75rem; }
+/* Its readout beside it, the Lines readout's manner (user decision
+   2026-11-16): the bar's range as the heading, its days and their share
+   beneath, an open bar's odd days under those. A fixed width, so nothing
+   moves as the pointer crosses the bars. */
+.day-wrap { display: flex; align-items: flex-start; gap: 1.5rem; }
+.day-wrap .day-histogram { flex: 1 1 auto; }
+.day-readout {
+  flex: none; width: 11rem; margin-top: 0.9rem;
+  display: grid; grid-template-columns: auto auto; justify-content: start;
+  column-gap: 1.1rem; line-height: 1.5; font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.day-readout .dr-range { grid-column: 1 / -1; color: var(--muted); }
+.day-readout .dr-share { color: var(--muted); }
+/* Today so far (user decision 2026-11-16): today's red, the Lines
+   chart's today line's, on the block and on the readout's swatch — the
+   words stay ink. */
+.day-histogram .day-today {
+  fill: var(--anchor-red); shape-rendering: crispEdges;
+}
+.day-readout .dr-today { grid-column: 1 / -1; }
+.day-readout .dr-swatch {
+  display: inline-block; width: 0.6rem; height: 0.6rem; margin-right: 0.35rem;
+  background: var(--anchor-red); border-radius: 1px;
+}
+.day-readout .dr-note {
+  grid-column: 1 / -1; color: var(--muted); font-size: 0.85em;
 }
 /* NO FLASH (user decision 2026-10-19): the server draws the whole
    history, and stats-table.js then narrows it to the year. Until the
@@ -611,6 +681,11 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
 /* The moment spans every column but the changes', headed `24h` and, on a
    snapshots chart, `today` (stats-table.js sets .ch-today). */
 .chart-readout.ch-grid .ch-head { grid-column: 1 / -2; }
+/* A projected moment's * (stats-table.js, user decision 2026-11-16):
+   hung left of the date, taking no width, so hovering from the history
+   onto the projection moves nothing. */
+.chart-readout .ch-head { position: relative; }
+.chart-readout .ch-proj { position: absolute; right: 100%; padding-right: 0.1em; }
 .chart-readout.ch-grid.ch-today .ch-head { grid-column: 1 / -3; }
 /* Logarithmic's multiplier, on a line of its own under each change
    heading — so neither heading sets its column's width (2026-11-08). */
@@ -779,6 +854,16 @@ body:has(#mode-roadmap:checked) .mode-only-roadmap,
 body:has(#mode-roadmap:checked) #mode-roadmap-view { display: block; }
 body:has(#mode-whatsnew:checked) .mode-only-whatsnew,
 body:has(#mode-whatsnew:checked) #mode-whatsnew-view { display: block; }
+/* The Total's projection (source_stats.chart `projection`, user decision
+   2026-11-16): the Total's own stroke, dashed and faint — a guess, drawn
+   quieter than what was counted. */
+.line-history-svg .projection-series {
+  stroke-dasharray: 5 4;
+  /* Opens on a gap, not a dash (user decision 2026-11-16), so where the
+     counted line ends stays plain to see. */
+  stroke-dashoffset: 5;
+  stroke-opacity: 0.55;
+}
 /* Dated guides a chart asks for (source_stats.chart `marks`): quieter than
    today's red line — they annotate the history, they do not end it. */
 .mark-layer .mark-line {
@@ -791,4 +876,9 @@ body:has(#mode-whatsnew:checked) #mode-whatsnew-view { display: block; }
   font-size: 10px;
   fill: currentColor;
   fill-opacity: 0.6;
+}
+.mark-layer .mark-date {
+  font-size: 9px;
+  fill: currentColor;
+  fill-opacity: 0.45;
 }

@@ -637,31 +637,34 @@ whenSettled(function () {
       // fallback only).
       let winEndMs = 0;
       // ── Year | Zoom (user decision 2026-10-30) ──────────────────────────
-      // Zoom shows TWO BLOCKS and fits the linear axis to what they show,
-      // floor and all (measure). It opens on the last two blocks the axis
-      // closes on — the current block and the one before it, or, past the
-      // recorded blocks, today's slot and the projected one after it — and
-      // the year arrows step it a block at a time, the width never changing
-      // (user decisions 2026-11-14): back to the block holding the first
-      // reading, forward to where it opened. The blocks are the marks
+      // Zoom shows THREE BLOCKS (user decision 2026-11-16; two until then)
+      // and fits the linear axis to what they show, floor and all
+      // (measure). It opens on the block before today's, today's, and the
+      // one after it — recorded or projected — and the year arrows step it
+      // a block at a time, the width never changing (user decisions
+      // 2026-11-14): back to the block holding the first reading, forward
+      // to where it opened. The blocks are the marks
       // engine's, so they wait for it (below); without blocks (data vault
       // unmounted) the window is ZOOM_FALLBACK_DAYS, stepped by as much.
       // Every chart opens on Year; Year and Zoom keep their own positions.
       let zoomWin = null;                    // {startMs, endMs}
       let zoomBlocks = [];                   // [{startMs, endMs, label}]
-      let zoomPos = -1;                      // zoomBlocks index of the pair's first
+      let zoomPos = -1;                      // zoomBlocks index of the window's first
+      const ZOOM_BLOCKS = 3;
       let zoomBack = 0;                      // fallback windows stepped back
       const zoomOn = () => isOn('span-zoom');
       const ZOOM_FALLBACK_DAYS = 120;
       let syncSpanNav = () => {};            // the year arrows, once built
       const setZoomPair = () => {
-        const a = zoomBlocks[zoomPos], b = zoomBlocks[zoomPos + 1] || a;
+        const a = zoomBlocks[zoomPos];
+        const b = zoomBlocks[Math.min(zoomPos + ZOOM_BLOCKS - 1,
+                                      zoomBlocks.length - 1)];
         zoomWin = { startMs: a.startMs, endMs: b.endMs };
       };
       const canZoomBack = () => zoomBlocks.length
         ? zoomPos > 0 : dates.length > 0 && domainMinMs > +dates[0];
       const canZoomOn = () => zoomBlocks.length
-        ? zoomPos < zoomBlocks.length - 2 : zoomBack > 0;
+        ? zoomPos < zoomBlocks.length - ZOOM_BLOCKS : zoomBack > 0;
       function setDomain() {
         if (zoomOn()) {
           if (zoomWin) {
@@ -895,11 +898,69 @@ whenSettled(function () {
       // Nothing ticked in the picker (user decision 2026-10-24): an empty
       // frame, in Counts and Share alike.
       let emptyChart = false;
+      // ── Projection (user decisions 2026-11-16, Workshop Stats) ──────────
+      // The All projects line's dashed continuation, from its newest point
+      // to the end of the block after today's, at its own rate a day since
+      // the previous block began (`start`, source_stats.chart
+      // `projection`) — or since its first reading, if later. Wherever
+      // that line is drawn: alone or beside parts, in Counts or Share, Own
+      // or With libraries; never for a part. The Projection checkbox turns
+      // it on; the axis makes room for where it ends.
+      let projData = null;
+      try { projData = JSON.parse(svg.dataset.chartProjection || 'null'); }
+      catch (e) { projData = null; }
+      const localMs = iso => {
+        const [y, m, d] = iso.split('-').map(Number);
+        return new Date(y, m - 1, d).getTime();
+      };
+      const projStartMs = projData ? localMs(projData.start) : NaN;
+      // Until the marks engine says where the block after today's ends
+      // (below), the server's end: today's block's.
+      let projEndMs = projData ? localMs(projData.end) : NaN;
+      // The points key the All projects line rides under and its overlay
+      // index (-1 drawn alone), or null when it is not drawn.
+      // `drawn`: whether the line is there to project, checkbox aside.
+      function projLine(drawn = false) {
+        if (!projData || emptyChart) return null;
+        if (!drawn && !isOn('projection-on')) return null;
+        if (overlayKeys.length) {
+          const n = overlayInfo.findIndex(o => o.key === '');
+          return n < 0 ? null : { k: overlayKeys[n], n };
+        }
+        return scoped ? null : { k: 'total', n: -1 };
+      }
+      const projOn = () => !!projLine();
+      // The line's newest point {t, v}, its rate a day and its key, or
+      // null once it has reached the end.
+      function projFrom() {
+        const line = projLine();
+        if (!line) return null;
+        const { k } = line;
+        let last = -1, base = -1;
+        for (let i = points.length - 1; i >= 0; i--) {
+          if (points[i][k] == null) continue;
+          if (last < 0) last = i;
+          base = i;                          // the earliest so far…
+          if (+dates[i] < projStartMs) break; // …or the last before start
+        }
+        if (last < 0 || +dates[last] >= projEndMs) return null;
+        const t = +dates[last], v = points[last][k];
+        const days = (t - +dates[base]) / DAY_MS;
+        const rate = days > 0 ? (v - points[base][k]) / days : 0;
+        return { t, v, rate, ...line };
+      }
+      const projAt = (from, t) => from.v + from.rate * (t - from.t) / DAY_MS;
       // Size both axes to what the window shows.
       function measure() {
         const idx = onScreen();
         const lineKeys = overlayKeys.length ? overlayKeys : ['total'];
         totals = idx.flatMap(i => lineKeys.map(k => points[i][k])).filter(v => v != null);
+        // The projection's highest visible value, where it leaves the
+        // window or ends.
+        const from = projFrom();
+        if (from && from.t < domainMaxMs && projEndMs > domainMinMs) {
+          totals.push(projAt(from, Math.min(projEndMs, domainMaxMs)));
+        }
         wordVals = idx.map(i => points[i].words).filter(v => v != null);
         lnLines = lnBounds(totals, logFloor);
         lnWords = wordVals.length
@@ -1057,10 +1118,17 @@ whenSettled(function () {
         text.setAttribute('class', 'mark-label');
         text.setAttribute('y', padT + 10);
         text.textContent = label;
+        // Its date on a second line, smaller and greyer (user decision
+        // 2026-11-16), as a block's length sits under its number.
+        const date = document.createElementNS(SVGNS, 'text');
+        date.setAttribute('class', 'mark-date');
+        date.setAttribute('y', padT + 20);
+        date.textContent = ts.slice(0, 10);
         g.appendChild(line);
         g.appendChild(text);
+        g.appendChild(date);
         svg.insertBefore(g, svg.firstChild);
-        return { ms: +new Date(ts), g, line, text };
+        return { ms: +new Date(ts), g, line, text, date };
       });
       function placeMarks() {
         markEls.forEach(m => {
@@ -1068,6 +1136,7 @@ whenSettled(function () {
           m.line.setAttribute('x1', x.toFixed(1));
           m.line.setAttribute('x2', x.toFixed(1));
           m.text.setAttribute('x', (x + 4).toFixed(1));
+          m.date.setAttribute('x', (x + 4).toFixed(1));
           m.g.style.display = x > padL + 0.5 && x < W - padR - 0.5 ? '' : 'none';
         });
       }
@@ -1088,10 +1157,47 @@ whenSettled(function () {
           stale && x > padL + 0.5 && x < W - padR - 0.5 ? '' : 'none';
       }
 
+      // The projection's path: the All projects line's, cloned each
+      // redraw (its stroke — the accent alone, its colour beside parts —
+      // and its clip), dashed and faint (stats.css .projection-series),
+      // drawn after it. Sampled, not one segment, so it is the same line
+      // on a log axis. The hover reads it (showProjected).
+      const projCb = projData ? ctl('projection-on') : null;
+      const projKey = `chart-projection:${location.pathname}`;
+      let projPath = null;
+      // On or off survives a reload in this tab, as the choice of lines.
+      if (projCb) {
+        try { projCb.checked = sessionStorage.getItem(projKey) === 'on'; }
+        catch (e) { /* storage off */ }
+      }
+      function drawProjection(y) {
+        if (projPath) { projPath.remove(); projPath = null; }
+        if (!projCb) return;
+        // Greyed while there is no All projects line to project.
+        projCb.disabled = !projLine(true);
+        const from = projFrom();
+        const host = !from ? null : from.n < 0 ? linesPath
+          : overlayPaths[from.n];
+        if (!host) return;
+        const N = 48;
+        let d = '';
+        for (let k = 0; k <= N; k++) {
+          const t = from.t + (projEndMs - from.t) * k / N;
+          d += `${k ? ' L ' : 'M '}${xForMs(t).toFixed(1)},`
+            + `${y(projAt(from, t)).toFixed(1)}`;
+        }
+        projPath = host.cloneNode(false);
+        projPath.classList.add('projection-series');
+        projPath.style.display = '';
+        projPath.setAttribute('d', d);
+        host.after(projPath);
+      }
+
       function redraw(mode) {
         const s = SCALES[mode] || SCALES.linear;
         if (linesPath) linesPath.setAttribute('d', overlayKeys.length ? '' : trace('total', s.yl));
         overlayPaths.forEach((path, n) => path.setAttribute('d', trace(overlayKeys[n], s.yl)));
+        drawProjection(s.yl);
         if (wordsPath) wordsPath.setAttribute('d', trace('words', s.yw));
         leftLabels.forEach((el, i) => { el.textContent = s.labL(i); });
         rightLabels.forEach((el, i) => { el.textContent = s.labR(i); });
@@ -1131,6 +1237,7 @@ whenSettled(function () {
       const setVis = (els, on) => els.forEach(el => { if (el) el.style.display = on ? '' : 'none'; });
       function applyVisibility() {
         const lOn = !showLines || showLines.checked;
+        if (projPath) projPath.style.display = lOn ? '' : 'none';
         if (emptyChart) {
           // Every line unticked: an empty frame, its axis kept.
           setVis([linesPath, legendLines, wordsPath, legendWords, ...rightLabels], false);
@@ -1202,6 +1309,11 @@ whenSettled(function () {
         radio.addEventListener('change', () => redraw(currentMode()));
       });
       [showLines, showWords].forEach(cb => cb && cb.addEventListener('change', applyVisibility));
+      if (projCb) projCb.addEventListener('change', () => {
+        try { sessionStorage.setItem(projKey, projCb.checked ? 'on' : 'off'); }
+        catch (e) { /* storage off */ }
+        reapply();
+      });
 
       // Count / delta formatting, shared by the hover readout below and the
       // ledger table. U+2212 MINUS, not a hyphen: the deltas sit in the same
@@ -1269,22 +1381,34 @@ whenSettled(function () {
         const current = marks.currentBlocks(blockCtx);
         const win = marks.currentBlocksWindow(blockCtx);
         if (win) winEndMs = win.endMs;
-        // Zoom's blocks: from the one holding the first reading to the last
-        // the axis closes on, each labelled as the axis labels it ("21",
-        // "*23"). It opens on the last two.
+        // Zoom's blocks: from the one holding the first reading to the one
+        // after today's (user decision 2026-11-16), each labelled as the
+        // axis labels it ("21", "*23"). It opens on the last three. The
+        // projection runs to the same end.
         if (win && current.length) {
+          const today = current.find(b => b.startMs <= blockCtx.todayMs
+                                         && blockCtx.todayMs < b.endMs)
+            || current[0];
+          const after = marks.getBlockMarksInRange(
+            today.endMs, today.endMs, blockCtx)
+            .find(b => b.startMs === today.endMs);
+          const zoomEnd = after ? after.endMs : win.endMs;
           const from = Math.min(dates.length ? +dates[0] : Infinity,
                                 current[0].startMs);
-          zoomBlocks = marks.getBlockMarksInRange(from, win.endMs - 1,
+          zoomBlocks = marks.getBlockMarksInRange(from, zoomEnd - 1,
                                                   blockCtx)
-            .filter(b => b.startMs < win.endMs)
+            .filter(b => b.startMs < zoomEnd)
             .map(b => ({ startMs: b.startMs, endMs: b.endMs,
                          label: marks.formatBlockText(b.label) }));
           if (zoomBlocks.length) {
-            zoomPos = Math.max(0, zoomBlocks.length - 2);
+            zoomPos = Math.max(0, zoomBlocks.length - ZOOM_BLOCKS);
             setZoomPair();
           }
+          if (projData && after) {
+            projEndMs = after.endMs;
+          }
           if (zoomOn()) applySpan();
+          else if (projOn()) reapply();
         }
         if (!yr && winEndMs > domainMaxMs) {
           domainMaxMs = winEndMs;
@@ -1753,8 +1877,15 @@ whenSettled(function () {
       // exponent (lnHtml).
       // A point predating word tracking has words == null and reads as a dash
       // rather than dropping its row.
-      function renderReadout(i) {
-        const p = points[i];
+      // `proj` — {ms, v, k, rate}: a moment on the projection instead of
+      // point i (user decision 2026-11-16): its date marked *, the All
+      // projects line's projected value (under its key `k`), its rate a
+      // day under 24h, no today; any part beside it a dash.
+      function renderReadout(i, proj) {
+        // A projection is a guess: whole lines, whole lines a day (user
+        // decision 2026-11-16); a share keeps its place.
+        const whole = v => shareOn() ? v : Math.round(v);
+        const p = proj ? { [proj.k]: whole(proj.v) } : points[i];
         const ln = lnOn();
         // A part's share on its name line: whole percent, always — 0.3%
         // reads 0% (user decision 2026-11-05). Its own cell in the change's
@@ -1786,7 +1917,13 @@ whenSettled(function () {
           if (wordsOn()) rows.push(['ch-f-words', 'Words', 'words']);
         }
         const two = todayOn();
-        let html = `<span class="ch-when ch-head">${fmtWhen(i)}</span>` +
+        // A projected moment wears a * before its date, as a projected
+        // block's number does on the axis (*23); it hangs outside the
+        // heading, so the readout never moves between past and future.
+        const head = proj
+          ? `<span class="ch-proj">*</span>${fmtDay(proj.ms)} 04:00`
+          : fmtWhen(i);
+        let html = `<span class="ch-when ch-head">${head}</span>` +
           '<span class="ch-when ch-since">24h</span>' +
           (two ? '<span class="ch-when ch-since">today</span>' : '') +
           (ln ? `<span class="ch-e ch-mult ch-mult-24">${LN_MULT}</span>`
@@ -1794,16 +1931,20 @@ whenSettled(function () {
             : '');
         for (const [cls, label, k, name] of rows) {
           if (cls === 'rule') { html += '<span class="ch-rule"></span>'; continue; }
-          const d = deltaAt(i, k);
+          const d = proj ? (k === proj.k ? whole(proj.rate) : null)
+            : deltaAt(i, k);
+          const lnD = !proj ? lnDeltaText(i, k)
+            : d === null || !(p[k] - d > 0) ? DASH
+            : '+' + Math.round(1000 * (Math.log(p[k]) - Math.log(p[k] - d)));
           html += `<span class="ch-field ${cls}">` +
             `<span class="ch-key">${label}</span>` +
             `<span class="ch-val">${ln ? lnHtml(p[k]) : fmtCount(p[k])}` +
             '</span>' +
-            `<span class="ch-val ch-d">${ln ? lnDeltaText(i, k)
+            `<span class="ch-val ch-d">${ln ? lnD
               : d === null ? DASH : fmtDelta(d)}` +
             '</span>' +
-            (two ? `<span class="ch-val ch-d">${ln ? lnTodayText(i, k)
-              : fmtTodayText(i, k)}</span>` : '') +
+            (two ? `<span class="ch-val ch-d">${proj ? DASH
+              : ln ? lnTodayText(i, k) : fmtTodayText(i, k)}</span>` : '') +
             (name ? `<span class="ch-name">${name[0]}</span>` +
               `<span class="ch-name ch-name-share">${name[1]}</span>` : '') +
             '</span>';
@@ -1836,8 +1977,10 @@ whenSettled(function () {
       let readoutShape = '', readoutW = 0;
 
       let activeIdx = -1;
+      let activeProj = NaN;                  // ms on the projection, or NaN
       function showAt(i) {
         activeIdx = i;
+        activeProj = NaN;
         const s = SCALES[currentMode()] || SCALES.linear;
         const p = points[i];
         const x = xs(dates[i]);
@@ -1873,6 +2016,38 @@ whenSettled(function () {
         renderReadout(i);
       }
 
+      // A moment on the projection (user decision 2026-11-16): the guide
+      // and the Total's dot follow the dashed line past the newest point,
+      // and the readout reads it (renderReadout's `proj`).
+      const fmtDay = ms => {
+        const d = new Date(ms);
+        return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+      };
+      function showProjected(ms) {
+        const from = projFrom();
+        if (!from) { restCrosshair(); return; }
+        activeIdx = -1;
+        activeProj = ms;
+        const s = SCALES[currentMode()] || SCALES.linear;
+        const v = projAt(from, ms);
+        const x = xForMs(ms);
+        chLine.setAttribute('x1', x.toFixed(1));
+        chLine.setAttribute('x2', x.toFixed(1));
+        const y = s.yl(v);
+        const on = linesOn() && y <= padT + chartH + 0.5 && y >= padT - 0.5;
+        // The All projects line's own dot, alone or among the parts'.
+        const dot = from.n < 0 ? chDotLines : overlayDots[from.n];
+        if (on && dot) {
+          dot.setAttribute('cx', x.toFixed(1));
+          dot.setAttribute('cy', y.toFixed(1));
+        }
+        [chDotLines, chDotWords, ...overlayDots].forEach(el => {
+          el.style.display = on && el === dot ? '' : 'none';
+        });
+        chLayer.style.display = '';
+        renderReadout(-1, { ms, v, k: from.k, rate: from.rate });
+      }
+
       // Resting state: no guide (nothing is being pointed at), but the line
       // still reports the most recent build rather than going blank — the
       // number a visitor most likely wants is the current one (in a past
@@ -1899,6 +2074,7 @@ whenSettled(function () {
       };
       function restCrosshair() {
         activeIdx = -1;
+        activeProj = NaN;
         setPinned(false);
         chLayer.style.display = 'none';
         renderReadout(restIndex());
@@ -1921,15 +2097,49 @@ whenSettled(function () {
         // one is already the newest.
         return nearestIndex(v.x);
       }
+      // The moment on the projection under a pointer event, or NaN: in
+      // projection mode the strip past the newest point reads the dashed
+      // line, to its end or the window's (user decision 2026-11-16).
+      function projMsAt(evt) {
+        if (!projOn()) return NaN;
+        const from = projFrom();
+        const ctm = svg.getScreenCTM();
+        if (!from || !ctm) return NaN;
+        const q = svg.createSVGPoint();
+        q.x = evt.clientX; q.y = evt.clientY;
+        const vx = q.matrixTransform(ctm.inverse()).x;
+        const endMs = Math.min(projEndMs, domainMaxMs);
+        if (vx <= xForMs(from.t) || vx > W - padR + 8
+            || from.t >= endMs) return NaN;
+        // Past the plot's right edge, still the projection's last day.
+        const ms = Math.min(endMs, domainMinMs
+          + (vx - padL) / chartW * (domainMaxMs - domainMinMs));
+        // Every day at 04:00, the start of a sleep day (user decision
+        // 2026-11-16): the nearest one after the newest point and by the
+        // end, as a reading the day it began.
+        const at4 = (t, add) => {
+          const d = new Date(t);
+          return new Date(d.getFullYear(), d.getMonth(), d.getDate() + add,
+                          4).getTime();
+        };
+        const near = [-1, 0, 1].map(k => at4(ms, k))
+          .filter(t => t > from.t && t <= endMs)
+          .sort((a, b) => Math.abs(a - ms) - Math.abs(b - ms));
+        return near.length ? near[0] : NaN;
+      }
 
       svg.addEventListener('pointermove', evt => {
         if (pinned) return;
+        const ms = projMsAt(evt);
+        if (!isNaN(ms)) { showProjected(ms); return; }
         const i = indexAt(evt);
         if (i < 0) { restCrosshair(); return; }
         showAt(i);
       });
       svg.addEventListener('pointerleave', () => { if (!pinned) restCrosshair(); });
       svg.addEventListener('click', evt => {
+        const ms = projMsAt(evt);
+        if (!isNaN(ms)) { showProjected(ms); setPinned(true); return; }
         const i = indexAt(evt);
         if (i < 0) return;
         showAt(i);
@@ -1948,7 +2158,8 @@ whenSettled(function () {
       // redraw()/applyVisibility() listeners above, so the paths and visibility
       // are already settled by the time this runs.
       const refreshCrosshair = () =>
-        activeIdx >= 0 ? showAt(activeIdx) : restCrosshair();
+        !isNaN(activeProj) && projOn() ? showProjected(activeProj)
+          : activeIdx >= 0 ? showAt(activeIdx) : restCrosshair();
       onWidth = refreshCrosshair;
       ctlGroup('chart-scale').forEach(radio => {
         radio.addEventListener('change', refreshCrosshair);
@@ -2464,8 +2675,8 @@ whenSettled(function () {
           refreshAxis();
           syncSpanNav();
         }
-        // Zoomed, the arrows step the two-block window and the label names
-        // it ("Blocks 21 to 22"); back on Year, the year again.
+        // Zoomed, the arrows step the three-block window and the label
+        // names it ("Blocks 21 to 23"); back on Year, the year again.
         const yearLabel = () => label.innerHTML;
         let savedLabel = '';
         syncSpanNav = () => {
@@ -2478,8 +2689,9 @@ whenSettled(function () {
           if (z) {
             if (!savedLabel) savedLabel = yearLabel();
             const a = zoomBlocks[zoomPos];
-            const b = zoomBlocks[zoomPos + 1];
-            const name = a && b ? `Blocks ${a.label} to ${b.label}`
+            const b = zoomBlocks[Math.min(zoomPos + ZOOM_BLOCKS - 1,
+                                          zoomBlocks.length - 1)];
+            const name = a && b && a !== b ? `Blocks ${a.label} to ${b.label}`
               : a ? `Block ${a.label}` : 'Zoom';
             label.innerHTML = `<span class="year-name">${name}</span>`
               + `<span class="year-span">${isoOf(domainMinMs)} – `
