@@ -391,7 +391,7 @@ whenSettled(function () {
     if (diffDays === 0) return 'today';
     const future = diffDays > 0;
     const absDays = Math.abs(diffDays);
-    if (absDays < 60) {
+    if (absDays < 70) {                 // days up to 70 (2026-11-18)
       const body = `${absDays} day${absDays === 1 ? '' : 's'}`;
       return future ? `in ${body}` : body;
     }
@@ -418,7 +418,7 @@ whenSettled(function () {
   const builds = document.querySelectorAll('[data-build-ts]');
   if (builds.length) {
     import('../../引擎 Engines/time-ago/time-ago.js')
-      .then(({ agoText }) => builds.forEach(el => {
+      .then(({ fullAgoText: agoText }) => builds.forEach(el => {
         const dt = new Date(el.dataset.buildTs);
         if (isNaN(dt.getTime())) return;
         el.textContent = agoText((now - dt) / 1000);
@@ -626,6 +626,22 @@ whenSettled(function () {
         y => y.startMs <= todayDay && todayDay < y.endMs);
       if (yearIdx < 0) yearIdx = years.length - 1;
       let yr = years.length ? years[yearIdx] : null;
+      // The All projects line BEFORE its first reading (source_stats.chart
+      // `projection.back`, user decisions 2026-11-17): from 0 on `zero` to
+      // that reading, shown from `from`. Read here, ahead of the forward
+      // projection, because the domain and Zoom's blocks reach back to it.
+      const backSpan = (() => {
+        try {
+          const b = (JSON.parse(svg.dataset.chartProjection || 'null')
+                     || {}).back;
+          if (!b) return null;
+          const at = iso => {
+            const [y, m, d] = iso.split('-').map(Number);
+            return new Date(y, m - 1, d).getTime();
+          };
+          return { zeroMs: at(b.zero), fromMs: at(b.from) };
+        } catch (e) { return null; }
+      })();
 
       // What `points` currently is, and everything derived from its shape.
       // All `let`: loadPoints() rebuilds the lot, and every function below
@@ -677,7 +693,8 @@ whenSettled(function () {
           return;
         }
         if (yr) { domainMinMs = yr.startMs; domainMaxMs = yr.endMs; return; }
-        domainMinMs = +dates[0];
+        domainMinMs = Math.min(+dates[0],
+                               backSpan ? backSpan.fromMs : Infinity);
         domainMaxMs = Math.max(dataEndMs, winEndMs);
       }
       // One value per point out of a per-RAW-snapshot array — how a project's
@@ -956,6 +973,30 @@ whenSettled(function () {
         return { t, v, rate, ...line };
       }
       const projAt = (from, t) => from.v + from.rate * (t - from.t) / DAY_MS;
+      // The back piece as projFrom gives the forward one — its first
+      // reading {t, v}, its rate a day from 0 on `zero`, its key — plus
+      // `startMs`, where it shows from; null in a share, or with no line
+      // or no room. Drawn whatever the Projection checkbox says.
+      function backFrom() {
+        if (!backSpan || shareOn()) return null;
+        const line = projLine(true);
+        if (!line) return null;
+        const i = points.findIndex(p => p[line.k] != null);
+        if (i < 0) return null;
+        const t = +dates[i], v = points[i][line.k];
+        const days = (t - backSpan.zeroMs) / DAY_MS;
+        const startMs = Math.max(backSpan.fromMs, backSpan.zeroMs);
+        if (days <= 0 || startMs >= t) return null;
+        return { t, v, rate: v / days, startMs, ...line };
+      }
+      // The piece holding the moment ms: the back one before the first
+      // reading, the forward one (while ticked) after the newest.
+      function projFor(ms) {
+        const back = backFrom();
+        if (back && ms < back.t) return back;
+        const from = projFrom();
+        return from && ms > from.t ? from : null;
+      }
       // Size both axes to what the window shows.
       function measure() {
         const idx = onScreen();
@@ -966,6 +1007,11 @@ whenSettled(function () {
         const from = projFrom();
         if (from && from.t < domainMaxMs && projEndMs > domainMinMs) {
           totals.push(projAt(from, Math.min(projEndMs, domainMaxMs)));
+        }
+        // …and the back piece's lowest, where it enters the window.
+        const back = backFrom();
+        if (back && back.startMs < domainMaxMs && back.t > domainMinMs) {
+          totals.push(projAt(back, Math.max(back.startMs, domainMinMs)));
         }
         wordVals = idx.map(i => points[i].words).filter(v => v != null);
         lnLines = lnBounds(totals, logFloor);
@@ -1170,33 +1216,43 @@ whenSettled(function () {
       // on a log axis. The hover reads it (showProjected).
       const projCb = projData ? ctl('projection-on') : null;
       const projKey = `chart-projection:${location.pathname}`;
-      let projPath = null;
+      let projPath = null, backPath = null;
       // On or off survives a reload in this tab, as the choice of lines.
       if (projCb) {
         try { projCb.checked = sessionStorage.getItem(projKey) === 'on'; }
         catch (e) { /* storage off */ }
       }
+      // One dashed piece of the All projects line, t0 to t1, after it.
+      function dashed(from, t0, t1, y) {
+        const host = from.n < 0 ? linesPath : overlayPaths[from.n];
+        if (!host) return null;
+        const N = 48;
+        let d = '';
+        for (let k = 0; k <= N; k++) {
+          const t = t0 + (t1 - t0) * k / N;
+          d += `${k ? ' L ' : 'M '}${xForMs(t).toFixed(1)},`
+            + `${y(projAt(from, t)).toFixed(1)}`;
+        }
+        const path = host.cloneNode(false);
+        path.classList.add('projection-series');
+        path.style.display = '';
+        path.setAttribute('d', d);
+        host.after(path);
+        return path;
+      }
       function drawProjection(y) {
         if (projPath) { projPath.remove(); projPath = null; }
+        if (backPath) { backPath.remove(); backPath = null; }
+        // The back piece, always (user decision 2026-11-17); drawn from
+        // the first reading back, so its dashes meet the line with a gap
+        // as the forward piece's leave it.
+        const back = backFrom();
+        if (back) backPath = dashed(back, back.t, back.startMs, y);
         if (!projCb) return;
         // Greyed while there is no All projects line to project.
         projCb.disabled = !projLine(true);
         const from = projFrom();
-        const host = !from ? null : from.n < 0 ? linesPath
-          : overlayPaths[from.n];
-        if (!host) return;
-        const N = 48;
-        let d = '';
-        for (let k = 0; k <= N; k++) {
-          const t = from.t + (projEndMs - from.t) * k / N;
-          d += `${k ? ' L ' : 'M '}${xForMs(t).toFixed(1)},`
-            + `${y(projAt(from, t)).toFixed(1)}`;
-        }
-        projPath = host.cloneNode(false);
-        projPath.classList.add('projection-series');
-        projPath.style.display = '';
-        projPath.setAttribute('d', d);
-        host.after(projPath);
+        if (from) projPath = dashed(from, from.t, projEndMs, y);
       }
 
       function redraw(mode) {
@@ -1400,6 +1456,7 @@ whenSettled(function () {
             .find(b => b.startMs === today.endMs);
           const zoomEnd = after ? after.endMs : win.endMs;
           const from = Math.min(dates.length ? +dates[0] : Infinity,
+                                backSpan ? backSpan.fromMs : Infinity,
                                 current[0].startMs);
           zoomBlocks = marks.getBlockMarksInRange(from, zoomEnd - 1,
                                                   blockCtx)
@@ -1915,13 +1972,17 @@ whenSettled(function () {
             if (!on && roHideOff) return;
             const sw = '<span class="ch-swatch"'
               + (on ? ` style="background:${r.color}"` : '') + '></span>';
+            // The total wears .ch-sum: bold, the Noticeboard widget's
+            // format; the footer's rows (Raw Code) do not (user
+            // decisions 2026-11-18).
+            const sum = r.key === '' ? ' ch-sum' : '';
             (r.key === '' ? tot : r.foot ? foot : parts).push([
-              on ? 'ch-f-line' : 'ch-f-line ch-off',
+              (on ? 'ch-f-line' : 'ch-f-line ch-off') + sum,
               r.code ? `${sw}<span class="ch-code">${r.code}</span>`
                 : sw + r.label,
               r.k, r.code && r.key !== ''
                 ? [r.label, fmtShare(p[r.share])] : '',
-              n]);
+              n, r.still]);
           });
           // The totals after the parts, under a grey rule, as the
           // Noticeboard widget has them (user decision 2026-11-05) — the
@@ -1951,11 +2012,11 @@ whenSettled(function () {
           (ln ? `<span class="ch-e ch-mult ch-mult-24">${LN_MULT}</span>`
             + (two ? `<span class="ch-e ch-mult">${LN_MULT}</span>` : '')
             : '');
-        for (const [cls, label, k, name, ro] of rows) {
+        for (const [cls, label, k, name, ro, still] of rows) {
           if (cls === 'rule') { html += '<span class="ch-rule"></span>'; continue; }
-          const d = proj ? (k === pk ? whole(proj.rate) : null)
+          const d = still ? null : proj ? (k === pk ? whole(proj.rate) : null)
             : deltaAt(i, k);
-          const lnD = !proj ? lnDeltaText(i, k)
+          const lnD = still ? DASH : !proj ? lnDeltaText(i, k)
             : d === null || !(p[k] - d > 0) ? DASH
             : '+' + Math.round(1000 * (Math.log(p[k]) - Math.log(p[k] - d)));
           html += `<span class="ch-field ${cls}"`
@@ -1966,7 +2027,7 @@ whenSettled(function () {
             `<span class="ch-val ch-d">${ln ? lnD
               : d === null ? DASH : fmtDelta(d)}` +
             '</span>' +
-            (two ? `<span class="ch-val ch-d">${proj ? DASH
+            (two ? `<span class="ch-val ch-d">${proj || still ? DASH
               : ln ? lnTodayText(i, k) : fmtTodayText(i, k)}</span>` : '') +
             (name ? `<span class="ch-name">${name[0]}</span>` +
               `<span class="ch-name ch-name-share">${name[1]}</span>` : '') +
@@ -2047,7 +2108,7 @@ whenSettled(function () {
         return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
       };
       function showProjected(ms) {
-        const from = projFrom();
+        const from = projFor(ms);
         if (!from) { restCrosshair(); return; }
         activeIdx = -1;
         activeProj = ms;
@@ -2124,27 +2185,42 @@ whenSettled(function () {
       // projection mode the strip past the newest point reads the dashed
       // line, to its end or the window's (user decision 2026-11-16).
       function projMsAt(evt) {
-        if (!projOn()) return NaN;
-        const from = projFrom();
         const ctm = svg.getScreenCTM();
-        if (!from || !ctm) return NaN;
+        if (!ctm) return NaN;
         const q = svg.createSVGPoint();
         q.x = evt.clientX; q.y = evt.clientY;
         const vx = q.matrixTransform(ctm.inverse()).x;
-        const endMs = Math.min(projEndMs, domainMaxMs);
-        if (vx <= xForMs(from.t) || vx > W - padR + 8
-            || from.t >= endMs) return NaN;
-        // Past the plot's right edge, still the projection's last day.
-        const ms = Math.min(endMs, domainMinMs
-          + (vx - padL) / chartW * (domainMaxMs - domainMinMs));
-        // Every day at 04:00, the start of a sleep day (user decision
-        // 2026-11-16): the nearest one after the newest point and by the
-        // end, as a reading the day it began.
+        const msAt = x => domainMinMs
+          + (x - padL) / chartW * (domainMaxMs - domainMinMs);
         const at4 = (t, add) => {
           const d = new Date(t);
           return new Date(d.getFullYear(), d.getMonth(), d.getDate() + add,
                           4).getTime();
         };
+        // Before the first reading, the back piece (user decision
+        // 2026-11-17): every day at 04:00 from where it shows to the
+        // reading; left of where it shows, nothing to read.
+        const back = backFrom();
+        if (back && vx < xForMs(back.t)) {
+          const lo = Math.max(back.startMs, domainMinMs);
+          if (vx < xForMs(lo) - 8) return NaN;
+          const ms = Math.max(lo, msAt(vx));
+          const near = [-1, 0, 1].map(k => at4(ms, k))
+            .filter(t => t >= lo && t < back.t)
+            .sort((a, b) => Math.abs(a - ms) - Math.abs(b - ms));
+          return near.length ? near[0] : NaN;
+        }
+        if (!projOn()) return NaN;
+        const from = projFrom();
+        if (!from) return NaN;
+        const endMs = Math.min(projEndMs, domainMaxMs);
+        if (vx <= xForMs(from.t) || vx > W - padR + 8
+            || from.t >= endMs) return NaN;
+        // Past the plot's right edge, still the projection's last day.
+        const ms = Math.min(endMs, msAt(vx));
+        // Every day at 04:00, the start of a sleep day (user decision
+        // 2026-11-16): the nearest one after the newest point and by the
+        // end, as a reading the day it began.
         const near = [-1, 0, 1].map(k => at4(ms, k))
           .filter(t => t > from.t && t <= endMs)
           .sort((a, b) => Math.abs(a - ms) - Math.abs(b - ms));
@@ -2181,7 +2257,7 @@ whenSettled(function () {
       // redraw()/applyVisibility() listeners above, so the paths and visibility
       // are already settled by the time this runs.
       const refreshCrosshair = () =>
-        !isNaN(activeProj) && projOn() ? showProjected(activeProj)
+        !isNaN(activeProj) && projFor(activeProj) ? showProjected(activeProj)
           : activeIdx >= 0 ? showAt(activeIdx) : restCrosshair();
       onWidth = refreshCrosshair;
       ctlGroup('chart-scale').forEach(radio => {
@@ -2498,7 +2574,11 @@ whenSettled(function () {
             const row = key === '' ? null : rowOf(key);
             return { k, key, share, label: labelOf(key), code: codeOf(key),
                      color: colourOf(key), drawn: drawn.includes(key),
-                     foot: !!(row && row.closest('tfoot')) };
+                     foot: !!(row && row.closest('tfoot')),
+                     // A row that counts no change (data-series-still:
+                     // Workshop Stats' Raw Code, user decision
+                     // 2026-11-17) — a dash under 24h and today.
+                     still: !!(row && row.hasAttribute('data-series-still')) };
           });
         }
         function setChosen(keys) {

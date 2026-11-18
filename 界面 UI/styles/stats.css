@@ -397,6 +397,13 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
    not removed, so the row keeps its height and nothing moves. */
 .stats-table .cell-peek { visibility: hidden; }
 .stats-table td:hover .cell-peek { visibility: visible; }
+/* BEFORE ITS RECORD BEGAN (user decision 2026-11-18): a block cell from
+   before the row's first reading — the part not made yet, or its measure
+   not taken yet — is empty and grey, so a — means only "does not apply"
+   (Code Stats' Raw Code). */
+.stats-table td.cell-before {
+  background: color-mix(in srgb, var(--border) 45%, transparent);
+}
 /* …and its header's qualifier sits flush right over a number column. */
 .stats-table th.num .th-qual { text-align: right; }
 /* A vertical rule where one group of columns ends and the next begins
@@ -509,19 +516,17 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 8px; padding: 12px 8px; box-sizing: border-box;
 }
+/* Its day switch (user decision 2026-11-17): the year arrows' look, over
+   the histogram's left edge. */
+.day-nav { margin-top: 0.5rem; }
 .day-histogram .day-hit { fill: transparent; }
-/* Touching bars parted by a hairline of the plot's own surface (user
-   decision 2026-11-16), so neighbours of one height still read as two;
-   crisp, so the line is one even pixel, not an anti-aliased seam. */
+/* Touching bars, NO SEPARATOR (user decision 2026-11-18): a histogram
+   is about its shape, and the pointer names a bin when one is wanted —
+   so neighbours of one height may merge. A hairline of the plot's
+   surface parted every bar from 2026-11-16 until then. Crisp, so the
+   bars meet without an anti-aliased seam. */
 .day-histogram .day-bar {
   fill: var(--accent, #7c9ef5); shape-rendering: crispEdges;
-  stroke: var(--surface); stroke-width: 1px;
-}
-/* Lighter than the hairlines between bars (user decision 2026-11-16): a
-   tint across the bar, not a gap in it. */
-.day-histogram .day-cut {
-  stroke: var(--surface); stroke-width: 1px; stroke-opacity: 0.45;
-  shape-rendering: crispEdges;
 }
 .day-histogram .day-col.on .day-hit { fill: currentColor; fill-opacity: 0.05; }
 .day-wrap.pinned .day-col.on .day-hit { fill-opacity: 0.1; }
@@ -673,6 +678,11 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
    It starts in the key's column so a long name (Digital Infrastructure)
    stays inside the count columns' width. */
 .chart-readout .ch-code { font-weight: 600; }
+/* The total: the count and the changes bold too, as the Noticeboard
+   widget sets them (user decisions 2026-11-18). Not the rows below it
+   (Workshop Stats' Raw Code), which keep a part's format. */
+.chart-readout .ch-sum .ch-val,
+.chart-readout .ch-sum.ch-off .ch-code { font-weight: 600; }
 .chart-readout.ch-grid .ch-name {
   grid-column: 1 / -2;
   white-space: nowrap;
