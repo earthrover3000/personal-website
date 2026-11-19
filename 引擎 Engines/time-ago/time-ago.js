@@ -1,49 +1,57 @@
 // time-ago — THE spelling of every duration: how long ago, how long, how
 // long until (user decisions 2026-10-20: "SSOT the time countdown
 // everywhere, using the same format"; 2026-11-17: "h", never "hr", and a
-// set of STANDARD STYLES to quote by name from now on).
+// set of STANDARD STYLES to quote by name; 2026-11-18: COMPACT, precision
+// per shape, every readout reviewed one by one).
 //
-// THE STANDARD STYLES — a readout is named "<style> <shape>", e.g. "Short
-// ago" or "Full span":
+// THE REGISTER — which readout uses which style, and why — is in the Python
+// twin's docstring (引擎 Engines/time_ago), not here: this file ships with
+// the public website, and the register names private pages.
 //
-//   SHORT     columns, cards, terminal rows: anywhere tight
-//   FULL      sentences, "Last updated", the status line: words in full
-//   CLOCK     counting down to a moment: 01:20 · 27:05 (the status line's
-//             and the sun's; spelled where they are — sun-countdown and
-//             claude.sh — not here)
-//   CALENDAR  a thing with only a date: today · yesterday · 3 days ago ·
-//             in 2 years 1 month (relative-time.js's `relative-time-coarse`)
-//   COMPACT   the tightest span: no space before the unit (d h m s), one
-//             space between parts, never padded. Every unit from the
-//             largest down to a FLOOR, zeros kept below the lead (user
-//             decisions 2026-11-18). Span: compactSpanText, and
-//             compactUnits for a page with a column per unit; until:
-//             compactUntilText, rounded UP to the floor ("in 1h 20m");
-//             unit: compactUnitText, ONE whole unit, hours up to 48 h
-//             ("15m", "30h", "3d" — the Services panel's ages); ago:
-//             compactAgoText, that unit + " ago", "just now" under a
-//             minute ("fetched 30h ago").
-//               floor h   6d 17h · 6d 0h · 17h · 0h
-//                         (the status line's 7-day countdown, Usage page)
-//               floor s   45s · 3m 7s · 2h 0m 7s · 1d 0h 5m 0s
-//                         (the Noticeboard's Sessions widget)
+// THE STANDARD STYLES — a readout is named "<style> <shape>":
 //
-// THE SHAPES, in Short and Full:
+//   SHORT     a value in a sentence or a list: spaced words, 2 h 5 min
+//   FULL      quiet footnotes and tooltips: words in full, 3 minutes ago
+//   COMPACT   glanceable figures and terminal lines: no space before the
+//             unit (d h m s), one between parts, never padded — 6d 17h,
+//             3m 7s, 30h ago
+//   CLOCK     a moment counted down, HH:MM: 01:20 · 27:05 (spelled where
+//             used, e.g. sun-countdown, not here)
+//   CALENDAR  a date-only distance: in 18 days · 3 months ago
+//             (relative-time.js's calendar; the atlas's age.ts spells it
+//             compactly, 18 days · 2mo)
 //
-//   shape   Short                  Full                      function
-//   ago     3 min ago              3 minutes ago             agoText / fullAgoText
-//   span    2 h 5 min              2 hours 5 minutes         spanText / fullSpanText
-//   until   in 1 h 20 min          in 1 hour 20 minutes      untilText / fullUntilText
-//   unit    15 min                 15 minutes                unitText / fullUnitText
+//   shape   Short           Full                  Compact
+//   ago     3 min ago       3 minutes ago         30h ago / just now
+//   span    2 h 5 min       2 hours 5 minutes     6d 17h · 2h 0m 7s
+//   until   in 1 h 20 min   in 1 hour 20 minutes  in 1h 20m
+//   unit    15 min          15 minutes            15m · 30h · 3d
 //
-// THE LADDER is one for every style: s → min → h → d, then (ago and unit)
-// weeks from 14 days, months from 9 weeks, years from 12 months. An ago or
-// a unit is one whole unit, rounded down; a span is at most two, larger
-// first, the second left out at zero; an until is a span to the minute,
-// rounded up, "now" once it has come. "just now" for the first second only
-// (user decision 2026-10-20: a label that ticks every second counts 1, 2,
-// 3 … rather than jumping from "just now" to "5 s"). CALENDAR counts in
-// days up to 60, then months and years.
+//   agoText spanText untilText unitText / full*Text / compactAgoText
+//   compactSpanText compactUntilText compactUnitText compactUnits
+//
+// PRECISION, per shape:
+//
+//   SHORT/FULL ago, unit  one whole unit, floored: s → min → h → d, then
+//                         weeks from 14 d, months from 9 w, years from 12
+//                         mo; "just now" for the first second only (user
+//                         decision 2026-10-20: a label ticking every second
+//                         counts 1, 2, 3 … rather than jumping to "5 s")
+//   SHORT/FULL span       at most two units, the zero part DROPPED, floored
+//   SHORT/FULL until      a span rounded UP to the minute, then "now"
+//   COMPACT span          every unit from the largest down to a FLOOR, the
+//                         zeros below the lead KEPT ("2h 0m 7s"); floor
+//                         "h" by default ("6d 0h", "17h", "0h")
+//   COMPACT until         rounded UP to the floor ("m" by default), zeros
+//                         kept, then "now"
+//   COMPACT unit, ago     one whole unit: minutes, HOURS UP TO 48 h ("30h"),
+//                         then days; largest "h" never turns to days; ago
+//                         is "just now" under a minute
+//   CALENDAR              whole days UP TO 70, then calendar months/years
+//   CLOCK                 hours:minutes, zero-padded, hours past a day
+//
+// A value that TICKS keeps its zeros, so no cell blinks out at a round
+// number; a FIXED value drops them ("1 h" on a picker).
 //
 // The short units are the Lifespan Atlas's own (d, w, mo, yr), so a
 // duration and a life span share one vocabulary.
@@ -179,14 +187,14 @@ export function compactSpanText(seconds, floor = "h") {
 }
 
 // Below this, a one-unit COMPACT age stays in hours (user decision
-// 2026-11-18, the Services panel's rule before 2026-11-17): a daily job
-// that last ran 30 hours ago reads "30h", not "1d", so a missed run shows.
+// 2026-11-18, an older rule restored): a daily job that last ran 30 hours
+// ago reads "30h", not "1d", so a missed run shows.
 const COMPACT_DAYS_FROM = 48 * 3600;
 
 /** Compact unit (floored): one whole unit, minutes under an hour, HOURS up
  *  to 48 h, then days — "0m", "15m", "30h", "3d". `largest` "h" never turns
- *  to days ("50h"), for a figure read against an hour target (the Beta
- *  hold's "30h/24h", 2026-11-18). */
+ *  to days ("50h"), for a figure read against an hour target ("30h/24h",
+ *  2026-11-18). */
 export function compactUnitText(seconds, largest = "d") {
   const s = Math.max(0, Math.floor(seconds));
   if (s < 3600) return `${Math.floor(s / 60)}m`;
