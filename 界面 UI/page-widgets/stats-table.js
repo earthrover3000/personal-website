@@ -2700,7 +2700,80 @@ whenSettled(function () {
           if (!f || String(window.getSelection())) return;
           const r = roRows[+f.dataset.ro];
           if (r) toggle(r.key);
+          // The toggle redrew the lines and the readout: light the row
+          // now under the pointer, not the one the click left behind.
+          const key = r && r.key;
+          lightRow(readout.querySelector(`[data-ro="${roRows.findIndex(
+            q => q.key === key)}"]`));
         });
+        // HOVER A READOUT ROW AND ITS LINE GOES BOLD (user decision
+        // 2026-11-19): thicker, and raised over the other lines so none
+        // hides it; back on leaving. A row whose line is not drawn has
+        // nothing to light. Touch has no hover, so a phone sees nothing.
+        // The row itself is shaded grey (user decision the same day). A
+        // readout row is `display: contents` — its cells are the grid's
+        // items — so it has no box to shade: the shade is a box of its
+        // own in the wrap, laid under the row's cells.
+        let hotPath = null, hotNext = null;
+        const rowShade = document.createElement('div');
+        rowShade.className = 'ch-row-shade';
+        rowShade.hidden = true;
+        wrap.appendChild(rowShade);
+        const shadeRow = f => {
+          const cells = [...f.children];
+          if (!cells.length) return;
+          const at = wrap.getBoundingClientRect();
+          const rs = cells.map(c => c.getBoundingClientRect());
+          const l = Math.min(...rs.map(b => b.left));
+          const t = Math.min(...rs.map(b => b.top));
+          const rt = Math.max(...rs.map(b => b.right));
+          const bt = Math.max(...rs.map(b => b.bottom));
+          Object.assign(rowShade.style, {
+            left: `${l - at.left}px`, top: `${t - at.top}px`,
+            width: `${rt - l}px`, height: `${bt - t}px` });
+          rowShade.hidden = false;
+        };
+        const pathOf = key => {
+          const n = overlayInfo.findIndex(o => o.key === key);
+          if (n >= 0) return overlayPaths[n];
+          return !overlayInfo.length && drawnKeys().includes(key)
+            ? linesPath : null;
+        };
+        const unlight = () => {
+          rowShade.hidden = true;
+          if (!hotPath) return;
+          // A redraw may have thrown the lit line away (a click on a row
+          // rebuilds them): then there is no place to put it back. Until
+          // 2026-11-19 this threw, before forgetting it, so every hover
+          // after a click threw again and nothing lit.
+          const path = hotPath, next = hotNext, at = path.parentNode;
+          hotPath = hotNext = null;
+          path.classList.remove('series-hot');
+          if (at && next && next.parentNode === at) at.insertBefore(path, next);
+        };
+        function lightRow(f) {
+          const r = f && roRows[+f.dataset.ro];
+          const path = r ? pathOf(r.key) : null;
+          if (path === hotPath) return;
+          unlight();
+          if (!path || !path.isConnected) return;
+          hotPath = path;
+          hotNext = path.nextSibling;
+          // Raised after the LAST line in the drawing — showOverlay puts
+          // each new line straight after the base one, so the array's
+          // order is not the paint order.
+          const top = overlayPaths.reduce((a, b) =>
+            a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
+              ? b : a, overlayPaths[0]);
+          if (top && top !== path) top.after(path);
+          path.classList.add('series-hot');
+          shadeRow(f);
+        }
+        readout.addEventListener('pointerover', e => {
+          if (e.pointerType === 'touch') return;
+          lightRow(e.target.closest('[data-ro]'));
+        });
+        readout.addEventListener('pointerleave', unlight);
 
         const calm = window.matchMedia('(prefers-reduced-motion: reduce)');
         rows.forEach(r => {

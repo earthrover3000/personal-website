@@ -1,6 +1,6 @@
 // email-box.js — THE SHELF'S EMAIL MODULE (user decisions 2026-11-11:
 // "every email uses the same module"; 2026-11-16: onto the shelf, its look
-// in styles/email.css). First user: 疗愈轨迹 Healing Trajectory. One way to
+// in styles/email.css). First user: 心灵曲径 Inner Labyrinth. One way to
 // draw an email and copy from it, whatever the email is:
 //
 //   · a DRAFT from a template (the Email page's screening and referral

@@ -386,6 +386,25 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
 /* Grey alone, #666 beside #1a1a1a in bold, hardly read as off. */
 .chart-readout .ch-off .ch-code { font-weight: normal; }
 .chart-readout .ch-off .ch-swatch { box-shadow: inset 0 0 0 1px var(--muted); }
+/* The line whose readout row is under the pointer (user decision
+   2026-11-19; stats-table.js lightRow): bold, and raised by the script. */
+.line-history-svg path.series-hot { stroke-width: 2.5; }
+/* Its readout row, shaded grey behind its cells (user decision
+   2026-11-19: a shade, not an outline). The script lays the box over the
+   row's cells — the row is `display: contents`, with no box of its own —
+   and it sits UNDER the text: the wrap isolates, the shade is at -1. */
+.chart-hover-wrap { position: relative; isolation: isolate; }
+.ch-row-shade {
+  position: absolute;
+  z-index: -1;
+  margin: -1px -4px;
+  padding: 1px 4px;
+  box-sizing: content-box;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+  pointer-events: none;
+}
+.ch-row-shade[hidden] { display: none; }
 
 /* A cell's second line: what a row's name means, under the name (Workshop
    Stats' Parts, 2026-10-28). Plain weight even in a totals row. */
@@ -495,11 +514,12 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
 :is(details.chart-section, details.fold-section)[open] > summary .section-heading::before { content: '▾ '; }
 .site-milestones { margin-top: 0; }
 /* Line-history chart sits beneath the heading like a table would —
-   same top spacing, full width, modest max-height to keep proportions
-   readable on narrow viewports. */
+   same top spacing, full width. No max-height since 2026-11-19 (280px
+   until then): the drawing takes its box's real width at a fixed height
+   (stats-table.js setChartWidth), so a cap could only shrink it, text
+   and all — which it did once the chart grew to 320 tall. */
 .line-history-svg {
   margin-top: 0.5rem;
-  max-height: 280px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;

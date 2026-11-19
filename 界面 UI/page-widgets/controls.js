@@ -179,7 +179,7 @@ export function wireChevrons() {
 
 /** Folds that REMEMBER whether they were open (a display preference, in
  *  this browser), under `key`: each `details[data-fold]` in `folds()` is
- *  set as it was left, and saved as it changes. Healing Trajectory's
+ *  set as it was left, and saved as it changes. Inner Labyrinth's
  *  `rememberFolds`, lifted onto the shelf (2026-11-08) for every page
  *  that folds. Call it after the page draws its folds. */
 export function rememberFolds(key, folds) {

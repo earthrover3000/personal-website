@@ -463,7 +463,7 @@ body:not(.with-sidebar) > :is(.sidebar, .sidebar-toggle, .sidebar-backdrop) {
    then "a single style"): every row of choices with one on — a filter, a
    view switch, a pick of names, AND a tab row (index_page `tabs_bar`,
    `.tabs`, its on tab `.on`) — is drawn as these rounded pills, lifted
-   from 疗愈轨迹 Healing Trajectory's chips. There is no underlined tab row
+   from 心灵曲径 Inner Labyrinth's chips. There is no underlined tab row
    any more: a page that switches whole panels uses the same pills.
    Markup either way:
      <div class="chips" role="radiogroup">
@@ -788,7 +788,7 @@ table { width: 100%; border-collapse: collapse; }
 .toc details > ol { margin-top: 0.3rem; }
 
 /* A FOLD — a section that opens and shuts (user decision 2026-11-08:
-   "the style SSOTs with other interface apps"). Healing Trajectory's
+   "the style SSOTs with other interface apps"). Inner Labyrinth's
    `details.fold` (its old page's `details.crit`), lifted onto the shelf
    so every interface folds alike; 生活自理 Life Skills' Checklist
    uses it, and controls.js `wireFoldAll` / `rememberFolds` drive it. */
@@ -1717,7 +1717,7 @@ a.app-card:hover {
 <div class="container">
 <div class="crumb-line"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="home/">Personal Website</a> <span class="sep">›</span> <span aria-current="page">Protected Index</span></nav><span class="head-controls"><button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">26,163 lines · 14,404 words · 907 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-11-19T03:40:03Z" title="2026-11-19 03:40 UTC" class="relative-time">2026-11-19</time></p>
+<p class="head-meta"><a href="site-stats/">26,163 lines · 14,404 words · 907 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-11-19T16:07:44Z" title="2026-11-19 16:07 UTC" class="relative-time">2026-11-19</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
@@ -2081,7 +2081,7 @@ function untilText(seconds) {
   // (today): {days, future, body} — body in full words, whole DAYS below
   // `daysUpTo` — 70, the workshop's one threshold (user decision
   // 2026-11-18; 60 before) — calendar months and years from there.
-  // `daysUpTo` Infinity counts in days for ever (Healing Trajectory's
+  // `daysUpTo` Infinity counts in days for ever (Inner Labyrinth's
   // "Days ago" switch).
   const calendarParts = (e, r, daysUpTo = 70) => {
     const days = Math.round((e - r) / 86400000);
