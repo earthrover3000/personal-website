@@ -190,7 +190,7 @@ li.entry-grid > .li-detail { grid-area: 3 / 3 / 4 / -1; }
    SSOT"): `section li[data-entry]` and `li.entry-grid` place every part
    alike, above. A ROW WITH NOTHING BESIDE ITS NUMBER — no uuid, no chip —
    starts its text on the number's line instead of leaving that line empty
-   (the Inner Labyrinth's call draft); a row with a uuid or a chip keeps
+   (the Inner Healing's call draft); a row with a uuid or a chip keeps
    the two-line layout. */
 section li[data-entry]:not(:has(> .uid, > .tag)) > .li-text,
 li.entry-grid:not(:has(> .uid, > .tag)) > .li-text {

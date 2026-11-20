@@ -42,7 +42,7 @@
   // (today): {days, future, body} — body in full words, whole DAYS below
   // `daysUpTo` — 70, the workshop's one threshold (user decision
   // 2026-11-18; 60 before) — calendar months and years from there.
-  // `daysUpTo` Infinity counts in days for ever (Inner Labyrinth's
+  // `daysUpTo` Infinity counts in days for ever (Inner Healing's
   // "Days ago" switch).
   const calendarParts = (e, r, daysUpTo = 70) => {
     const days = Math.round((e - r) / 86400000);

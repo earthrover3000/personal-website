@@ -2431,19 +2431,19 @@ whenSettled(function () {
         // A part's three-letter code, where its row shows one (Workshop
         // Stats' `atl`, the .part-key span) — the readout's key, with the
         // name beneath it (user decision 2026-11-05). '' elsewhere.
-        // The totals line, on such a page, is `total`, with no name beneath
+        // The totals line, on such a page, is `Total`, with no name beneath
         // (the widget's own word for it; user decision 2026-11-05).
         const coded = rows.some(r => r.querySelector('.part-key'));
         if (coded) {
           keyFloorHtml = [...rows.map(r => {
             const k = r.querySelector('.part-key');
             return k ? k.textContent.trim() : '';
-          }).filter(Boolean), 'total'].map(c =>
+          }).filter(Boolean), 'Total'].map(c =>
             `<span class="ch-swatch"></span><span class="ch-code">${c}</span>`);
           pinColumns();
         }
         const codeOf = key => {
-          if (key === '') return coded ? 'total' : '';
+          if (key === '') return coded ? 'Total' : '';
           const k = rowOf(key) && rowOf(key).querySelector('.part-key');
           return k ? k.textContent.trim() : '';
         };

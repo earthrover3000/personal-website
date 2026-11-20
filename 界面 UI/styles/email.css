@@ -2,8 +2,8 @@
    style in the styles"), for the shelf's page-widgets/email-box.js, which
    draws it: the header lines (From, To, Cc, Subject), each with its copy
    button at the right end, then the body; a [slot] still to fill in amber,
-   a recipient's own words in the accent. Lifted from 心灵曲径 Inner
-   Labyrinth, its first user. A page without that app's --accent-soft and
+   a recipient's own words in the accent. Lifted from 心灵疗愈 Inner
+   Healing, its first user. A page without that app's --accent-soft and
    --here tokens gets a pale accent mix and amber. */
 
 /* A line of the email with its copy button at the right end. */
