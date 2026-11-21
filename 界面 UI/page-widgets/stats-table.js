@@ -2433,20 +2433,26 @@ whenSettled(function () {
         // name beneath it (user decision 2026-11-05). '' elsewhere.
         // The totals line, on such a page, is `Total`, with no name beneath
         // (the widget's own word for it; user decision 2026-11-05).
-        const coded = rows.some(r => r.querySelector('.part-key'));
-        if (coded) {
-          keyFloorHtml = [...rows.map(r => {
-            const k = r.querySelector('.part-key');
-            return k ? k.textContent.trim() : '';
-          }).filter(Boolean), 'Total'].map(c =>
-            `<span class="ch-swatch"></span><span class="ch-code">${c}</span>`);
-          pinColumns();
-        }
-        const codeOf = key => {
-          if (key === '') return coded ? 'Total' : '';
+        // THE CHART'S OWN CODES FIRST (data-chart-series-codes, source_stats
+        // .workshop.chart_parts — user decision 2026-11-20), so a page
+        // whose table shows none (the Backlog) reads the same; a row's
+        // .part-key otherwise.
+        let chartCodes = {};
+        try { chartCodes = JSON.parse(svg.dataset.chartSeriesCodes || '{}'); } catch (e) { chartCodes = {}; }
+        const rowCode = key => {
           const k = rowOf(key) && rowOf(key).querySelector('.part-key');
           return k ? k.textContent.trim() : '';
         };
+        const partCode = key => chartCodes[key] || rowCode(key);
+        const coded = Object.keys(series).some(k => k !== '' && partCode(k));
+        const codeOf = key => key === '' ? (coded ? 'Total' : '')
+          : partCode(key);
+        if (coded) {
+          keyFloorHtml = [...Object.keys(series).map(partCode).filter(Boolean),
+                          'Total'].map(c =>
+            `<span class="ch-swatch"></span><span class="ch-code">${c}</span>`);
+          pinColumns();
+        }
         // The live point's slot (loadPoints): the totals and each series at
         // index rawPoints.length, from the live answer's same-named fields.
         liveHook = () => {
@@ -2574,7 +2580,13 @@ whenSettled(function () {
             const row = key === '' ? null : rowOf(key);
             return { k, key, share, label: labelOf(key), code: codeOf(key),
                      color: colourOf(key), drawn: drawn.includes(key),
-                     foot: !!(row && row.closest('tfoot')),
+                     // Below the Total: a row the table keeps in its
+                     // footer — or, with no row, a coded part that takes
+                     // no share (Raw Code on the Backlog, user decision
+                     // 2026-11-20), outside the total as it is there.
+                     foot: row ? !!row.closest('tfoot')
+                       : coded && key !== '' && shareSet.size > 0
+                         && !shareSet.has(key),
                      // A row that counts no change (data-series-still:
                      // Workshop Stats' Raw Code, user decision
                      // 2026-11-17) — a dash under 24h and today.
