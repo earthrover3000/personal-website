@@ -3050,7 +3050,7 @@ whenSettled(function () {
       const bar = barOf(sec);
       if (!bar) return;
       const box = document.createElement('div');
-      box.className = 'view-toggle chart-alt-toggle';
+      box.className = 'view-toggle segmented chart-alt-toggle';
       box.setAttribute('role', 'radiogroup');
       box.setAttribute('aria-label', 'Which chart');
       alts.forEach((alt, i) => {

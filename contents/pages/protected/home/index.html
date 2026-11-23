@@ -496,6 +496,27 @@ body:not(.with-sidebar) > :is(.sidebar, .sidebar-toggle, .sidebar-backdrop) {
 :is(.view-toggle, .series-toggle, .group-toggle) input:disabled + label {
   opacity: 0.4; cursor: not-allowed; }
 
+/* THE EITHER/OR SWITCH: a segmented pill (user decision 2026-11-23), the
+   third switch style. One choice is ONE pill, its options split by a
+   vertical line: add `segmented` to a `.view-toggle` radio group or a
+   `.chips` button row. For options that exclude each other; a row of
+   things that can be on together stays separate pills. A caption stays
+   outside the pill: it sits in an outer `.view-toggle`. */
+:is(.view-toggle, .chips).segmented { display: flex; flex-wrap: nowrap;
+  width: fit-content; gap: 0; border: 1px solid var(--border);
+  border-radius: 999px; overflow: hidden; background: var(--surface); }
+.chart-controls .view-toggle.segmented { gap: 0; }
+.view-toggle > .view-toggle.segmented { margin: 0; }
+:is(.view-toggle, .chips).segmented :is(label, button) { border: 0;
+  border-radius: 0; }
+:is(.view-toggle, .chips).segmented :is(label, button) ~ :is(label, button) {
+  border-left: 1px solid var(--border); }
+.view-toggle.segmented input:checked + label,
+.chips.segmented button[aria-checked="true"] {
+  border-color: var(--border); }
+.view-toggle.segmented input:focus-visible + label,
+.chips.segmented button:focus-visible { outline-offset: -2px; }
+
 /* THE VIEW SWITCH: underlined tabs (index_page `tabs_bar`, its on tab
    `.on`), each on its own bar with a gap between (user decision
    2026-11-23), so a tab reads as a step. The tab on screen is dark text on
