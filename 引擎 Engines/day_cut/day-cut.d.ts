@@ -25,6 +25,11 @@ export declare function dayWindow(day: string, cut: DayCut, tz: string): [number
 
 /** The ISO day an instant (epoch ms) belongs to under `cut`. */
 export declare function dayOf(ms: number, cut: DayCut, tz: string): string;
+/** Per reading of `times` (epoch ms, ascending): `day` [a, b], the last
+ *  whole sleep day before its own (the readout's `24h`), and `today`
+ *  [b, i], its own day so far — or null where no reading is that old. */
+export declare function changeSpans(times: number[], tz: string):
+  { day: [number, number] | null; today: [number, number] | null }[];
 /** HH:MM, counting on past 24 until the sleep day ends (01:37 → 25:37). */
 export declare function sleepClock(ms: number, tz: string): string;
 /** "+1" — drawn as a superscript right after a clockless sleep-day date

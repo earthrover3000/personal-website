@@ -757,13 +757,18 @@ whenSettled(function () {
         dayGranular = serverDaily || daysMode();
         // span24[i] / spanToday[i] — the [from, to] points whose difference
         // is point i's `24h` and `today` change (the readout, below), or
-        // null where the history does not reach back that far.
-        // DAYS (a day per point): `24h` is the day before's point to this
-        // one — the change over its sleep day — and there is no `today`.
-        // SNAPSHOTS: `24h` is the last whole sleep day before point i, 04:00
-        // to 04:00, and `today` its own sleep day so far: from the last
-        // snapshot BEFORE its 04:00 (a reading at 04:00 sharp is the new
-        // day's) to i. Precomputed, so a hover is an array lookup.
+        // null where the history does not reach back that far. THE RULE
+        // IS day_cut's `changeSpans` (user decision 2026-11-22: one rule
+        // for every readout, the Noticeboard's card included): `24h` the
+        // last whole sleep day before point i's, 04:00 to 04:00, `today`
+        // its own sleep day so far, each edge's figure the newest reading
+        // before it. Precomputed, so a hover is an array lookup.
+        // DAYS (a day per point): a day's `24h` is the day before's point
+        // to its own, and a day has no `today`. The LIVE point is a
+        // moment, and reads both by the rule: a chart with a live point
+        // records one reading a day at its 04:00 (todoist.stats, the plan
+        // entries), so its day D stands, for this, for the figure at D's
+        // 04:00 — an instant just before that edge.
         span24 = new Array(points.length).fill(null);
         spanToday = new Array(points.length).fill(null);
         const ms = dates.map(d => d.getTime());
@@ -774,27 +779,20 @@ whenSettled(function () {
             while (j + 1 < points.length && ms[j + 1] <= cutoff) j++;
             if (j >= 0) span24[i] = [j, i];
           }
-        } else if (dayCut) {
-          // The newest point strictly before `edge`, or -1.
-          const before = edge => {
-            let lo = 0, hi = ms.length;
-            while (lo < hi) {
-              const mid = (lo + hi) >> 1;
-              if (ms[mid] < edge) lo = mid + 1; else hi = mid;
-            }
-            return lo - 1;
-          };
-          const SLEEP = dayCut.DAY_CUT.SLEEP;
-          for (let i = 0; i < points.length; i++) {
-            const day = dayCut.dayOf(ms[i], SLEEP, TZ);
-            const [start] = dayCut.dayWindow(day, SLEEP, TZ);
-            const prev = new Date(Date.parse(day) - DAY_MS)
-              .toISOString().slice(0, 10);
-            const [prevStart] = dayCut.dayWindow(prev, SLEEP, TZ);
-            const a = before(prevStart), b = before(start);
-            if (a >= 0) span24[i] = [a, b];
-            if (b >= 0) spanToday[i] = [b, i];
+          const li = points.length - 1;
+          if (dayCut && li >= 0 && points[li].live) {
+            const SLEEP = dayCut.DAY_CUT.SLEEP;
+            const at = points.map((p, i) => i === li ? ms[i]
+              : dayCut.dayWindow(p.ts.slice(0, 10), SLEEP, TZ)[0] - 1);
+            const { day, today } = dayCut.changeSpans(at, TZ)[li];
+            span24[li] = day;
+            spanToday[li] = today;
           }
+        } else if (dayCut) {
+          dayCut.changeSpans(ms, TZ).forEach(({ day, today }, i) => {
+            span24[i] = day;
+            spanToday[i] = today;
+          });
         }
       }
       loadPoints();
@@ -1821,9 +1819,12 @@ whenSettled(function () {
       };
       const deltaAt = (i, key) => change(span24[i], key);
       const todayAt = (i, key) => change(spanToday[i], key);
-      // The `today` column: snapshots only — a day per point (the Days
-      // view, a public page) has no today (user decision 2026-11-08).
-      const todayOn = () => !dayGranular;
+      // The `today` column: snapshots, or a live point — a day per point
+      // (the Days view, a public page) has no today of its own (user
+      // decisions 2026-11-08, 2026-11-22), so a past day reads a dash
+      // there, and the column stays put on a hover.
+      const todayOn = () => !dayGranular
+        || (points.length > 0 && !!points[points.length - 1].live);
       const fmtTodayText = (i, k) => {
         const d = todayAt(i, k);
         return d === null ? DASH : fmtDelta(d);

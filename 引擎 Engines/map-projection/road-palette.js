@@ -1,11 +1,7 @@
-// SYNCED COPY (2026-08-15) of 素材 Raw Material/cities-transport/map-style/
-// road-palette.js — that file stays the SSOT (the three research previews
-// load it by relative path and can't reach the website tree). After editing
-// the palette there, re-copy it over this file; do not edit here.
-// road-palette.js — SSOT for the map palette shared by the lujiazui-roads
-// and cambridge-cycleways previews (loaded via <script src="../map-style/
-// road-palette.js">; script tags may load sibling file:// paths, fetch()
-// may not). Change a colour HERE and both maps + both legends follow.
+// road-palette.js — SSOT for the road-map palette, a module since 2026-11-23
+// (user decision). The Cities & Transport page and the cities-transport raw
+// project's previews both load this file by <script>. Change a colour HERE
+// and every map and legend follows.
 //
 // road: the driving-hierarchy palette (born on lujiazui-roads).
 //   pedestrian is dashed — a street in the legal sense, not a carriageway;

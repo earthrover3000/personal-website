@@ -2,7 +2,7 @@
 // `python -m day_cut` beside the Python half's own self_check. Prints one
 // summary line; exits 1 on the first mismatch.
 import { readFileSync } from "node:fs";
-import { DAY_CUT, calendarAhead, dayOf, dayWindow, dayOffsetText,
+import { DAY_CUT, calendarAhead, changeSpans, dayOf, dayWindow, dayOffsetText,
          daysBetween, sleepClock,
          sleepDayName, sleepDayNameZh, sleepDayNames,
          sleepDayParts } from "./day-cut.js";
@@ -23,6 +23,12 @@ for (const c of cases.window) {
 for (const c of cases.day_of) {
   const got = dayOf(Date.parse(c.at), c.cut, c.tz);
   if (got !== c.day) fail("dayOf", c, got);
+  n++;
+}
+for (const c of cases.spans) {
+  const got = changeSpans(c.times.map(Date.parse), c.tz)
+    .map(({ day, today }) => [day, today]);
+  if (JSON.stringify(got) !== JSON.stringify(c.want)) fail("changeSpans", c, got);
   n++;
 }
 // The sleep day's head (JS only: no Python half draws it). Dublin's

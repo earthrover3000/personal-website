@@ -110,6 +110,41 @@ export function dayOf(ms, cut, tz) {
   return isoOf(wallMs(tz, ms) - hour * HOUR_MS);
 }
 
+// ── A READOUT'S TWO CHANGES: `24h` and `today` ─────────────────────────────
+// The one statement of what a readout's changes measure (user decisions
+// 2026-11-08 and 2026-11-22: "today's line should be wrt today's 4am …
+// SSOT everywhere"). For a reading at an instant:
+//   day    the last WHOLE sleep day before its own: the figure at that
+//          day's 04:00 to the figure at its own day's 04:00 (the `24h`
+//          column);
+//   today  its own sleep day so far: the figure at its day's 04:00 to it.
+// The figure at an edge is the newest reading strictly BEFORE it: the
+// counts only move at a reading, and a reading at 04:00 sharp is the new
+// day's. Python's `change_spans` is the same rule; cases.json `spans`
+// holds both to it.
+
+/** For each reading of `times` (epoch ms, ascending): { day: [a, b],
+ *  today: [b, i] } — indices into `times` whose difference is reading
+ *  i's change — or null where no reading is that old. */
+export function changeSpans(times, tz) {
+  const before = (edge) => {           // newest index strictly before
+    let lo = 0, hi = times.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (times[mid] < edge) lo = mid + 1; else hi = mid;
+    }
+    return lo - 1;
+  };
+  return times.map((ms, i) => {
+    const day = dayOf(ms, DAY_CUT.SLEEP, tz);
+    const [start] = dayWindow(day, DAY_CUT.SLEEP, tz);
+    const [prevStart] = dayWindow(isoOf(parseIso(day) - DAY_MS),
+                                  DAY_CUT.SLEEP, tz);
+    const a = before(prevStart), b = before(start);
+    return { day: a >= 0 ? [a, b] : null, today: b >= 0 ? [b, i] : null };
+  });
+}
+
 // ── THE SLEEP DAY'S HEAD: its time and its name ─────────────────────────────
 // The one statement of how a sleep day's time and date read (user requests
 // 2026-10-22 and 2026-10-26: the Noticeboard's title line, "SSOT the one
