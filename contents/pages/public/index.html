@@ -459,12 +459,14 @@ body:not(.with-sidebar) > :is(.sidebar, .sidebar-toggle, .sidebar-backdrop) {
 .controls-row .lock-controls { display: inline-flex; gap: 0.5rem; }
 .controls-row .lock-controls:empty { display: none; }
 
-/* ONE SWITCH STYLE: PILLS (user decisions 2026-11-16: "pills … SSOT",
-   then "a single style"): every row of choices with one on — a filter, a
-   view switch, a pick of names, AND a tab row (index_page `tabs_bar`,
-   `.tabs`, its on tab `.on`) — is drawn as these rounded pills, lifted
-   from 心灵疗愈 Inner Healing's chips. There is no underlined tab row
-   any more: a page that switches whole panels uses the same pills.
+/* TWO SWITCH STYLES, ONE JOB EACH (user decision 2026-11-23; a single
+   pill style from 2026-11-16 until then). A row that switches the WHOLE
+   VIEW of a page is underlined tabs (`.tabs`, below). A row of OPTIONS
+   inside a view — a filter, a pick of names, a scale — is these rounded
+   pills, lifted from 心灵疗愈 Inner Healing's chips.
+   The stats pages' radio and checkbox rows (.view-toggle, .series-toggle,
+   .group-toggle) are these pills too (user decision 2026-11-23): the input
+   is hidden and its label is the pill.
    Markup either way:
      <div class="chips" role="radiogroup">
        <button type="button" role="radio" aria-checked="true">Date</button>
@@ -473,20 +475,39 @@ body:not(.with-sidebar) > :is(.sidebar, .sidebar-toggle, .sidebar-backdrop) {
    The pill that is on wears the accent; a pill for something archived is
    dashed and muted (`.arch`). A page without --accent-soft gets a pale mix
    of the accent. */
-.chips, .tabs { display: flex; flex-wrap: wrap; gap: 0.35rem;
-  margin: 0.5rem 0; }
-.tabs { margin: 0 0 var(--head-end, 1rem); }   /* a tab row ends the head */
-.chips button, .tabs button { font: inherit; font-size: 0.88rem;
+.chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.5rem 0; }
+.chips button, .view-toggle label, .series-toggle label,
+.group-toggle label { font: inherit; font-size: 0.88rem;
   cursor: pointer; padding: 0.15rem 0.7rem; border-radius: 999px;
   border: 1px solid var(--border); background: var(--surface);
   color: var(--text); }
-.chips button[aria-checked="true"], .tabs button.on,
-.tabs button[aria-selected="true"] {
+.chips button[aria-checked="true"],
+:is(.view-toggle, .series-toggle, .group-toggle) input:checked + label {
   background: var(--accent-soft, color-mix(in srgb, var(--accent) 15%, var(--surface)));
   border-color: var(--accent); color: var(--accent); font-weight: 600; }
-.tabs button.on { cursor: default; }
 .chips button[hidden], .tabs button[hidden] { display: none; }
 .chips button.arch { border-style: dashed; color: var(--muted); }
+:is(.view-toggle, .series-toggle, .group-toggle) input {
+  position: absolute; opacity: 0; pointer-events: none; }
+:is(.view-toggle, .series-toggle, .group-toggle) input:focus-visible + label {
+  outline: 2px solid var(--accent); outline-offset: 1px; }
+:is(.view-toggle, .series-toggle, .group-toggle) input:disabled + label {
+  opacity: 0.4; cursor: not-allowed; }
+
+/* THE VIEW SWITCH: underlined tabs (index_page `tabs_bar`, its on tab
+   `.on`), each on its own bar with a gap between (user decision
+   2026-11-23), so a tab reads as a step. The tab on screen is dark text on
+   an accent bar; a tab row ends the head. */
+.tabs { display: flex; flex-wrap: wrap; gap: 0.3rem 0.7rem;
+  margin: 0 0 var(--head-end, 1rem); }
+.tabs button { background: none; border: 0;
+  border-bottom: 2px solid var(--border); padding: 0.2rem 0.15rem;
+  font: inherit; color: var(--muted); cursor: pointer; }
+.tabs button:hover { color: var(--text); border-bottom-color: var(--muted); }
+.tabs button:focus-visible { outline: 2px solid var(--accent);
+  outline-offset: 2px; }
+.tabs button.on, .tabs button[aria-selected="true"] { color: var(--text);
+  border-bottom-color: var(--accent); cursor: default; }
 
 /* ---- Head-region typography ---- */
 h1 {
@@ -1715,7 +1736,7 @@ a.app-card:hover {
 <div class="container">
 <div class="crumb-line"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="../../../">Personal Website</a> <span class="sep">›</span> <span aria-current="page">Index</span></nav><span class="head-controls"><button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">26,136 lines · 14,404 words · 907 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-11-23" class="relative-time relative-time-coarse">2026-11-23</time></p>
+<p class="head-meta"><a href="site-stats/">26,180 lines · 14,404 words · 907 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-11-23" class="relative-time relative-time-coarse">2026-11-23</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">

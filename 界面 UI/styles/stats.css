@@ -103,7 +103,6 @@ body:has(#group-categories:not(:checked)) .stats-table tfoot tr.part-row td:firs
   color: var(--muted);
   margin: 0 0 0.8rem;
 }
-.group-toggle label { cursor: pointer; }
 body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .section-bar { display: none; }
 /* Aggregate row for projects hidden at this tier — sits last in tbody,
    not part of the sort, visually softened so it reads as "rest". */
@@ -190,30 +189,6 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   color: var(--muted);
   margin: 0.5rem 0 0.8rem;
 }
-.view-toggle input[type="radio"] {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-.view-toggle label {
-  cursor: pointer;
-  padding: 0.2rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 0.8rem;
-  transition: border-color 0.15s, color 0.15s;
-}
-.view-toggle label:hover { color: var(--text); }
-.view-toggle input[type="radio"]:focus-visible + label {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-.view-toggle input[type="radio"]:checked + label {
-  color: var(--accent);
-  border-color: var(--accent);
-}
 /* Chart controls: two rows directly above the chart (which supplies its
    own top margin) — what is shown and over which stretch, then how the
    y-axis measures it (.ctl-break, below). Each row wraps on narrow
@@ -233,65 +208,25 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   flex-basis: 100%; height: 0;
   margin-bottom: -0.4rem;     /* one row gap between the rows, not two */
 }
-/* Tighter pills, so all thirteen fit one line in the column. */
+/* The shared pills, smaller, so all thirteen fit one line in the column. */
 .chart-controls { gap: 0.4rem 0.8rem; }
 .chart-controls .view-toggle,
 .chart-controls .series-toggle { gap: 0.25rem; }
 .chart-controls .view-toggle label,
-.chart-controls .series-toggle label { padding: 0.2rem 0.45rem; }
-/* Series checkboxes reuse the view-toggle pill look; each lights up in its
-   own series colour when checked (Lines = accent, Words = the warm word hue),
-   mirroring the chart legend. */
+.chart-controls .series-toggle label { font-size: 0.78rem;
+  padding: 0.12rem 0.42rem; }
+/* Series checkboxes are the shared pills (base.css); Words alone lights up
+   in its own series colour, mirroring the chart legend. */
 .series-toggle {
   display: flex;
   gap: 0.4rem;
   align-items: center;
   font-size: 0.8rem;
 }
-.series-toggle input[type="checkbox"] {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-.series-toggle label {
-  cursor: pointer;
-  padding: 0.2rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 0.8rem;
-  transition: border-color 0.15s, color 0.15s;
-}
-.series-toggle label:hover { color: var(--text); }
-.series-toggle input[type="checkbox"]:focus-visible + label {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-/* By id PREFIX: the engine suffixes each chart's control ids so two charts on
-   a page keep separate controls (source_stats/chart.py). */
-.series-toggle input[id^="series-lines"]:checked + label {
-  color: var(--accent);
-  border-color: var(--accent);
-}
 .series-toggle input[id^="series-words"]:checked + label {
+  background: color-mix(in srgb, var(--chart-words) 15%, var(--surface));
   color: var(--chart-words);
   border-color: var(--chart-words);
-}
-.series-toggle input[id^="projection-on"]:checked + label {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-.series-toggle input[type="checkbox"]:disabled + label {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* A disabled radio (the scale pair while the Table view shows — there is
-   nothing to scale) fades like a disabled series checkbox does. */
-.view-toggle input[type="radio"]:disabled + label {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 
 /* ── Year arrows + project picker: the row above the chart's pills ──────── */
