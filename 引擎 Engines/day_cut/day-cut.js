@@ -135,11 +135,16 @@ export function changeSpans(times, tz) {
     }
     return lo - 1;
   };
+  // One sleep day's edges serve every reading inside it: asking Intl for
+  // them per reading was 280 ms of Workshop Stats' load (2026-11-23).
+  let start = Infinity, end = -Infinity, prevStart;
   return times.map((ms, i) => {
-    const day = dayOf(ms, DAY_CUT.SLEEP, tz);
-    const [start] = dayWindow(day, DAY_CUT.SLEEP, tz);
-    const [prevStart] = dayWindow(isoOf(parseIso(day) - DAY_MS),
-                                  DAY_CUT.SLEEP, tz);
+    if (!(ms >= start && ms < end)) {
+      const day = dayOf(ms, DAY_CUT.SLEEP, tz);
+      [start, end] = dayWindow(day, DAY_CUT.SLEEP, tz);
+      [prevStart] = dayWindow(isoOf(parseIso(day) - DAY_MS),
+                              DAY_CUT.SLEEP, tz);
+    }
     const a = before(prevStart), b = before(start);
     return { day: a >= 0 ? [a, b] : null, today: b >= 0 ? [b, i] : null };
   });

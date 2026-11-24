@@ -215,6 +215,26 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
 .chart-controls .view-toggle label,
 .chart-controls .series-toggle label { font-size: 0.78rem;
   padding: 0.12rem 0.42rem; }
+/* The pills' row sits where it will once the bar moves into the chart's
+   grid: padding, because a margin collapses into the heading's before the
+   move and does not after it. */
+.section-heading + .chart-controls,
+.section-heading + .chart-hover-wrap.ch-side > .chart-controls {
+  margin-top: 0; padding-top: 0.5rem;
+}
+/* …and wraps as it will there: until the script moves it, the bar leaves
+   room for the readout's column (about 14.65rem with its gap), so a narrow
+   window's pills do not re-wrap and push the graph down. */
+@media (min-width: 40rem) {
+  .section-heading + .chart-controls { max-width: calc(100% - 14.65rem); }
+}
+/* Each pill is as wide as its bold self, on or off (render_controls'
+   data-t), so a choice restored on load moves no neighbour. */
+.chart-controls label[data-t] { display: inline-grid; justify-items: center; }
+.chart-controls label[data-t]::after {
+  content: attr(data-t); font-weight: 600;
+  height: 0; overflow: hidden; visibility: hidden;
+}
 /* Series checkboxes are the shared pills (base.css); Words alone lights up
    in its own series colour, mirroring the chart legend. */
 .series-toggle {
@@ -525,6 +545,26 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   animation: chart-reveal 0s 2.5s forwards;
 }
 @keyframes chart-reveal { to { opacity: 1; } }
+/* NOTHING MOVES AS THE CHART LOADS (user request 2026-11-23: the graph
+   "shouldn't change size when you render it"). The frame is its final
+   height from the first paint and stays unseen until the script has placed
+   it beside the readout; the drawing's height never depends on its width
+   (stats-table.js setChartWidth). 26px: its padding and border. */
+.line-history-svg[data-chart-points] {
+  height: calc(var(--chart-h) + 26px) !important;
+  box-sizing: border-box;
+}
+.line-history-svg[data-chart-points]:not([data-chart-ready]) {
+  visibility: hidden;
+  animation: chart-frame-reveal 0s 2.5s forwards;
+}
+@keyframes chart-frame-reveal { to { visibility: visible; } }
+/* Charts taking turns: until the script has chosen one, the others are
+   laid out (it measures them) but take no room on the page. */
+[data-chart-alts] { position: relative; }
+[data-chart-alts]:not([data-alts-ready]) > [data-chart-alt]:not(:first-child) {
+  position: absolute; top: 0; left: 0; right: 0; visibility: hidden;
+}
 /* ── Chart hover crosshair ──────────────────────────────────────────────────
    Progressive enhancement assembled at runtime by stats-table.js: it wraps
    .line-history-svg in .chart-hover-wrap, appends the .chart-readout beneath

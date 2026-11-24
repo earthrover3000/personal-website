@@ -1884,20 +1884,42 @@ whenSettled(function () {
       };
       const lnDeltaText = (i, key) => lnChange(span24[i], key);
       const lnTodayText = (i, key) => lnChange(spanToday[i], key);
+      // EVERY WIDTH IN ONE READ (2026-11-23): each text goes into one hidden
+      // box and the box is measured once. A single probe rewritten and read
+      // per text forced a style pass each time, ~800 ms of Workshop Stats'
+      // load. Only a series' extremes can be its longest text, so only they
+      // are formatted.
       function pinColumns() {
-        const probe = document.createElement('span');
-        probe.className = 'ch-val';
-        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
-        readout.appendChild(probe);
-        const longest = strs => strs.reduce((a, b) => b.length > a.length ? b : a, '');
-        const width = (strs, cls = 'ch-val') => {
-          probe.className = cls;
-          let w = 0;
-          for (const str of strs) {
-            probe.textContent = str;
-            w = Math.max(w, probe.getBoundingClientRect().width);
+        const box = document.createElement('div');
+        box.style.cssText = 'position:absolute;visibility:hidden;display:flex;'
+          + 'flex-direction:column;align-items:flex-start;white-space:pre';
+        const asked = new Map();
+        const ask = (text, cls = 'ch-val', isHtml = false) => {
+          const id = `${cls}\n${isHtml}\n${text}`;
+          let el = asked.get(id);
+          if (!el) {
+            el = document.createElement('span');
+            el.className = cls;
+            if (isHtml) el.innerHTML = text; else el.textContent = text;
+            box.append(el);
+            asked.set(id, el);
           }
-          return Math.ceil(w);
+          return el;
+        };
+        const longest = strs => strs.reduce((a, b) => b.length > a.length ? b : a, '');
+        // [the longest count, the longest exponent] of a series.
+        const widest = (list, key) => {
+          let lo = Infinity, hi = -Infinity, pos = Infinity;
+          for (const q of list) {
+            const v = q[key];
+            if (v == null) continue;
+            if (v < lo) lo = v;
+            if (v > hi) hi = v;
+            if (v > 0 && v < pos) pos = v;
+          }
+          if (hi === -Infinity) return [DASH, DASH];
+          return [longest([fmtCount(hi), fmtCount(lo)]),
+                  longest([lnText(hi), lnText(pos === Infinity ? hi : pos)])];
         };
         // A change column is as wide as a change of four digits (−9,999;
         // −9.99 on a chart with decimals, −99.9 pt for a share), whatever
@@ -1908,25 +1930,33 @@ whenSettled(function () {
         const unit = (plain ? 9999 : 10 - 10 ** -decimals) * unitScale;
         const wide = [`−${fmtNum(unit, decimals)}`, DASH];
         if (shareKeys.length) wide.push('−99.9 pt');
-        for (const key of ['total', 'words', ...roRows.map(r => r.k)]) {
+        const changes = head => [...wide, head]
+          .map(t => ask(t, 'ch-val ch-d'));
+        const columns = ['total', 'words', ...roRows.map(r => r.k)]
+          .map(key => ({
+            key,
+            count: [...widest(points, key), DASH].map(t => ask(t)),
+            delta: changes('24h'),
+            today: changes('today'),
+          }));
+        const keys = keyFloorHtml.map(h => ask(h, 'ch-key', true));
+        const totals = shareOn() ? []
+          : widest(rawPoints, 'total').map(t => ask(t));
+        readout.appendChild(box);
+        const px = new Map();
+        for (const el of asked.values()) {
+          px.set(el, el.getBoundingClientRect().width);
+        }
+        box.remove();
+        const most = els => Math.ceil(
+          els.reduce((w, el) => Math.max(w, px.get(el)), 0));
+        for (const { key, count, delta, today } of columns) {
           colW[key] = {
-            count: width([longest(points.map(q => fmtCount(q[key]))),
-                          longest(points.map(q => lnText(q[key]))), DASH]),
-            delta: width([...wide, '24h'], 'ch-val ch-d'),
-            today: width([...wide, 'today'], 'ch-val ch-d'),
+            count: most(count), delta: most(delta), today: most(today),
           };
         }
-        probe.className = 'ch-key';
-        floor.key = 0;
-        for (const h of keyFloorHtml) {
-          probe.innerHTML = h;
-          floor.key = Math.max(floor.key, probe.getBoundingClientRect().width);
-        }
-        floor.key = Math.ceil(floor.key);
-        floor.count = shareOn() ? 0 : width([
-          longest(rawPoints.map(q => fmtCount(q.total))),
-          longest(rawPoints.map(q => lnText(q.total)))]);
-        probe.remove();
+        floor.key = most(keys);
+        floor.count = most(totals);
       }
 
       // ONE ROW PER SERIES (user decision 2026-11-05): a heading row — the
@@ -2995,7 +3025,7 @@ whenSettled(function () {
   // A [data-chart-alts] block holds chart sections ([data-chart-alt=
   // "<label>"]) that take turns (user decision 2026-10-28: Workshop
   // Stats' Lines and Tracked size, "one graph with a toggle"). Each bar
-  // gains the same toggle, first; a switch hides the old section, carries
+  // is built with the same toggle, first; a switch hides the old section, carries
   // its choice of lines and its control settings to the new one, and
   // re-measures it. Which one is shown survives a reload, and an address
   // naming a section (#size) opens on it.
@@ -3046,26 +3076,15 @@ whenSettled(function () {
       }
       if (api && api.relayout) api.relayout();
     }
-    alts.forEach((sec, s) => {
+    alts.forEach(sec => {
       const bar = barOf(sec);
       if (!bar) return;
-      const box = document.createElement('div');
-      box.className = 'view-toggle segmented chart-alt-toggle';
-      box.setAttribute('role', 'radiogroup');
-      box.setAttribute('aria-label', 'Which chart');
-      alts.forEach((alt, i) => {
-        const r = document.createElement('input');
-        r.type = 'radio';
-        r.id = `chart-alt-${g}-${s}-${i}`;
-        r.name = `chart-alt-${g}-${s}`;
-        r.dataset.alt = String(i);
+      // The pill is in the built page (chart.render_controls `alts`), so it
+      // shows at the first paint; only its behaviour is added here.
+      bar.querySelectorAll('.chart-alt-toggle input').forEach(r => {
+        const i = Number(r.dataset.alt);
         r.addEventListener('change', () => { if (r.checked) show(i, true); });
-        const l = document.createElement('label');
-        l.htmlFor = r.id;
-        l.textContent = alt.dataset.chartAlt;
-        box.append(r, l);
       });
-      bar.prepend(box);
     });
     const named = alts.findIndex(
       sec => sec.id && '#' + sec.id === location.hash);
@@ -3074,5 +3093,6 @@ whenSettled(function () {
     catch (e) { /* storage off: open on the first */ }
     show(named >= 0 ? named : (saved >= 0 && saved < alts.length ? saved : 0),
          false);
+    group.dataset.altsReady = '1';   // stats.css: the others held out of flow
   });
 });
