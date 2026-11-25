@@ -19,7 +19,7 @@
 //     import { getJson, putJson, postJson, writeQueue, sayInto }
 //       from '…/界面 UI/page-widgets/helper-store.js';
 //
-//     const say = sayInto(document.getElementById('status'));
+//     const say = sayInto();          // the page's toast
 //     const enqueue = writeQueue();
 //     enqueue(async () => {
 //       try { data = await putJson(url, { rev: data.rev, … }); }
@@ -37,6 +37,8 @@
 // button that copies Origin's link to [w] Web → [l] Local server ↻ —
 // pasted into Origin's [e] Execute, or clicked where links open Origin.
 
+import './copy-text.js';      // window.copyButton, for the restart link
+
 export const RESTART_LINK = 'origin://web/helpers';
 
 export function helperDown(text) {
@@ -52,25 +54,54 @@ export function restartButton() {
   b.type = 'button';
   b.textContent = 'Copy restart link';
   b.title = RESTART_LINK;
-  b.addEventListener('click', async () => {
-    // window.copyText (page-widgets/copy-text.js): the page is plain
-    // http, where navigator.clipboard alone never copied.
-    const copied = window.copyText ? await window.copyText(RESTART_LINK)
-      : false;
-    b.textContent = copied ? 'Copied ✓' : RESTART_LINK;
-  });
+  // The copy answers on the button (copy-text.js `copyButton`); a failed
+  // one shows the link whole, to copy by hand.
+  b.addEventListener('click', () => window.copyButton(b, RESTART_LINK,
+    { onFail: () => { b.textContent = RESTART_LINK; } }));
   return b;
 }
 
-// A `say(text, bad, restart)` that writes into status element `s`: the
-// text, `.bad` when it is an error, and the restart button when asked.
-export function sayInto(s) {
-  return (text, bad = false, restart = false) => {
-    s.textContent = text || '';
-    s.classList.toggle('bad', !!bad);
-    if (restart) s.append(' ', restartButton());
-  };
+// THE PAGE'S MESSAGES FLOAT (user decision 2026-11-25: "it shouldn't take
+// extra space, it shouldn't move the content below it"): one toast at the
+// foot of the window, over the page, never in its flow — base.css
+// `.page-toast`. A message fades after a few seconds; an error stays until
+// it is clicked away, so a failed save is never missed. A copy is NOT
+// told here: its button answers (copy-text.js `copyButton`).
+const TOAST_MS = 4000;
+let toastEl = null;
+
+function toast() {
+  if (toastEl) return toastEl;
+  toastEl = document.createElement('div');
+  toastEl.className = 'page-toast';
+  toastEl.setAttribute('role', 'status');
+  toastEl.addEventListener('click', (ev) => {
+    if (ev.target.closest('button')) return;     // the restart button
+    hide();
+  });
+  document.body.append(toastEl);
+  return toastEl;
 }
+
+function hide() {
+  if (toastEl) toastEl.classList.remove('on');
+}
+
+// `say(text, bad, restart)`: the toast's one voice — the text, `.bad` when
+// it is an error, the restart button when asked; '' takes it down.
+export function say(text, bad = false, restart = false) {
+  const t = toast();
+  clearTimeout(say.timer);
+  if (!text) { hide(); return; }
+  t.textContent = text;
+  t.classList.toggle('bad', !!bad);
+  if (restart) t.append(' ', restartButton());
+  t.classList.add('on');
+  if (!bad) say.timer = setTimeout(hide, TOAST_MS);
+}
+
+// The older name, from when each page had a status line to write into.
+export const sayInto = () => say;
 
 // What a read refused with `status` means, in words.
 function readError(status, what) {

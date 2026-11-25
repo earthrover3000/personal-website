@@ -23,6 +23,8 @@
 //
 // A page imports it from the shelf and links styles/email.css.
 
+import './copy-text.js';      // window.copyButton: a copy answers on its button
+
 export const esc = (s) => String(s ?? '').replace(/[&<>"]/g,
   (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -106,38 +108,13 @@ export function emailText(m) {
 
 // ---- copying -----------------------------------------------------------
 
-// The older way to copy: select the text in a hidden box and ask the
-// browser to copy it. It works on a plain-http page (user report
-// 2026-11-08: http://ganymede.local:3000 is not a secure context, so
-// navigator.clipboard is missing there) as long as it runs inside the
-// click, before anything is awaited.
-function copyByHand(text) {
-  const box = document.createElement('textarea');
-  box.value = text;
-  box.setAttribute('readonly', '');
-  box.style.position = 'fixed';
-  box.style.opacity = '0';
-  document.body.appendChild(box);
-  box.select();
-  let ok = false;
-  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-  box.remove();
-  return ok;
-}
-
-// Copy `text`, then `tell` what happened, naming the field.
-export async function copyText(text, label, tell) {
-  if (!text) { tell('Nothing to copy.'); return; }
-  const done = `Copy successful: ${label}.`;
-  const blocked = 'Clipboard blocked; select and copy by hand.';
-  if (!(window.isSecureContext && navigator.clipboard)) {
-    tell(copyByHand(text) ? done : blocked);
-    return;
-  }
-  try {
-    await navigator.clipboard.writeText(text);
-    tell(done);
-  } catch (e) { tell(copyByHand(text) ? done : blocked); }
+// Copy `text` from button `btn`. The copy itself is copy-text.js's (it
+// works on a plain-http page, where navigator.clipboard is missing: user
+// report 2026-11-08), and so is the answer: the button reads "Copied ✓"
+// for a moment, never a message that moves the page (2026-11-25).
+export function copyText(text, btn) {
+  return window.copyButton(btn, text,
+    text ? {} : { failed: 'Nothing to copy' });
 }
 
 // Wire the copy buttons of the email drawn in `box`. `current()` is the
@@ -164,6 +141,8 @@ export function wireCopy(box, current, own, tell) {
     }[kind]();
     const label = { name: 'Name', from: 'From', to: 'To',
                     subject: 'Subject', body: 'Body' }[kind];
+    // `tell` is the page's message (its toast) for what is not a copy:
+    // a name to pick, a blank to fill.
     // AN UNFILLED [PLACEHOLDER] HOLDS THE COPY BACK (user decision
     // 2026-11-08): the first click says what is left to fill and arms the
     // button for five seconds; a second click copies anyway, for a gap
@@ -178,7 +157,7 @@ export function wireCopy(box, current, own, tell) {
       return;
     }
     delete b.dataset.armed;
-    copyText(text, label, tell);
+    copyText(text, b);
   });
 }
 

@@ -254,11 +254,6 @@
         if (!ok) throw new Error('copy');
       });
     }
-    function flash(btn, text) {
-      var was = btn.textContent;
-      btn.textContent = text;
-      setTimeout(function () { btn.textContent = was; }, 1500);
-    }
     function showPick(l, p) { showPickText(p.name, copyText(l, p)); }
     function showPickText(name, text) {
       var bar = q('.ac-pick');
@@ -266,9 +261,9 @@
         esc(text) + '</code><button type="button" class="ac-btn">Copy' +
         '</button><span class="ac-tip">or press C over any area</span>';
       var btn = bar.querySelector('button');
+      // The copy answers on the button (copy-text.js `copyButton`).
       btn.onclick = function () {
-        toClipboard(text).then(function () { flash(btn, 'Copied'); },
-                               function () { flash(btn, 'Select it'); });
+        window.copyButton(btn, text, { failed: 'Select it' });
       };
     }
     document.addEventListener('keydown', function (e) {

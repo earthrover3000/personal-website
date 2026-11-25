@@ -203,14 +203,18 @@ export function rememberFolds(key, folds) {
  *  the position is kept here: saved per `key` in sessionStorage as the
  *  page scrolls, and put back by the function this returns, which the
  *  page calls once its content is drawn. Call keepScroll once, early. */
-export function keepScroll(key) {
+export function keepScroll(key, scroller = null) {
+  // `scroller`: an element that scrolls on its own, kept the same way —
+  // a split page's pane (base.css .page-pane; user decision 2026-11-24:
+  // "refresh the message at its scroll position"). The window otherwise.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  const at = () => (scroller ? scroller.scrollTop : window.scrollY);
   let t = null;
   const save = () => {
-    try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); }
+    try { sessionStorage.setItem(key, String(Math.round(at()))); }
     catch (e) { /* private window */ }
   };
-  window.addEventListener('scroll', () => {
+  (scroller || window).addEventListener('scroll', () => {
     clearTimeout(t);
     t = setTimeout(save, 150);
   }, { passive: true });
@@ -221,6 +225,8 @@ export function keepScroll(key) {
     done = true;
     let y = 0;
     try { y = Number(sessionStorage.getItem(key)) || 0; } catch (e) { y = 0; }
-    if (y) window.scrollTo(0, y);
+    if (!y) return;
+    if (scroller) scroller.scrollTop = y;
+    else window.scrollTo(0, y);
   };
 }

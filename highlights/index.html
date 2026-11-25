@@ -779,6 +779,29 @@ details.fold[open] > summary::before { content: "\25BE "; }
 details.fold > .inside { padding: 0 0.9rem 0.9rem; }
 details.fold > .inside > :first-child { margin-top: 0.2rem; }
 
+/* THE PAGE'S MESSAGES FLOAT (user decision 2026-11-25: "it shouldn't take
+   extra space, it shouldn't move the content below it"): page-widgets/
+   helper-store.js `say` draws one toast at the foot of the window, over
+   the page and out of its flow. An error (`.bad`) stays until clicked.
+   The look is the Repository Map's toast, which floated first. */
+.page-toast { position: fixed; left: 50%; bottom: 1.5rem; z-index: 50;
+  transform: translateX(-50%); max-width: calc(100% - 2rem);
+  padding: 0.5rem 0.9rem; border-radius: 8px;
+  background: var(--text); color: var(--bg);
+  font-size: 0.85rem; overflow-wrap: anywhere; cursor: default;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity 0.2s, visibility 0s 0.2s; }
+.page-toast.on { opacity: 0.95; visibility: visible; pointer-events: auto;
+  transition: opacity 0.2s; }
+.page-toast.bad { background: var(--anchor-red); color: #fff;
+  cursor: pointer; }
+.page-toast button.linkish { color: inherit; text-decoration: underline; }
+
+/* A COPY ANSWERS ON ITS BUTTON (user decision 2026-11-25): copy-text.js
+   `copyButton` turns the button's words to "Copied ✓" for a moment. */
+.copied { color: var(--accent); }
+.copy-failed { color: var(--anchor-red); }
+
 /* Index-page-specific styles (root, protected, private). Layered on top of
    base.css — theme tokens, body, h1, .head-meta, .container live
    there. Index pages render block-style anchor links and sidebar
