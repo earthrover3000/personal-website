@@ -62,6 +62,11 @@
      a media query can't read a variable, so that number is written at
      both rules. */
   --halves-gap: 2rem;
+  /* A SPLIT PAGE'S COLUMN (user decision 2026-11-26): wider than
+     --column, so each half reads as a page of its own (about 544px, not
+     424px). 1120px leaves the margins clear in a 1280px-wide window, the
+     maximised browser on a 4K screen at 3× scale. */
+  --split-column: 1120px;
   /* THE PAGE'S EDGE, named (2026-10-22): `body`'s padding below, and
      anything that paints the gap — the Hub's bedtime frame — reads these
      rather than restating the rule. */
@@ -183,7 +188,8 @@ body {
    holding `.page-side` then `.page-pane`. 600px and under, one column,
    the pane after the side. */
 .container.split { display: flex; gap: var(--halves-gap);
-                   align-items: flex-start; }
+                   align-items: flex-start;
+                   max-width: var(--split-column); }
 .container.split > .page-side,
 .container.split > .page-pane { flex: 1; min-width: 0; }
 .container.split > .page-pane {

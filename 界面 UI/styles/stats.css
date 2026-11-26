@@ -208,12 +208,15 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
   flex-basis: 100%; height: 0;
   margin-bottom: -0.4rem;     /* one row gap between the rows, not two */
 }
-/* The shared pills, smaller, so all thirteen fit one line in the column. */
+/* The shared pills, smaller, so all thirteen fit one line in the column —
+   and Workshop Stats' Parts wears the same (user decision 2026-11-26:
+   one pill size on the page). */
 .chart-controls { gap: 0.4rem 0.8rem; }
-.chart-controls .view-toggle,
-.chart-controls .series-toggle { gap: 0.25rem; }
-.chart-controls .view-toggle label,
-.chart-controls .series-toggle label { font-size: 0.78rem;
+/* A segmented pill keeps no gap: its halves meet (base.css). */
+:is(.chart-controls, .parts-controls)
+  :is(.view-toggle:not(.segmented), .series-toggle) { gap: 0.25rem; }
+:is(.chart-controls, .parts-controls)
+  :is(.view-toggle, .series-toggle) label { font-size: 0.78rem;
   padding: 0.12rem 0.42rem; }
 /* The pills' row sits where it will once the bar moves into the chart's
    grid: padding, because a margin collapses into the heading's before the
@@ -230,8 +233,10 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
 }
 /* Each pill is as wide as its bold self, on or off (render_controls'
    data-t), so a choice restored on load moves no neighbour. */
-.chart-controls label[data-t] { display: inline-grid; justify-items: center; }
-.chart-controls label[data-t]::after {
+:is(.chart-controls, .parts-controls) label[data-t] {
+  display: inline-grid; justify-items: center;
+}
+:is(.chart-controls, .parts-controls) label[data-t]::after {
   content: attr(data-t); font-weight: 600;
   height: 0; overflow: hidden; visibility: hidden;
 }
@@ -432,7 +437,22 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
 #code-outline :is(td, th)[class*="blk-"] {
   padding-left: 0.3rem; padding-right: 0.3rem;
 }
-.parts-toggle { margin: 0.5rem 0; }
+/* Lines | Size and, while Lines shows, Own | With libraries and
+   Projection, on one row — its margin the row's, so no pill's own
+   margin sets it off its neighbours. */
+.parts-controls { display: flex; align-items: center; gap: 0.8rem;
+  margin: 0.5rem 0; }
+.parts-controls > * { margin: 0; }
+.parts-controls > [hidden] { display: none; }
+/* PROJECTION (user decisions 2026-11-26): the Total's projected figures
+   in italics, still bold, as a Total's: grey here means "before its
+   record began", so they are not faded as the chart's dashed line is. */
+#code-outline td.blk-projected { font-style: italic; }
+/* Own | With libraries (user decision 2026-11-26): a cell holding both
+   shows the one chosen. */
+#code-outline:not(.show-libs) .v-libs,
+#code-outline.show-libs .v-own { display: none; }
+#code-outline .blk-sizer > .proj-fig { font-style: italic; }
 /* A part's short form ahead of its name (Workshop Stats: `atl · Lifespan
    Atlas`): monospace, so every name after it starts at one edge. */
 .stats-table .part-key {
@@ -494,6 +514,53 @@ body:has(#group-categories:not(:checked)) :is(#project-outline, #app-outline) .s
 /* Its day switch (user decision 2026-11-17): the year arrows' look, over
    the histogram's left edge. */
 .day-nav { margin-top: 0.5rem; }
+/* Daily lines' range slider (user decisions 2026-11-26): the blocks
+   whose days count. Two native range inputs share one track, only their
+   handles taking the pointer; the accent fills between them. Its label
+   in the year switch's two lines, to its RIGHT: a label of changing
+   width before it moved the track under the pointer. */
+.range-pick {
+  display: grid; grid-template-columns: 14rem auto; align-items: center;
+  column-gap: 1rem; margin-top: 0.5rem; width: max-content;
+}
+.range-pick .rp-track { grid-column: 1; grid-row: 1; }
+.range-pick .rp-ticks { grid-column: 1; grid-row: 2; }
+.range-pick .rp-label { display: flex; flex-direction: column;
+  grid-column: 2; grid-row: 1 / span 2; }
+.range-pick .rp-label .year-name { font-weight: 600; }
+.range-pick .rp-label .year-span { font-size: 0.78rem; color: var(--muted); }
+.rp-track { position: relative; height: 1.2rem; }
+.rp-track::before, .rp-fill {
+  content: ''; position: absolute; top: 50%; height: 4px;
+  margin-top: -2px; border-radius: 2px;
+}
+.rp-track::before { left: 0; right: 0; background: var(--border); }
+.rp-fill { background: var(--accent); }
+.rp-track input[type="range"] {
+  position: absolute; inset: 0; width: 100%; margin: 0;
+  background: none; pointer-events: none;
+  -webkit-appearance: none; appearance: none;
+}
+.rp-track input[type="range"]::-webkit-slider-runnable-track {
+  background: none; border: 0; }
+.rp-track input[type="range"]::-moz-range-track { background: none; }
+.rp-track input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; pointer-events: auto;
+  width: 14px; height: 14px; border-radius: 50%; cursor: pointer;
+  background: var(--surface); border: 2px solid var(--accent);
+}
+.rp-track input[type="range"]::-moz-range-thumb {
+  pointer-events: auto; width: 10px; height: 10px; border-radius: 50%;
+  cursor: pointer; background: var(--surface);
+  border: 2px solid var(--accent);
+}
+.rp-track input[type="range"]:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--accent); outline-offset: 2px; }
+/* A tick's number under each block, centred on its stop: the handles'
+   travel is the track less a handle, so the ticks are inset by half. */
+.rp-ticks { position: relative; height: 1rem; margin: 0 7px;
+  font-size: 0.72rem; color: var(--muted); }
+.rp-tick { position: absolute; transform: translateX(-50%); }
 .day-histogram .day-hit { fill: transparent; }
 /* Touching bars, NO SEPARATOR (user decision 2026-11-18): a histogram
    is about its shape, and the pointer names a bin when one is wanted —

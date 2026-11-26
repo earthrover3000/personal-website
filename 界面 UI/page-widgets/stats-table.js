@@ -956,19 +956,26 @@ whenSettled(function () {
       function projFrom() {
         const line = projLine();
         if (!line) return null;
-        const { k } = line;
+        const from = projBase(points.map(p => p[line.k]));
+        return from && { ...from, ...line };
+      }
+      // THE RULE, once: the newest of `vals` (one per point) {t, v} and
+      // its rate a day since `start` (or its first reading, if later);
+      // null once it has reached the end. The dashed line reads it off the
+      // line it is drawn on, Parts (chartApi.projection) off the counts.
+      function projBase(vals) {
         let last = -1, base = -1;
-        for (let i = points.length - 1; i >= 0; i--) {
-          if (points[i][k] == null) continue;
+        for (let i = vals.length - 1; i >= 0; i--) {
+          if (vals[i] == null) continue;
           if (last < 0) last = i;
           base = i;                          // the earliest so far…
           if (+dates[i] < projStartMs) break; // …or the last before start
         }
         if (last < 0 || +dates[last] >= projEndMs) return null;
-        const t = +dates[last], v = points[last][k];
+        const t = +dates[last], v = vals[last];
         const days = (t - +dates[base]) / DAY_MS;
-        const rate = days > 0 ? (v - points[base][k]) / days : 0;
-        return { t, v, rate, ...line };
+        const rate = days > 0 ? (v - vals[base]) / days : 0;
+        return { t, v, rate };
       }
       const projAt = (from, t) => from.v + from.rate * (t - from.t) / DAY_MS;
       // The back piece as projFrom gives the forward one — its first
@@ -1251,6 +1258,49 @@ whenSettled(function () {
         projCb.disabled = !projLine(true);
         const from = projFrom();
         if (from) projPath = dashed(from, from.t, projEndMs, y);
+        announceProjection();
+      }
+      // ── The projection for Workshop Stats' Parts (user decision
+      // 2026-11-26) ──────────────────────────────────────────────────────
+      // The table projects the Total's lines from this chart, never on its
+      // own: `chartApi.projection()` is the All projects line's in counts
+      // — whatever this chart shows — by the rule above, with today's
+      // block and the one after it as the marks engine has them
+      // (`projBlocks`, below), and the Projection pill's state. Null until
+      // the engine has said, or with nothing to project. Every redraw
+      // tells the page (`chart-projection`, bubbling), so the table
+      // repaints with the line.
+      let projBlocks = null;      // [{startMs, endMs, label}] ×2
+      svg.chartApi.projection = () => {
+        if (!projData || !projBlocks || !projCb) return null;
+        // The payload's totals in the view's points (`points.total`
+        // follows whatever line is drawn): the live point's own, past it.
+        const vals = idxMap.map(j => j < rawPoints.length
+          ? rawPoints[j].total : live ? live.total : null);
+        const from = projBase(vals);
+        if (!from) return null;
+        // The counts at a moment: recorded up to the newest point (the
+        // last reading before it), projected after.
+        const at = ms => {
+          if (ms > from.t) return projAt(from, ms);
+          let v = null;
+          for (let i = 0; i < vals.length && +dates[i] < ms; i++) {
+            if (vals[i] != null) v = vals[i];
+          }
+          return v;
+        };
+        return { at, rate: from.rate, blocks: projBlocks,
+                 on: projCb.checked,
+                 set: on => {
+                   if (projCb.checked === on) return;
+                   projCb.checked = on;
+                   projCb.dispatchEvent(new Event('change'));
+                 } };
+      };
+      function announceProjection() {
+        if (!projData) return;
+        svg.dispatchEvent(new CustomEvent('chart-projection',
+                                          { bubbles: true }));
       }
 
       function redraw(mode) {
@@ -1467,9 +1517,16 @@ whenSettled(function () {
           }
           if (projData && after) {
             projEndMs = after.endMs;
+            // Labelled as Zoom's blocks are (the axis's "*23").
+            projBlocks = [today, after].map(b => {
+              const z = zoomBlocks.find(zb => zb.startMs === b.startMs);
+              return { startMs: b.startMs, endMs: b.endMs,
+                       label: z ? z.label : '' };
+            });
           }
           if (zoomOn()) applySpan();
           else if (projOn()) reapply();
+          announceProjection();
         }
         if (!yr && winEndMs > domainMaxMs) {
           domainMaxMs = winEndMs;

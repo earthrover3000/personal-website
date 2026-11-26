@@ -134,6 +134,11 @@
      a media query can't read a variable, so that number is written at
      both rules. */
   --halves-gap: 2rem;
+  /* A SPLIT PAGE'S COLUMN (user decision 2026-11-26): wider than
+     --column, so each half reads as a page of its own (about 544px, not
+     424px). 1120px leaves the margins clear in a 1280px-wide window, the
+     maximised browser on a 4K screen at 3× scale. */
+  --split-column: 1120px;
   /* THE PAGE'S EDGE, named (2026-10-22): `body`'s padding below, and
      anything that paints the gap — the Hub's bedtime frame — reads these
      rather than restating the rule. */
@@ -255,7 +260,8 @@ body {
    holding `.page-side` then `.page-pane`. 600px and under, one column,
    the pane after the side. */
 .container.split { display: flex; gap: var(--halves-gap);
-                   align-items: flex-start; }
+                   align-items: flex-start;
+                   max-width: var(--split-column); }
 .container.split > .page-side,
 .container.split > .page-pane { flex: 1; min-width: 0; }
 .container.split > .page-pane {
@@ -1782,7 +1788,7 @@ a.app-card:hover {
 <div class="container">
 <div class="crumb-line"><nav class="breadcrumb" aria-label="Breadcrumb"><a href="home/">Personal Website</a> <span class="sep">›</span> <span aria-current="page">Protected Index</span></nav><span class="head-controls"><button type="button" class="cat-chips__toggle" aria-expanded="false">Filter ▸</button><button type="button" class="planned-switch" aria-pressed="false"><span>Planned</span><span class="planned-switch__track"><span class="planned-switch__knob"></span></span></button></span></div>
 <h1>Charlie 智澄's Galaxy</h1>
-<p class="head-meta"><a href="site-stats/">26,183 lines · 14,404 words · 907 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-11-25T16:47:26Z" title="2026-11-25 16:47 UTC" class="relative-time">2026-11-25</time></p>
+<p class="head-meta"><a href="site-stats/">26,185 lines · 12,312 words · 901 字 📊</a> ✦ <a href="site-roadmap/">Phase 0.4 (2026-08-21) 🛣️</a> ✦ Last updated <time datetime="2026-11-26T11:26:00Z" title="2026-11-26 11:26 UTC" class="relative-time">2026-11-26</time></p>
 <div class="filter-row">
   <input type="search" class="filter" placeholder="Search…" aria-label="Search entries on this page">
   <select class="tier-nav" onchange="if(this.value)location.href=this.value" aria-label="Switch index">
