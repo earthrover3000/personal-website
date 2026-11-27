@@ -136,12 +136,9 @@
     var pageRadius = parseFloat(document.body.dataset.mapPopoverRadiusKm);
     var RADIUS_KM = (isFinite(pageRadius) && pageRadius > 0) ? pageRadius : DEFAULT_RADIUS_KM;
 
+    // The shared local-scale rule (map-basemap.js): widthPx spans 2 × RADIUS_KM.
     function computeZoom(lat, widthPx) {
-      // Web Mercator: meters_per_pixel = 156543.03392 × cos(lat) / 2^zoom.
-      // Want widthPx pixels to span 2 × RADIUS_KM × 1000 metres.
-      // → 2^zoom = 156543.03392 × cos(lat) × widthPx / (2000 × RADIUS_KM)
-      var latRad = lat * Math.PI / 180;
-      return Math.log2(156543.03392 * Math.cos(latRad) * widthPx / (2000 * RADIUS_KM));
+      return MAP_BASEMAP.zoomForRadius(lat, widthPx, RADIUS_KM);
     }
 
     function ensureMap() {

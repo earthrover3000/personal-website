@@ -10,6 +10,7 @@
 //   MAP_BASEMAP.addTo(map);                       // canonical OSM layer, theme-aware
 //   MAP_BASEMAP.addTo(map, { attribution: false });  // for a chrome-less thumbnail
 //   MAP_BASEMAP.isDark();                         // for callers that must pick their own colours
+//   MAP_BASEMAP.zoomForRadius(lat, widthPx, km);  // the zoom at which widthPx spans 2·km of ground
 //
 // DARK MODE IS A FILTER OVER THE TILES, not a second tile provider. The obvious candidates were
 // both dead ends when checked: CARTO's dark_matter now needs an API key and watermarks its raster
@@ -34,6 +35,18 @@
   // Exported so the PNG exporter can apply the same transform to the canvas it composites; a
   // CSS filter on the DOM does not reach a canvas drawn from the raw tile images.
   var DARK_FILTER = 'invert(0.92) hue-rotate(180deg)';
+
+  // THE LOCAL-SCALE ZOOM, said once (it was written out in map-explorer.js and map-popover.js):
+  // the fractional zoom at which widthPx pixels span 2 × radiusKm of ground at latitude lat, so
+  // every place shows the same ground span whatever Mercator's stretch there. Web Mercator, 256-px
+  // tiles: metres per pixel = 156543.03392 × cos(lat) / 2^zoom, so
+  //     2^zoom = 156543.03392 × cos(lat) × widthPx / (2000 × radiusKm).
+  // Leaflet needs zoomSnap: 0 to keep the fraction. Google and OSM define zoom alike; the
+  // Python twin, for Google Maps links, is contacts.map_zoom (引擎 Engines/contacts), with the
+  // width taken out — Maps opens a link only at a whole zoom.
+  function zoomForRadius(lat, widthPx, radiusKm) {
+    return Math.log2(156543.03392 * Math.cos(lat * Math.PI / 180) * widthPx / (2000 * radiusKm));
+  }
 
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
@@ -68,6 +81,7 @@
     maxZoom: TILE_MAXZOOM,
     DARK_FILTER: DARK_FILTER,
     isDark: isDark,
+    zoomForRadius: zoomForRadius,
 
     // crossOrigin defaults ON: without it the exporter's canvas is tainted and toBlob throws, and
     // that failure surfaces far from here as a silently broken Save PNG.

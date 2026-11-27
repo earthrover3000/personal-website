@@ -115,15 +115,6 @@
     return mount;
   }
 
-  // Leaflet's tile-zoom rule (Math.round of fractional view zoom) — same
-  // formula used inside map-popover.js and map-export.js. Fractional
-  // zoom from this gives every location the same on-screen ground span
-  // regardless of latitude, accounting for Mercator stretching.
-  function computeZoom(lat, widthPx, radiusKm) {
-    var latRad = lat * Math.PI / 180;
-    return Math.log2(156543.03392 * Math.cos(latRad) * widthPx / (2000 * radiusKm));
-  }
-
   function escHtml(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
@@ -594,7 +585,7 @@
       canvas.style.borderRadius = '50%';
       if (!lmap) {
         lmap = L.map(canvas, {
-          // zoomSnap: 0 — we pass fractional zooms from computeZoom and
+          // zoomSnap: 0 — we pass fractional zooms from zoomForRadius and
           // don't want them rounded.
           zoomSnap: 0,
           zoomControl: false, attributionControl: false,
@@ -614,7 +605,8 @@
       setTimeout(function () {
         lmap.invalidateSize();
         var r = canvas.getBoundingClientRect();
-        var z = computeZoom(lat, r.width, radiusKm);
+        // The shared local-scale rule: the same ground span at every latitude.
+        var z = MAP_BASEMAP.zoomForRadius(lat, r.width, radiusKm);
         lmap.setView([lat, lon], z);
         rzEl.textContent = radiusKm + ' km radius · zoom ' + z.toFixed(4);
         actualEl.textContent = 'rendered: ' + Math.round(r.width) + ' × ' + Math.round(r.height) + ' px';
