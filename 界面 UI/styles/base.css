@@ -79,6 +79,9 @@
      plus 0.35rem padding above and below. */
   --row-h: calc(1.1rem * 1.4 + 0.7rem);
   --row-gap: 0.2rem;
+  /* THE BUTTON's height (.controls-row, `button.button`): 0.9rem text at
+     line-height 1.5, plus its padding and border. */
+  --control-h: calc(0.9rem * 1.5 + 0.6rem + 2px);
   /* THE BREADCRUMB ROW's one height (user decisions 2026-10-18): the trail's
      text size at line-height 1.5, and everything that sits on that line —
      the crumbs, the Coordination Hub's part switch, the page controls at
@@ -374,21 +377,25 @@ body:not(.with-sidebar) > :is(.sidebar, .sidebar-toggle, .sidebar-backdrop) {
    button's height a moment later, pushing the page down 36px. It is one
    button tall from the start — the buttons' own height, from the same
    numbers (font size × line height + padding + border). */
-.controls-row { --control-h: calc(0.9rem * 1.5 + 0.6rem + 2px);
+.controls-row {
   display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
   min-height: var(--control-h); margin: 0.3rem 0 0.9rem; }
 .controls-row [hidden] { display: none !important; }
+/* THE BUTTON (user decision 2026-11-27: "＋ Needs should be a ssot
+   prettier button"): `button.button` wears this look wherever it stands,
+   in the row or inside a page (Dependencies' ＋ Needs, the Death Plan's
+   browser key), so no page restyles a button of its own. */
 .controls-row > button, .controls-row .lock-controls > button,
-.controls-row #edit-btn, .controls-row #save-btn {
+.controls-row #edit-btn, .controls-row #save-btn, button.button {
   font: inherit; font-size: 0.9rem; line-height: 1.5;
   padding: 0.3rem 0.9rem; box-sizing: border-box;
   min-height: var(--control-h);
   border-radius: 4px; cursor: pointer; margin: 0; }
-.controls-row > button.button, .controls-row .lock-controls > button,
+button.button, .controls-row .lock-controls > button,
 .controls-row #edit-btn {
   color: var(--text); background: var(--surface);
   border: 1px solid var(--border); }
-.controls-row #edit-btn.active, .controls-row > button.button.active {
+.controls-row #edit-btn.active, button.button.active {
   border-color: var(--accent); color: var(--accent); }
 .controls-row .lock-controls { display: inline-flex; gap: 0.5rem; }
 .controls-row .lock-controls:empty { display: none; }
